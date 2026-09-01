@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Captura simulada — pruebas</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 14px; margin: 20px; }
+  fieldset { margin-bottom: 14px; }
+  legend { font-weight: bold; }
+  label { display: inline-block; width: 190px; }
+  input, select { margin: 2px 0; }
+  .swal2-container { position: fixed; top: 10px; right: 10px; background: #ffe; border: 2px solid #ca3; padding: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Captura de Ventas DSC — simulada</h2>
+<p>
+  Replica los ids, el <code>disabled</code> progresivo y los <code>onclick</code> reales.
+  Sirve para probar el motor sin tocar Dinamo. En la consola:
+  <code>await __correr()</code> y luego revisa <code>__eventos</code>.
+</p>
+
+<fieldset><legend>Tipo de venta</legend>
+  <label>Tipo de venta</label><select id="cmbTp"><option value="1">CREDITO</option><option value="2">CONTADO</option></select><br>
+  <label>Tipo de unidad</label><select id="cmbUni"><option value="1">NUEVA</option><option value="2">SEMINUEVA</option></select><br>
+  <label>Esquema</label><select id="cmbEsquemaVenta"><option value="">--SELECCIONE--</option><option value="1">CREDINAMO</option><option value="15">MOTOXPRESS</option></select><br>
+  <label>Subesquema</label><select id="cmbSubesquemaVenta"><option value="">--SELECCIONE--</option><option value="10">ASALARIADO</option></select><br>
+  <input type="button" id="btnSig" value="Siguiente" onclick="nextStep()">
+</fieldset>
+
+<fieldset id="fs-moto"><legend>Motocicleta</legend>
+  <label>Ubicación</label><select id="cboagencia_pto" disabled></select><br>
+  <label>Año</label><select id="cboanios" disabled></select><br>
+  <label>Modelo</label><select id="cbomodelos" disabled></select><br>
+  <label>Color</label><select id="cbocolores" disabled></select><br>
+  <label>Plazo</label><select id="cboplazo" disabled><option value="546">36</option><option value="541">24</option></select>
+  <table id="accesorios">
+    <tr><td>100424003</td><td id="tdDescripcion_90">DIRECCIONAL NEGRO MATE</td><td><input id="canAcce_90" value="0" disabled></td></tr>
+    <tr><td>590144001</td><td id="tdDescripcion_91">SERVICIO PREVENTIVO 1</td><td><input id="canAcce_91" value="0" onblur="modifica_accesorios()" disabled></td></tr>
+    <tr><td>590144002</td><td id="tdDescripcion_92">SERVICIO PREVENTIVO 2</td><td><input id="canAcce_92" value="0" disabled></td></tr>
+  </table>
+</fieldset>
+
+<fieldset id="fs-cliente"><legend>Datos del cliente</legend>
+  <label>Buscar</label><input id="txt_buscar_cliente">
+  <input type="button" class="btn-primary" value="Buscar" onclick="javascript:buscar_cliente()"><br>
+  <label>Nombre(s)</label><input id="txtnombre" disabled><br>
+  <label>Paterno</label><input id="txtpaterno" disabled><br>
+  <label>Materno</label><input id="txtmaterno" disabled><br>
+  <label>CURP</label><input id="txtcurp" maxlength="18" disabled><br>
+  <label>idCIF</label><input id="txtife" maxlength="13" disabled><br>
+  <label>Medio</label><select id="cbomedio" disabled><option value="0">-SELECCIONAR-</option><option value="14">REDES SOCIALES</option></select><br>
+  <label>Actividad</label><input id="txt_otro" disabled><br>
+  <label>Email</label><input id="txtemail" disabled>
+  <select id="cbo_dominio" disabled><option value="1">gmail.com</option><option value="2">hotmail.com</option></select>
+  <input type="button" class="btn-warning" value="Validar Email" onclick="on_validar_email()"><br>
+  <input type="button" name="ButtonDF" id="ButtonDF" value="Datos Fiscales" onclick="showFiscal()">
+  <input type="button" value="Validar Datos" onclick="javascript:valida_cliente();validacionesSDF();">
+</fieldset>
+
+<fieldset id="fs-dom"><legend>Domicilio</legend>
+  <label>Calle</label><input id="txtcalle" disabled><br>
+  <label>Entre calles</label><input id="txtentre" disabled><br>
+  <label>Núm. ext</label><input id="txtnum_ext" disabled><br>
+  <label>Colonia</label><input id="txtcolonia" readonly disabled><br>
+  <label>CP</label><input id="txtcp" readonly disabled><br>
+  <label>Municipio</label><input id="txtmpio" readonly disabled><br>
+  <label>Ciudad</label><input id="txtciudad" readonly disabled><br>
+  <a href="javascript:sepomex('CLI')">Cepomex</a><br>
+  <label>Vivienda</label><select id="cbovivienda" disabled><option value="0">--</option><option value="2">RENTADA</option></select><br>
+  <label>Antigüedad</label><input id="txtant_anios" maxlength="2" disabled><br>
+  <label>Hora desde</label><select id="cbohora_de" disabled><option value="10">10</option></select><br>
+  <label>Hora hasta</label><select id="cbohora_a" disabled><option value="12">12</option></select><br>
+  <label>Lada</label><input id="txtlada" maxlength="3" disabled><br>
+  <label>Teléfono</label><input id="txttelefono" maxlength="7" disabled><br>
+  <label>Verificación</label><input type="checkbox" id="check_cli_A" disabled><br>
+  <input type="button" value="Validar Datos" onclick="javascript:valida_domicilio()">
+</fieldset>
+
+<fieldset id="fs-emp"><legend>Empleo</legend>
+  <label>Empleo</label><input id="txtempleo" disabled><br>
+  <label>Años</label><input id="txtant_anios_emp" disabled><br>
+  <label>Meses</label><select id="cboant_meses_emp" disabled><option value="0">0</option><option value="6">6</option></select><br>
+  <label>Sector</label><select id="cbosector" disabled><option value="1">GOBIERNO</option><option value="2">PRIVADO</option></select><br>
+  <label>Puesto</label><input id="txtpuesto" disabled><br>
+  <label>Frecuencia</label><select id="cbofrecuencia_pago" disabled><option value="0">-- Elija --</option><option value="2">QUINCENAL</option></select><br>
+  <label>Sueldo</label><input id="txtsueldo" disabled><br>
+  <label>Jefe</label><input id="txtjefe" disabled><br>
+  <label>Oficina</label><select id="cbooficina" disabled><option value="1">CASA</option><option value="2">EDIFICIO</option></select><br>
+  <label>Calle</label><input id="txtcalle_emp" disabled><br>
+  <label>Núm. ext</label><input id="txtnum_ext_emp" disabled><br>
+  <label>Colonia</label><input id="txtcolonia_emp" readonly disabled><br>
+  <a href="javascript:sepomex('EMP')">Cepomex lab</a><br>
+  <label>Hora desde</label><select id="cbohora_de_emp" disabled><option value="16">16</option></select><br>
+  <label>Hora hasta</label><select id="cbohora_a_emp" disabled><option value="18">18</option></select><br>
+  <label>Lada</label><input id="txtlada_emp" maxlength="3" disabled><br>
+  <label>Teléfono</label><input id="txttelefono_emp" maxlength="7" disabled><br>
+  <label>Tipo tel</label><select id="cbotipo_tel_emp" disabled><option value="1">FIJO</option><option value="5">CELULAR</option></select><br>
+  <label>Verificación</label><input type="checkbox" id="check_emp_A" disabled><br>
+  <input type="button" value="Validar Datos" onclick="javascript:valida_empleo()">
+</fieldset>
+
+<fieldset id="fs-ref"><legend>Referencia 1</legend>
+  <label>Tipo</label><select id="cbotipo_ref" disabled><option value="0">--</option><option value="1">Comercial/Personal</option></select><br>
+  <label>Nombre</label><input id="txtnombre_ref" disabled><br>
+  <label>Paterno</label><input id="txtpaterno_ref" disabled><br>
+  <label>Materno</label><input id="txtmaterno_ref" disabled><br>
+  <label>Calle</label><input id="txtcalle_ref" disabled><br>
+  <label>Núm. ext</label><input id="txtnum_ext_ref" disabled><br>
+  <label>Estatus lab</label><select id="cmbStatusLabRef1" disabled><option value="0">--</option><option value="2">OTRO</option></select><br>
+  <label>Centro lab</label><input id="txtCentroLabRef1" disabled><br>
+  <a href="javascript:sepomex('REF')">Cepomex ref</a><br>
+  <label>Hora desde</label><select id="cbohora_de_ref" disabled><option value="10">10</option></select><br>
+  <label>Hora hasta</label><select id="cbohora_a_ref" disabled><option value="12">12</option></select><br>
+  <label>Lada</label><input id="txtlada_ref" maxlength="3" disabled><br>
+  <label>Teléfono</label><input id="txttelefono_ref" maxlength="7" disabled><br>
+  <label>Tipo tel</label><select id="cbotipo_tel_ref" disabled><option value="1">FIJO</option><option value="5">CELULAR</option></select><br>
+  <label>Verificación</label><input type="checkbox" id="check_ref_A" disabled><br>
+  <input type="button" value="Validar Datos" onclick="javascript:valida_referencia()">
+</fieldset>
+
+<fieldset id="fs-final"><legend>Cierre</legend>
+  <label>Comentario</label><textarea id="txtcomenta" disabled></textarea><br>
+  <input type="button" class="btn-primary" value="Grabar" onclick="javascript:valida()">
+</fieldset>
+
+<script>
+// --- La página, imitando a Dinamo -------------------------------------------
+
+// Bandera que la prueba revisa: si esto se pone en true, la extensión presionó
+// Grabar y eso está prohibido.
+window.__grabarPresionado = false;
+function valida() { window.__grabarPresionado = true; }
+
+function habilitar(idFieldset) {
+  document.getElementById(idFieldset)
+    .querySelectorAll('input, select, textarea')
+    .forEach((elemento) => { if (!elemento.readOnly) elemento.disabled = false; });
+}
+
+// Los catálogos de la moto llegan por AJAX, con retraso, como en el original.
+function nextStep() {
+  setTimeout(() => {
+    const poblar = (id, textos) => {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="">--SELECCIONE--</option>' +
+        textos.map((t, i) => `<option value="x_${i};y;${i}">${t}</option>`).join('');
+    };
+    poblar('cboagencia_pto', ['SALTILLO CENTRO', 'RAMOS ARIZPE']);
+    poblar('cboanios', ['2025', '2026']);
+    poblar('cbomodelos', ['ITALIKA FT150', 'ITALIKA DT150']);
+    poblar('cbocolores', ['NEGRO', 'ROJO']);
+    habilitar('fs-moto');
+  }, 400);
+}
+
+function buscar_cliente() { habilitar('fs-cliente'); /* cliente nuevo: no rellena datos */ }
+function on_validar_email() {}
+function validacionesSDF() {}
+function showFiscal() {
+  // La ventana real llena sus campos y avisa al volver; aquí se resume en eso.
+  window.__fiscalesAbierto = true;
+  setTimeout(() => window.__responderEmergente('fiscales', true, 'guardado'), 300);
+}
+
+function modifica_accesorios() { window.__accesorioTocado = document.activeElement?.id ?? null; }
+
+function valida_cliente() {
+  if (!document.getElementById('txtcurp').value) {
+    Swal.fire('Falta la CURP');
+    return;
+  }
+  habilitar('fs-dom');
+}
+function valida_domicilio() {
+  if (!document.getElementById('txtcolonia').value) {
+    alert('Debe seleccionar la colonia con SEPOMEX');
+    return;
+  }
+  habilitar('fs-emp');
+}
+function valida_empleo() { habilitar('fs-ref'); }
+function valida_referencia() { habilitar('fs-final'); }
+
+// SEPOMEX de verdad abre otra ventana; aquí se resuelve en el sitio, que es lo
+// que el motor necesita para seguir.
+function sepomex(tipo) {
+  window.__sepomexPedido = (window.__sepomexPedido || []).concat(tipo);
+  setTimeout(() => {
+    if (tipo === 'CLI') {
+      document.getElementById('txtcolonia').value = 'ZONA CENTRO';
+      document.getElementById('txtcp').value = '25000';
+      document.getElementById('txtmpio').value = 'SALTILLO';
+      document.getElementById('txtciudad').value = 'SALTILLO';
+    }
+    window.__responderEmergente('sepomex', true, `colonia elegida para ${tipo}`);
+  }, 300);
+}
+
+// SweetAlert2 mínimo, para que el hook tenga algo que observar.
+const Swal = {
+  fire(mensaje) {
+    const caja = document.createElement('div');
+    caja.className = 'swal2-container';
+    caja.innerHTML = `<div class="swal2-html-container">${mensaje}</div>
+      <button class="swal2-confirm">OK</button>`;
+    caja.querySelector('.swal2-confirm').onclick = () => caja.remove();
+    document.body.appendChild(caja);
+  },
+};
+</script>
+
+<script>
+// --- Arnés: hace de background y de app --------------------------------------
+
+window.__eventos = [];
+let __expediente = null;
+
+window.__responderEmergente = function (cual, ok, detalle) {
+  window.__alContenido?.({ tipo: 'emergente-terminada', cual, ok, detalle });
+};
+
+// Lo mínimo de la API de extensiones que usan los scripts reales.
+window.chrome = {
+  runtime: {
+    sendMessage(mensaje) {
+      if (mensaje.tipo === 'evento-llenado') {
+        window.__eventos.push(mensaje.evento);
+        return Promise.resolve();
+      }
+      if (mensaje.tipo === 'listo-para-llenar') {
+        return Promise.resolve(__expediente ? { expediente: __expediente, idPestanaApp: 1 } : {});
+      }
+      return Promise.resolve({});
+    },
+    onMessage: {
+      addListener(fn) { window.__alContenido = fn; },
+    },
+    getManifest: () => ({ version: '1.0.0' }),
+  },
+};
+
+window.__correr = function (expediente) {
+  window.__eventos = [];
+  window.__grabarPresionado = false;
+  __expediente = expediente ?? window.__expedienteDePrueba;
+  return window.__pedirTrabajoDePrueba();
+};
+
+window.__expedienteDePrueba = {
+  manual: { tipoVenta: '1', tipoUnidad: '1', esquemaVenta: '1', subesquema: '10',
+    plazo: '546', ubicacion: 'SALTILLO CENTRO', anio: '2026', modelo: 'ITALIKA FT150',
+    color: 'NEGRO' },
+  datos: {
+    cliente: { nombres: 'JUAN', apellidoPaterno: 'PEREZ', apellidoMaterno: 'GOMEZ',
+      curp: 'PEGJ900115HCLRMN08', idCif: '1234567890123', rfc: 'PEGJ9001152E5',
+      razonSocial: 'JUAN PEREZ GOMEZ', correo: 'ejemplo25', dominioCorreo: 'gmail.com',
+      lada: '844', telefono: '5556677' },
+    domicilio: { calle: 'MORELOS', entreCalles: 'MORELOS', numeroExterior: '245',
+      colonia: 'ZONA CENTRO', cp: '25000', antiguedadAnios: 6 },
+    empleo: { nombre: 'Tornillos del Norte', antiguedadAnios: 0, antiguedadMeses: 6, calle: '5 DE MAYO',
+      numeroExterior: '', colonia: 'INDUSTRIAL', jefe: 'Ana Martinez', lada: '551',
+      telefono: '2345678', sueldo: 15000, frecuenciaPago: 'QUINCENAL' },
+    referencias: { ref: { nombres: 'Luis', apellidoPaterno: 'Perez', apellidoMaterno: '',
+      calle: 'ALLENDE', numeroExterior: '210', lada: '844', telefono: '1234567' } },
+  },
+};
+</script>
+
+<script src="../hook-avisos.js"></script>
+<script src="../dom.js"></script>
+<script src="../campos.js"></script>
+<script src="../contenido-captura.js"></script>
+<script>
+// `contenido-captura.js` llama a pedirTrabajo() al cargar; como todavía no hay
+// expediente, se va en blanco. Se reexpone para dispararlo desde la consola.
+window.__pedirTrabajoDePrueba = pedirTrabajo;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,77 @@
+{
+  "manifest_version": 3,
+  "name": "Captura Automatizador — Dinamo",
+  "version": "1.0.0",
+  "description": "Llena la captura de crédito de Dinamo con el expediente que preparó la app. No presiona Grabar: eso lo hace una persona.",
+  "icons": {
+    "16": "iconos/icono-16.png",
+    "48": "iconos/icono-48.png",
+    "128": "iconos/icono-128.png"
+  },
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://dinamo2.intranet/*",
+    "https://barterstatistic.github.io/captura-automatizador/*",
+    "http://localhost:5175/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://barterstatistic.github.io/captura-automatizador/*",
+        "http://localhost:5175/*"
+      ],
+      "js": [
+        "puente-captura.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "http://dinamo2.intranet/*"
+      ],
+      "js": [
+        "hook-avisos.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "http://dinamo2.intranet/dscn/dscframe/*"
+      ],
+      "js": [
+        "dom.js",
+        "campos.js",
+        "contenido-captura.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://dinamo2.intranet/*consulta_localidad.php*"
+      ],
+      "js": [
+        "dom.js",
+        "contenido-sepomex.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://dinamo2.intranet/*datosFiscalesCliente.php*"
+      ],
+      "js": [
+        "dom.js",
+        "campos.js",
+        "contenido-fiscales.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

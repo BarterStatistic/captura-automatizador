@@ -1,0 +1,342 @@
+/* Paleta heredada del dashboard de ProspecTeam: fondo casi negro, dorado como
+   color primario y cyan para lo secundario. */
+
+:root {
+  --fondo: #050608;
+  --superficie: #0e1015;
+  --superficie-alta: #161922;
+  --borde: #242833;
+  --texto: #e8e9ed;
+  --texto-tenue: #8b90a0;
+  --dorado: #d4a24c;
+  --cyan: #4fc3f7;
+  --rojo: #e5484d;
+  --ambar: #f5a524;
+  --verde: #3dd68c;
+
+  color-scheme: dark;
+  font-family: 'League Spartan', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.envoltura {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+/* --- Encabezado ----------------------------------------------------------- */
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--borde);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.cabecera h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.cabecera h1 span {
+  color: var(--dorado);
+}
+
+.subtitulo {
+  margin: 4px 0 0;
+  color: var(--texto-tenue);
+  font-size: 13px;
+}
+
+/* --- Insignias ------------------------------------------------------------ */
+
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+}
+
+.insignia.si {
+  color: var(--verde);
+  border-color: color-mix(in srgb, var(--verde) 40%, transparent);
+}
+
+.insignia.no {
+  color: var(--ambar);
+  border-color: color-mix(in srgb, var(--ambar) 40%, transparent);
+}
+
+/* --- Tarjetas ------------------------------------------------------------- */
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.tarjeta h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.tarjeta .ayuda {
+  margin: 0 0 16px;
+  color: var(--texto-tenue);
+  font-size: 13px;
+}
+
+/* --- Zona de documentos --------------------------------------------------- */
+
+.rejilla-documentos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.soltar {
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+  padding: 16px 14px;
+  background: var(--superficie-alta);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: block;
+}
+
+.soltar:hover,
+.soltar.encima {
+  border-color: var(--dorado);
+  background: color-mix(in srgb, var(--dorado) 8%, var(--superficie-alta));
+}
+
+.soltar.cargado {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--verde) 45%, transparent);
+}
+
+.soltar.leido {
+  border-color: var(--verde);
+}
+
+.soltar .orden {
+  color: var(--dorado);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.soltar .titulo {
+  display: block;
+  font-weight: 600;
+  margin: 2px 0 6px;
+}
+
+.soltar .archivo {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-tenue);
+  word-break: break-all;
+}
+
+.soltar input[type='file'] {
+  display: none;
+}
+
+/* --- Campos --------------------------------------------------------------- */
+
+.rejilla-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.campo label {
+  font-size: 12px;
+  color: var(--texto-tenue);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.campo input,
+.campo select {
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto);
+  padding: 9px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.campo input:focus,
+.campo select:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.campo.falta input,
+.campo.falta select {
+  border-color: var(--rojo);
+}
+
+.campo .nota {
+  font-size: 11px;
+  color: var(--texto-tenue);
+}
+
+.campo.falta .nota {
+  color: var(--rojo);
+}
+
+.campo .ficticio {
+  color: var(--ambar);
+}
+
+.grupo-titulo {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dorado);
+  border-top: 1px solid var(--borde);
+  padding-top: 14px;
+}
+
+.grupo-titulo:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* --- Botones -------------------------------------------------------------- */
+
+.botones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: var(--superficie-alta);
+  color: var(--texto);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.25);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.primario {
+  background: var(--dorado);
+  border-color: var(--dorado);
+  color: #1a1408;
+}
+
+button.secundario {
+  border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
+  color: var(--cyan);
+}
+
+/* --- Avisos --------------------------------------------------------------- */
+
+.aviso {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  border: 1px solid;
+}
+
+.aviso.ambar {
+  color: var(--ambar);
+  border-color: color-mix(in srgb, var(--ambar) 40%, transparent);
+  background: color-mix(in srgb, var(--ambar) 10%, transparent);
+}
+
+.aviso.rojo {
+  color: var(--rojo);
+  border-color: color-mix(in srgb, var(--rojo) 40%, transparent);
+  background: color-mix(in srgb, var(--rojo) 10%, transparent);
+}
+
+/* --- Bitácora ------------------------------------------------------------- */
+
+.bitacora {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+  padding: 10px;
+  font-size: 13px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.bitacora .linea {
+  display: flex;
+  gap: 8px;
+  padding: 3px 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--borde) 50%, transparent);
+}
+
+.bitacora .linea:last-child {
+  border-bottom: none;
+}
+
+.bitacora .marca {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.bitacora .campo-ok .marca { color: var(--verde); }
+.bitacora .aviso-linea .marca { color: var(--ambar); }
+.bitacora .error-linea .marca { color: var(--rojo); }
+.bitacora .seccion-linea .marca { color: var(--cyan); }
+.bitacora .seccion-linea { font-weight: 600; }
