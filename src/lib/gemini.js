@@ -8,10 +8,14 @@
 //     es público, y una key compilada la podría gastar cualquiera. Se pide una
 //     vez y vive en localStorage de cada navegador.
 
+import { explicarFalloDeRed, explicarRespuesta } from './diagnostico.js';
+
 const MODELO = 'gemini-2.5-flash';
 const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`;
 const LADO_MAXIMO = 1600; // acota el costo sin perder legibilidad de la CURP
 const CALIDAD_JPEG = 0.88;
+
+export { URL as URL_GEMINI };
 
 export const CLAVE_ALMACEN = 'captura_automatizador_gemini_key';
 
@@ -155,13 +159,12 @@ export async function leerDocumento(documento, archivo) {
       body: JSON.stringify(cuerpo),
     });
   } catch (exc) {
-    throw new ErrorGemini(`No se pudo contactar a Gemini: ${exc.message}`);
+    // «Failed to fetch» a secas no dice nada accionable; el diagnóstico sí.
+    throw new ErrorGemini(explicarFalloDeRed(exc, window.location.origin));
   }
 
   const texto = await respuesta.text();
-  if (!respuesta.ok) {
-    throw new ErrorGemini(`Gemini respondió ${respuesta.status}: ${texto.slice(0, 300)}`);
-  }
+  if (!respuesta.ok) throw new ErrorGemini(explicarRespuesta(respuesta.status, texto));
 
   return interpretarRespuesta(texto);
 }

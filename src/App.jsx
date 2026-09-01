@@ -5,7 +5,14 @@ import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
 
 import { DOCUMENTOS } from './lib/documentos.js';
-import { apiKeyGuardada, guardarApiKey, leerDocumento, ErrorGemini } from './lib/gemini.js';
+import {
+  apiKeyGuardada,
+  guardarApiKey,
+  leerDocumento,
+  ErrorGemini,
+  URL_GEMINI,
+} from './lib/gemini.js';
+import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
 
@@ -34,6 +41,7 @@ export default function App() {
   const [leyendo, setLeyendo] = useState(false);
   const [llenando, setLlenando] = useState(false);
   const [errores, setErrores] = useState([]);
+  const [prueba, setPrueba] = useState(null);
 
   // La extensión se detecta al montar y no cambia mientras la pestaña vive.
   const [hayExtension] = useState(() => extensionDisponible());
@@ -109,6 +117,11 @@ export default function App() {
     );
   }
 
+  async function comprobarConexion() {
+    setPrueba({ ok: null, mensaje: 'Probando…' });
+    setPrueba(await probarConexion(URL_GEMINI, apiKey));
+  }
+
   function pedirApiKey() {
     const clave = window.prompt(
       'Pega tu API key de Gemini (aistudio.google.com/apikey).\n' +
@@ -141,8 +154,17 @@ export default function App() {
           <button type="button" onClick={pedirApiKey}>
             {apiKey ? 'Cambiar key' : 'Configurar key'}
           </button>
+          <button type="button" className="secundario" onClick={comprobarConexion}>
+            Probar conexión
+          </button>
         </div>
       </header>
+
+      {prueba && (
+        <div className={`aviso ${prueba.ok ? 'ambar' : 'rojo'}`} style={{ whiteSpace: 'pre-wrap' }}>
+          {prueba.mensaje}
+        </div>
+      )}
 
       {!hayExtension && (
         <div className="aviso ambar">
@@ -159,7 +181,7 @@ export default function App() {
       />
 
       {errores.map((error) => (
-        <div className="aviso rojo" key={error}>
+        <div className="aviso rojo" key={error} style={{ whiteSpace: 'pre-wrap' }}>
           {error}
         </div>
       ))}
