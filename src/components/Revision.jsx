@@ -145,13 +145,13 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         />
         <Campo
           etiqueta="Sueldo mensual"
-          valor={lecturas.estadoCuenta1?.sueldo_mensual}
-          nota="De los estados de cuenta."
+          valor={datos.empleo.sueldo}
+          nota="De los estados de cuenta (manda el primero)."
           onCambio={(v) => onLectura('estadoCuenta1', 'sueldo_mensual', v)}
         />
         <Seleccion
           etiqueta="Frecuencia de pago"
-          valor={lecturas.estadoCuenta1?.frecuencia_pago ?? ''}
+          valor={datos.empleo.frecuenciaPago}
           opciones={[
             { value: 'SEMANAL', nombre: 'SEMANAL' },
             { value: 'QUINCENAL', nombre: 'QUINCENAL' },

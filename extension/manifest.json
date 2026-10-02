@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Captura Automatizador — Dinamo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Llena la captura de crédito de Dinamo con el expediente que preparó la app. No presiona Grabar: eso lo hace una persona.",
   "icons": {
     "16": "iconos/icono-16.png",
@@ -14,6 +14,7 @@
   ],
   "host_permissions": [
     "http://dinamo2.intranet/*",
+    "https://captura-automatizador.vercel.app/*",
     "https://barterstatistic.github.io/captura-automatizador/*",
     "http://localhost:5175/*"
   ],
@@ -23,6 +24,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://captura-automatizador.vercel.app/*",
         "https://barterstatistic.github.io/captura-automatizador/*",
         "http://localhost:5175/*"
       ],

@@ -110,61 +110,313 @@ body {
   font-size: 13px;
 }
 
+/* --- Entrada: documentos + formulario ------------------------------------ */
+
+.entrada {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .entrada {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.titulo-con-estado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 /* --- Zona de documentos --------------------------------------------------- */
+
+.soltar-todo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 26px 16px;
+  margin-bottom: 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--dorado) 55%, var(--borde));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--dorado) 5%, var(--superficie-alta));
+  color: var(--texto);
+  text-align: center;
+}
+
+.soltar-todo:hover {
+  border-color: var(--dorado);
+}
+
+.soltar-todo-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dorado);
+}
+
+.soltar-todo-detalle {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--texto-tenue);
+}
+
+/* Capa que aparece al arrastrar archivos sobre la página. No atrapa el ratón:
+   el soltado lo reciben las casillas o la ventana debajo de ella. */
+.capa-soltar {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--fondo) 70%, transparent);
+  border: 3px dashed var(--dorado);
+}
+
+.capa-soltar span {
+  background: var(--superficie);
+  border: 1px solid var(--dorado);
+  color: var(--dorado);
+  font-weight: 700;
+  font-size: 18px;
+  padding: 14px 22px;
+  border-radius: 12px;
+}
+
+.bandeja {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.bandeja-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  background: var(--superficie-alta);
+  font-size: 13px;
+}
+
+.bandeja-item.sin-identificar {
+  border-color: color-mix(in srgb, var(--ambar) 50%, transparent);
+}
+
+.bandeja-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.bandeja-item .estado-texto {
+  font-size: 12px;
+  color: var(--texto-tenue);
+}
+
+.bandeja-item.sin-identificar .estado-texto {
+  color: var(--ambar);
+}
+
+.bandeja-item.clasificando .estado-texto::before,
+.estado.leyendo::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: girar 0.8s linear infinite;
+  vertical-align: -1px;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .rejilla-documentos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
 }
 
-.soltar {
+.casilla {
   border: 1px dashed var(--borde);
   border-radius: 10px;
-  padding: 16px 14px;
+  padding: 12px;
   background: var(--superficie-alta);
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
   transition: border-color 0.15s, background 0.15s;
-  display: block;
 }
 
-.soltar:hover,
-.soltar.encima {
+.casilla.encima {
   border-color: var(--dorado);
   background: color-mix(in srgb, var(--dorado) 8%, var(--superficie-alta));
 }
 
-.soltar.cargado {
+.casilla.leyendo {
   border-style: solid;
-  border-color: color-mix(in srgb, var(--verde) 45%, transparent);
+  border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
 }
 
-.soltar.leido {
+.casilla.listo {
+  border-style: solid;
   border-color: var(--verde);
 }
 
-.soltar .orden {
+.casilla.error {
+  border-style: solid;
+  border-color: var(--rojo);
+}
+
+.casilla-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.casilla .orden {
   color: var(--dorado);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
 
-.soltar .titulo {
-  display: block;
+.casilla .titulo {
   font-weight: 600;
-  margin: 2px 0 6px;
 }
 
-.soltar .archivo {
-  display: block;
+.casilla-archivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nombre-archivo {
   font-size: 12px;
   color: var(--texto-tenue);
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.soltar input[type='file'] {
-  display: none;
+.casilla-vacia {
+  border: none;
+  background: none;
+  padding: 10px 0 4px;
+  text-align: left;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--texto-tenue);
+}
+
+.error-casilla {
+  font-size: 11px;
+  color: var(--rojo);
+  white-space: pre-wrap;
+  max-height: 90px;
+  overflow-y: auto;
+}
+
+.casilla-acciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.casilla-acciones select,
+.bandeja-item select {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  color: var(--texto);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.miniatura {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+  background: var(--fondo);
+}
+
+.miniatura.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.estado {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.estado.leyendo {
+  color: var(--cyan);
+  border-color: color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+
+.estado.listo {
+  color: var(--verde);
+  border-color: color-mix(in srgb, var(--verde) 40%, transparent);
+}
+
+.estado.error {
+  color: var(--rojo);
+  border-color: color-mix(in srgb, var(--rojo) 40%, transparent);
+}
+
+/* --- Formulario del vendedor ---------------------------------------------- */
+
+.pegar-formulario {
+  width: 100%;
+  resize: vertical;
+  min-height: 180px;
+  background: var(--superficie-alta);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  color: var(--texto);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pegar-formulario:focus {
+  outline: none;
+  border-color: var(--cyan);
 }
 
 /* --- Campos --------------------------------------------------------------- */
@@ -279,6 +531,12 @@ button.primario {
   color: #1a1408;
 }
 
+button.mini {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
 button.secundario {
   border-color: color-mix(in srgb, var(--cyan) 50%, transparent);
   color: var(--cyan);
@@ -298,6 +556,23 @@ button.secundario {
   color: var(--ambar);
   border-color: color-mix(in srgb, var(--ambar) 40%, transparent);
   background: color-mix(in srgb, var(--ambar) 10%, transparent);
+}
+
+.aviso.verde {
+  color: var(--verde);
+  border-color: color-mix(in srgb, var(--verde) 40%, transparent);
+  background: color-mix(in srgb, var(--verde) 10%, transparent);
+}
+
+.aviso.con-cerrar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.aviso.con-cerrar button {
+  flex-shrink: 0;
 }
 
 .aviso.rojo {

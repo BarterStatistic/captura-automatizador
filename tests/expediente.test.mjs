@@ -136,3 +136,51 @@ test('el domicilio de la referencia se marca como generado', () => {
   assert.equal(datos.referencias.ref.calle, 'ALLENDE');
   assert.equal(datos.referencias.ref.domicilioFicticio, true);
 });
+
+// --- Estados de cuenta --------------------------------------------------------
+// La app guarda cada estado de cuenta en su casilla (estadoCuenta1 y 2). Antes
+// el expediente solo leía `estadosCuenta`, así que el sueldo nunca llegaba.
+
+const { estadosCuenta: _combinado, ...SIN_COMBINAR } = LECTURAS;
+
+test('el sueldo sale del estado de cuenta de la casilla 1', () => {
+  const lecturas = {
+    ...SIN_COMBINAR,
+    estadoCuenta1: { sueldo_mensual: 15000, frecuencia_pago: 'QUINCENAL' },
+  };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.sueldo, 15000);
+  assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
+});
+
+test('si el primer estado no trae sueldo, se usa el segundo', () => {
+  const lecturas = {
+    ...SIN_COMBINAR,
+    estadoCuenta1: { sueldo_mensual: null, frecuencia_pago: null },
+    estadoCuenta2: { sueldo_mensual: 12000, frecuencia_pago: 'SEMANAL' },
+  };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.sueldo, 12000);
+  assert.equal(datos.empleo.frecuenciaPago, 'SEMANAL');
+});
+
+test('dos sueldos muy distintos se avisan y manda el primero', () => {
+  const lecturas = {
+    ...SIN_COMBINAR,
+    estadoCuenta1: { sueldo_mensual: 15000, frecuencia_pago: 'QUINCENAL' },
+    estadoCuenta2: { sueldo_mensual: 30000, frecuencia_pago: 'QUINCENAL' },
+  };
+  const { datos, avisos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.sueldo, 15000);
+  assert.ok(avisos.some((aviso) => aviso.campo === 'sueldo'));
+});
+
+test('un sueldo corregido a mano con signo y comas se entiende', () => {
+  const lecturas = { ...SIN_COMBINAR, estadoCuenta1: { sueldo_mensual: '$15,500' } };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.sueldo, 15500);
+});

@@ -68,3 +68,18 @@ test('una respuesta que no es JSON se reporta como error de Gemini', () => {
 test('una respuesta sin candidatos se reporta como error de Gemini', () => {
   assert.throws(() => interpretarRespuesta(JSON.stringify({ candidates: [] })), ErrorGemini);
 });
+
+test('el formulario se manda como texto, sin archivo', () => {
+  const cuerpo = construirCuerpo('Lee el formulario', ESQUEMA, null);
+
+  assert.equal(cuerpo.contents[0].parts.length, 1);
+  assert.equal(cuerpo.contents[0].parts[0].text, 'Lee el formulario');
+});
+
+test('clasificar y leer texto van sin razonamiento, para que respondan rápido', () => {
+  const rapido = construirCuerpo('Clasifica', ESQUEMA, null, { pensar: false });
+  const normal = construirCuerpo('Lee', ESQUEMA, null);
+
+  assert.deepEqual(rapido.generationConfig.thinkingConfig, { thinkingBudget: 0 });
+  assert.equal(normal.generationConfig.thinkingConfig, undefined);
+});

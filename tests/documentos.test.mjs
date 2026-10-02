@@ -5,21 +5,38 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  CLASIFICADOR,
   DOCUMENTOS,
+  FORMULARIO,
   TIPOS_ACEPTADOS,
+  TIPOS_CLASIFICACION,
   documentoPorId,
+  normalizarArchivo,
+  ranurasPara,
   tipoAceptado,
 } from '../src/lib/documentos.js';
 
-test('son seis documentos, en el orden en que se arrastran', () => {
+test('son cinco casillas de archivo, en el orden en que se muestran', () => {
   assert.deepEqual(
     DOCUMENTOS.map((doc) => doc.id),
-    ['ineFrente', 'ineAtras', 'comprobante', 'estadoCuenta1', 'estadoCuenta2', 'formulario'],
+    ['ineFrente', 'ineAtras', 'comprobante', 'estadoCuenta1', 'estadoCuenta2'],
   );
 });
 
+test('el formulario ya no es un archivo: se lee del texto que pega el capturista', () => {
+  assert.equal(documentoPorId('formulario'), null);
+  assert.equal(FORMULARIO.id, 'formulario');
+  assert.match(FORMULARIO.prompt, /vendedor/i);
+});
+
+test('el formulario extrae también el celular del cliente y los datos de la venta', () => {
+  for (const campo of ['celular', 'modelo', 'esquema', 'plazo_meses', 'referencias_extra']) {
+    assert.ok(campo in FORMULARIO.esquema.properties, `falta ${campo}`);
+  }
+});
+
 test('cada documento trae prompt y esquema utilizables', () => {
-  for (const doc of DOCUMENTOS) {
+  for (const doc of [...DOCUMENTOS, FORMULARIO]) {
     assert.ok(doc.etiqueta, `${doc.id} necesita etiqueta`);
     assert.ok(doc.prompt.length > 50, `${doc.id} necesita un prompt real`);
     assert.equal(doc.esquema.type, 'object', `${doc.id} necesita esquema de objeto`);
@@ -82,4 +99,42 @@ test('un formato que Gemini no lee se rechaza', () => {
 
 test('un id que no existe no devuelve documento', () => {
   assert.equal(documentoPorId('recibo-de-luz'), null);
+});
+
+test('una foto sin tipo se reconoce por su extensión', () => {
+  const heic = normalizarArchivo(new File(['x'], 'IMG_0001.HEIC', { type: '' }));
+  assert.equal(heic.type, 'image/heic');
+  assert.equal(heic.name, 'IMG_0001.HEIC');
+
+  const raro = normalizarArchivo(new File(['x'], 'notas.txt', { type: '' }));
+  assert.equal(tipoAceptado(raro.type), false);
+});
+
+// --- Clasificación ------------------------------------------------------------
+
+test('el clasificador solo puede contestar tipos conocidos', () => {
+  assert.deepEqual(CLASIFICADOR.esquema.properties.tipo.enum, TIPOS_CLASIFICACION);
+});
+
+test('cada lado de la INE va a su casilla, y una foto con ambos lados a las dos', () => {
+  assert.deepEqual(ranurasPara('INE_FRENTE'), ['ineFrente']);
+  assert.deepEqual(ranurasPara('INE_ATRAS'), ['ineAtras']);
+  assert.deepEqual(ranurasPara('INE_AMBOS'), ['ineFrente', 'ineAtras']);
+  assert.deepEqual(ranurasPara('COMPROBANTE'), ['comprobante']);
+});
+
+test('los estados de cuenta llenan primero la casilla 1 y luego la 2', () => {
+  assert.deepEqual(ranurasPara('ESTADO_CUENTA', new Set()), ['estadoCuenta1']);
+  assert.deepEqual(ranurasPara('ESTADO_CUENTA', new Set(['estadoCuenta1'])), ['estadoCuenta2']);
+});
+
+test('un tercer estado de cuenta reemplaza al segundo, nunca al principal', () => {
+  const llenas = new Set(['estadoCuenta1', 'estadoCuenta2']);
+  assert.deepEqual(ranurasPara('ESTADO_CUENTA', llenas), ['estadoCuenta2']);
+});
+
+test('lo que no se reconoce no se mete en ninguna casilla', () => {
+  assert.deepEqual(ranurasPara('OTRO'), []);
+  assert.deepEqual(ranurasPara(null), []);
+  assert.deepEqual(ranurasPara('SELFIE'), []);
 });

@@ -36,11 +36,47 @@ function partirNombre(completo) {
   };
 }
 
+const sueldoDe = (lectura) => {
+  const valor = lectura?.sueldo_mensual;
+  if (valor === null || valor === undefined || String(valor).trim() === '') return null;
+  const numero = Number(String(valor).replace(/[^\d.]/g, ''));
+  return Number.isFinite(numero) && numero > 0 ? numero : null;
+};
+
+/**
+ * Junta los dos estados de cuenta. Manda el primero; el segundo cubre lo que al
+ * primero le falte. Si los dos dan sueldo y difieren mucho, se avisa: suele ser
+ * un mes con aguinaldo o un depósito que Gemini confundió con nómina.
+ */
+function combinarEstados(primero, segundo, avisos) {
+  const s1 = sueldoDe(primero);
+  const s2 = sueldoDe(segundo);
+
+  if (s1 && s2 && Math.abs(s1 - s2) / Math.max(s1, s2) > 0.2) {
+    avisos.push({
+      campo: 'sueldo',
+      mensaje:
+        `Los estados de cuenta dan sueldos distintos ($${s1.toLocaleString('es-MX')} y ` +
+        `$${s2.toLocaleString('es-MX')} al mes). Se usará el primero; corrígelo si no es el bueno.`,
+    });
+  }
+
+  return {
+    sueldo_mensual: s1 ?? s2,
+    frecuencia_pago: texto(primero?.frecuencia_pago) || texto(segundo?.frecuencia_pago),
+  };
+}
+
 export function armarExpediente(lecturas, manual = {}) {
-  const { ineFrente = {}, ineAtras = {}, comprobante = {}, estadosCuenta = {}, formulario = {} } =
-    lecturas ?? {};
+  const { ineFrente = {}, ineAtras = {}, comprobante = {}, formulario = {} } = lecturas ?? {};
 
   const avisos = [];
+
+  // Las lecturas guardan cada estado de cuenta en su casilla. `estadosCuenta`
+  // es la forma ya combinada, que aceptan las pruebas y expedientes viejos.
+  const estadosCuenta =
+    lecturas?.estadosCuenta ??
+    combinarEstados(lecturas?.estadoCuenta1, lecturas?.estadoCuenta2, avisos);
 
   // --- Identidad -------------------------------------------------------------
   // La CURP del frente es la principal; la del reverso solo la corrobora.

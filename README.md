@@ -5,10 +5,13 @@ del cliente. Son dos piezas que se reparten el trabajo:
 
 | Pieza | Qué hace |
 |---|---|
-| **La app web** (este repo, raíz) | Recibe seis documentos, los lee con Gemini, calcula el RFC y muestra el expediente para revisión |
+| **La app web** (este repo, raíz) | Recibe los documentos y el formulario del vendedor, los lee con Gemini, calcula el RFC y muestra el expediente para revisión |
 | **La extensión de Edge** (`extension/`) | Recibe el expediente ya revisado y lo teclea en Dinamo |
 
-**Úsala aquí: <https://barterstatistic.github.io/captura-automatizador/>**
+**Úsala aquí: <https://captura-automatizador.vercel.app/>**
+
+Se publica en Vercel. La versión vieja de GitHub Pages pedía la API key en la
+página; esta la guarda el servidor.
 
 ## No presiona Grabar
 
@@ -18,34 +21,51 @@ deshace.
 
 ## Puesta en marcha
 
-1. Abre <https://barterstatistic.github.io/captura-automatizador/> y pulsa
-   **«Configurar key»**. Pega tu API key de Gemini
-   ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)). Se guarda
-   solo en ese navegador y nunca se publica.
-2. Descarga este repo e instala la extensión: `edge://extensions` → «Modo de
-   desarrollador» → «Cargar desempaquetada» → elige la carpeta `extension`.
-3. Arrastra los seis documentos, revisa lo que leyó Gemini y pulsa
-   **«Llenar en Dinamo»**.
+1. La API key de Gemini **no se pide en la página**. Vive en la variable de
+   entorno `GEMINI_API_KEY` del servidor:
+   - En Vercel: proyecto `captura-automatizador` → Settings → Environment
+     Variables → `GEMINI_API_KEY`, y volver a desplegar.
+   - En local: en `.env.local` (no se sube a git; ver `.env.example`).
+
+   La página llama a `/api/gemini` (función en `api/gemini.js`) y esa función le
+   pone la clave. Nunca viaja al navegador.
+2. Instala la extensión: `edge://extensions` → «Modo de desarrollador» →
+   «Cargar desempaquetada» → elige la carpeta `extension`. Desde la 1.1.0
+   reconoce el dominio de Vercel; si cambia el dominio, cambia `manifest.json`.
+3. Suelta los documentos, pega el formulario del vendedor, revisa lo que leyó
+   Gemini y pulsa **«Llenar en Dinamo»**.
 
 Sin la extensión la app funciona igual, pero en vez de llenar ofrece copiar el
 expediente para capturarlo a mano. Útil desde el celular, donde Edge y Chrome no
 admiten extensiones.
 
-## Los seis documentos
+## Documentos y formulario
 
-En este orden: INE frente, INE atrás, comprobante de domicilio, dos estados de
-cuenta y el formulario que el cliente contesta por WhatsApp. Se aceptan fotos
-(JPG, PNG, HEIC) y PDF.
+**Documentos** (fotos JPG/PNG/HEIC o PDF): INE frente, INE atrás, comprobante de
+domicilio y uno o dos estados de cuenta. Se sueltan **todos juntos** en cualquier
+parte de la página, se pegan con Ctrl+V (p. ej. desde WhatsApp Web) o se eligen
+varios a la vez. Gemini identifica cada archivo, lo acomoda en su casilla y lo lee
+en ese momento. Una foto con los dos lados de la INE llena las dos casillas. Lo que
+no reconoce se queda en una bandeja para acomodarlo a mano, y cualquier archivo se
+puede mover de casilla.
 
-Lo que ningún documento trae —los datos de la unidad, el celular del cliente y el
-domicilio de las referencias— se captura en la propia app antes de llenar.
+**Formulario**: se pega el texto que manda el vendedor (el formulario que el
+cliente contestó). Se lee al pegarlo. Además de los seis puntos, si el texto trae
+celular del cliente, moto, esquema, plazo o más referencias, llena esos campos,
+sin pisar lo que ya se haya elegido a mano.
+
+Lo que nada de eso trae —la ubicación, y el domicilio de las referencias— se
+captura en la propia app antes de llenar.
+
+Límite: una petición a Vercel no pasa de 4.5 MB, así que un PDF de más de ~3 MB
+se rechaza con un aviso (las fotos se reducen solas).
 
 ## Desarrollo
 
 ```bash
 npm install
-npm run dev     # http://localhost:5175/captura-automatizador/
-npm test        # 64 pruebas de la app
+npm run dev     # http://localhost:5175 (con /api/gemini local, lee .env.local)
+npm test        # pruebas de la app y del servidor
 npm test --prefix extension   # 12 del mapeo de campos
 ```
 
@@ -62,9 +82,11 @@ público.
 | `lib/normaliza.js` | teléfonos, antigüedades, nombres, calles | nada |
 | `lib/esquemas.js` | catálogos de venta y regla de referencias | nada |
 | `lib/calles.js` | domicilios de referencia | nada |
-| `lib/documentos.js` | los seis prompts y esquemas de Gemini | nada |
+| `lib/documentos.js` | prompts y esquemas de Gemini, clasificador y casillas | nada |
+| `lib/formulario.js` | datos de venta del formulario → captura manual | esquemas |
 | `lib/expediente.js` | fusiona las lecturas y valida | rfc, normaliza, esquemas |
-| `lib/gemini.js` | la llamada a la API | documentos |
+| `lib/gemini.js` | arma la petición y la manda a `/api/gemini` | diagnostico |
+| `api/_proxy.js` | servidor: agrega la clave y reenvía a Gemini | nada |
 | `lib/extension.js` | protocolo con la extensión | nada |
 
 `lib/extension.js` no tiene pruebas de nodo a propósito: todo lo que hace es

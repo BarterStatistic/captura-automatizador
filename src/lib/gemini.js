@@ -1,23 +1,23 @@
-// Cliente de Gemini 2.5 Flash para leer imágenes y PDF.
+// Cliente de Gemini para leer imágenes, PDF y texto.
 //
-// Adaptado de `marga-1.5/src/lib/buro/ocr.js`, con dos diferencias:
+// La página nunca ve la API key: arma la petición y la manda a /api/gemini,
+// que le agrega la clave del entorno (api/_proxy.js). En Vercel lo atiende una
+// función; en `npm run dev`, un middleware de vite.config.js.
 //
-//   - Acepta PDF además de imágenes, porque los estados de cuenta llegan así.
-//     Un PDF no se puede reescalar con <canvas>, así que se manda tal cual.
-//   - La API key NO viaja en el bundle. La app se publica en GitHub Pages, que
-//     es público, y una key compilada la podría gastar cualquiera. Se pide una
-//     vez y vive en localStorage de cada navegador.
+// Adaptado de `marga-1.5/src/lib/buro/ocr.js`. Acepta PDF además de imágenes,
+// porque los estados de cuenta llegan así; un PDF no se puede reescalar con
+// <canvas>, así que se manda tal cual.
 
 import { explicarFalloDeRed, explicarRespuesta } from './diagnostico.js';
 
-const MODELO = 'gemini-2.5-flash';
-const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`;
+export const URL_API = '/api/gemini';
+
 const LADO_MAXIMO = 1600; // acota el costo sin perder legibilidad de la CURP
 const CALIDAD_JPEG = 0.88;
 
-export { URL as URL_GEMINI };
-
-export const CLAVE_ALMACEN = 'captura_automatizador_gemini_key';
+// Vercel corta las peticiones a funciones en 4.5 MB. El base64 pesa 4/3 del
+// archivo, así que un PDF de más de ~3.2 MB no cabe. Se avisa antes de mandar.
+const LIMITE_BASE64 = 4_300_000;
 
 /** La lectura falló: formato, red, o una respuesta que no se pudo entender. */
 export class ErrorGemini extends Error {
@@ -27,23 +27,25 @@ export class ErrorGemini extends Error {
   }
 }
 
-/** Arma el cuerpo de la petición: el prompt y el archivo van juntos. */
-export function construirCuerpo(prompt, esquema, archivo) {
-  return {
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: archivo.mime, data: archivo.datos } },
-        ],
-      },
-    ],
-    generationConfig: {
-      temperature: 0,
-      responseMimeType: 'application/json',
-      responseSchema: esquema,
-    },
+/**
+ * Arma el cuerpo de la petición. `archivo` es opcional: el formulario del
+ * vendedor se manda como texto dentro del prompt.
+ *
+ * `pensar: false` apaga el razonamiento del modelo. Sirve para tareas cortas
+ * (clasificar, transcribir un texto) donde solo agrega espera.
+ */
+export function construirCuerpo(prompt, esquema, archivo, { pensar = true } = {}) {
+  const partes = [{ text: prompt }];
+  if (archivo) partes.push({ inline_data: { mime_type: archivo.mime, data: archivo.datos } });
+
+  const generationConfig = {
+    temperature: 0,
+    responseMimeType: 'application/json',
+    responseSchema: esquema,
   };
+  if (!pensar) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+
+  return { contents: [{ parts: partes }], generationConfig };
 }
 
 /**
@@ -118,44 +120,39 @@ function aBase64(blob) {
   });
 }
 
-/** La API key que el capturista guardó en este navegador. */
-export function apiKeyGuardada() {
-  try {
-    return localStorage.getItem(CLAVE_ALMACEN) ?? '';
-  } catch {
-    return '';
+// Un mismo archivo se manda dos veces (clasificar y leer, o los dos lados de
+// una INE en una sola foto). Reducir y codificar se hace una vez por archivo.
+const preparados = new WeakMap();
+
+function preparar(archivo) {
+  if (!preparados.has(archivo)) {
+    const promesa = (async () => {
+      if (!archivo?.size) throw new ErrorGemini('El archivo llegó vacío.');
+      const reducido = await reducir(archivo);
+      const datos = await aBase64(reducido);
+      if (datos.length > LIMITE_BASE64) {
+        const mb = (archivo.size / 1024 / 1024).toFixed(1);
+        throw new ErrorGemini(
+          `${archivo.name || 'El archivo'} pesa ${mb} MB y no cabe en una petición (máximo ` +
+            'unos 3 MB). Si es un PDF, mándalo como fotos de las páginas o comprímelo.',
+        );
+      }
+      return { mime: reducido.type || archivo.type, datos };
+    })();
+    // Si falla, que el siguiente intento vuelva a probar en vez de heredar el error.
+    promesa.catch(() => preparados.delete(archivo));
+    preparados.set(archivo, promesa);
   }
+  return preparados.get(archivo);
 }
 
-export function guardarApiKey(clave) {
-  localStorage.setItem(CLAVE_ALMACEN, String(clave ?? '').trim());
-}
-
-/**
- * Lee un documento con Gemini y devuelve el objeto que describe su esquema.
- * `documento` es una entrada de DOCUMENTOS; `archivo` es el File del input.
- */
-export async function leerDocumento(documento, archivo) {
-  const apiKey = apiKeyGuardada();
-  if (!apiKey) {
-    throw new ErrorGemini(
-      'Falta la API key de Gemini. Consíguela en https://aistudio.google.com/apikey ' +
-        'y guárdala en el botón de configuración.',
-    );
-  }
-  if (!archivo?.size) throw new ErrorGemini('El archivo llegó vacío.');
-
-  const reducido = await reducir(archivo);
-  const cuerpo = construirCuerpo(documento.prompt, documento.esquema, {
-    mime: reducido.type || archivo.type,
-    datos: await aBase64(reducido),
-  });
-
+/** Manda una petición ya armada a /api/gemini y devuelve el objeto leído. */
+async function pedir(cuerpo) {
   let respuesta;
   try {
-    respuesta = await fetch(URL, {
+    respuesta = await fetch(URL_API, {
       method: 'POST',
-      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cuerpo),
     });
   } catch (exc) {
@@ -167,4 +164,28 @@ export async function leerDocumento(documento, archivo) {
   if (!respuesta.ok) throw new ErrorGemini(explicarRespuesta(respuesta.status, texto));
 
   return interpretarRespuesta(texto);
+}
+
+/**
+ * Lee un documento con Gemini y devuelve el objeto que describe su esquema.
+ * `documento` es una entrada de DOCUMENTOS; `archivo` es un File.
+ */
+export async function leerDocumento(documento, archivo) {
+  const preparado = await preparar(archivo);
+  return pedir(construirCuerpo(documento.prompt, documento.esquema, preparado));
+}
+
+/** Pregunta qué documento es. Devuelve el `tipo` crudo de CLASIFICADOR. */
+export async function clasificarArchivo(clasificador, archivo) {
+  const preparado = await preparar(archivo);
+  const lectura = await pedir(
+    construirCuerpo(clasificador.prompt, clasificador.esquema, preparado, { pensar: false }),
+  );
+  return lectura.tipo ?? null;
+}
+
+/** Lee un texto pegado (el formulario del vendedor) con el esquema dado. */
+export async function leerTexto(lector, texto) {
+  const prompt = `${lector.prompt}\n\n--- TEXTO PEGADO ---\n${texto}\n--- FIN ---`;
+  return pedir(construirCuerpo(prompt, lector.esquema, null, { pensar: false }));
 }

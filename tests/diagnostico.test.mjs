@@ -8,18 +8,30 @@ import assert from 'node:assert/strict';
 
 import { explicarFalloDeRed, explicarRespuesta } from '../src/lib/diagnostico.js';
 
-test('el fallo de red nombra las tres causas posibles', () => {
-  const mensaje = explicarFalloDeRed(new TypeError('Failed to fetch'), 'https://ejemplo.github.io');
+test('el fallo de red nombra las causas posibles del lado del capturista', () => {
+  const mensaje = explicarFalloDeRed(new TypeError('Failed to fetch'), 'https://captura.vercel.app');
 
-  assert.match(mensaje, /restricci[óo]n|referrer|dominio/i);
-  assert.match(mensaje, /red|firewall/i);
+  assert.match(mensaje, /internet/i);
+  assert.match(mensaje, /red/i);
   assert.match(mensaje, /bloqueador|extensi[óo]n/i);
 });
 
 test('el fallo de red incluye el origen desde el que se intentó', () => {
-  const mensaje = explicarFalloDeRed(new TypeError('Failed to fetch'), 'https://ejemplo.github.io');
+  const mensaje = explicarFalloDeRed(new TypeError('Failed to fetch'), 'https://captura.vercel.app');
 
-  assert.match(mensaje, /https:\/\/ejemplo\.github\.io/);
+  assert.match(mensaje, /https:\/\/captura\.vercel\.app/);
+});
+
+test('la clave faltante en el servidor se explica con su propio mensaje', () => {
+  const cuerpo = JSON.stringify({
+    error: { message: 'Falta GEMINI_API_KEY en el servidor.', codigo: 'SIN_CLAVE' },
+  });
+
+  assert.equal(explicarRespuesta(500, cuerpo), 'Falta GEMINI_API_KEY en el servidor.');
+});
+
+test('un archivo demasiado grande para Vercel se explica', () => {
+  assert.match(explicarRespuesta(413, 'Request Entity Too Large'), /grande|3 MB/i);
 });
 
 test('un 400 se explica como clave mal escrita', () => {
