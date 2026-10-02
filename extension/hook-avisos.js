@@ -39,27 +39,47 @@
     return true;
   };
 
-  // SweetAlert2 no pasa por window.alert: dibuja un modal en el DOM. Se observa
-  // su aparición y se lee el texto.
-  const observador = new MutationObserver((mutaciones) => {
-    if (!capturando) return;
-    for (const mutacion of mutaciones) {
-      for (const nodo of mutacion.addedNodes) {
-        if (nodo.nodeType !== 1) continue;
-        const contenedor = nodo.matches?.('.swal2-container')
-          ? nodo
-          : nodo.querySelector?.('.swal2-container');
-        if (!contenedor) continue;
+  // SweetAlert2 no pasa por window.alert: dibuja un modal en el DOM. Se revisa
+  // cada 200 ms mientras se llena, en vez de observar solo cuándo se agrega el
+  // contenedor: Dinamo encadena Swal (homoclave → cuenta bancaria → RFC
+  // genérico) y el segundo puede reusar el mismo modal sin agregar nodos.
+  //
+  // - Aviso de un solo botón: se anota y se cierra, para que la corrida siga.
+  // - Pregunta (trae botón de «NO» o de cancelar): se anota y NO se contesta.
+  //   Responderla cambia el trámite (p. ej. facturar con RFC genérico), así que
+  //   la contesta una persona; la extensión detiene la corrida.
+  let ultimoSwal = '';
 
-        const texto = contenedor.querySelector('.swal2-html-container, .swal2-title')?.textContent;
-        publicar(texto);
-
-        // Se cierra sola para que la corrida siga; el aviso ya quedó anotado.
-        contenedor.querySelector('.swal2-confirm')?.click();
-      }
+  function revisarSwal() {
+    const modal = document.querySelector('.swal2-container .swal2-popup.swal2-show, .swal2-container .swal2-popup');
+    if (!modal || !modal.isConnected || modal.getClientRects().length === 0) {
+      ultimoSwal = '';
+      return;
     }
-  });
-  observador.observe(document.documentElement, { childList: true, subtree: true });
+
+    const texto = [modal.querySelector('.swal2-title'), modal.querySelector('.swal2-html-container')]
+      .map((nodo) => nodo?.textContent?.trim())
+      .filter(Boolean)
+      .join(' ');
+    if (!texto || texto === ultimoSwal) return;
+    ultimoSwal = texto;
+
+    const muestra = (boton) => boton && boton.getClientRects().length > 0 && boton.style.display !== 'none';
+    const esPregunta =
+      muestra(modal.querySelector('.swal2-deny')) || muestra(modal.querySelector('.swal2-cancel'));
+
+    if (esPregunta) {
+      window.postMessage({ fuente: 'dinamo-hook', tipo: 'pregunta', texto }, window.location.origin);
+      return;
+    }
+
+    publicar(texto);
+    modal.querySelector('.swal2-confirm')?.click();
+  }
+
+  setInterval(() => {
+    if (capturando) revisarSwal();
+  }, 200);
 
   window.addEventListener('message', (evento) => {
     if (evento.source !== window) return;

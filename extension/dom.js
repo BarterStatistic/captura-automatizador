@@ -110,6 +110,78 @@ function seleccionarPorTexto(select, texto) {
   throw new Error(`no se encontró «${texto}». Opciones: ${muestra}…`);
 }
 
+// Opciones que no son una elección real: «-AGENCIA-», «<-- Seleccione -->»…
+const VALORES_VACIOS = new Set(['', '0', 'CERO', '-']);
+
+function opcionesReales(select) {
+  return [...select.options].filter((o) => !VALORES_VACIOS.has(String(o.value).trim()));
+}
+
+/**
+ * Si el catálogo trae UNA sola opción real, la elige. Para la ubicación: cada
+ * usuario de Dinamo ve solo las de su agencia, que casi siempre es una.
+ * Devuelve null si hay más de una, para no elegir por nadie.
+ */
+function seleccionarUnica(select) {
+  const reales = opcionesReales(select);
+  return reales.length === 1 ? aplicarSeleccion(select, reales[0]) : null;
+}
+
+/** Solo letras y números, para comparar «DNM-R2 GT» con «R2 GT». */
+const claveModelo = (texto) =>
+  String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+/**
+ * Elige el modelo en `cbomodelos`.
+ *
+ * Los nombres de Dinamo no son los del cotizador: el value es
+ * «NOMBRE;CÓDIGO;ID» y el texto trae el código pegado («ALIEN-R NZ175-IT»,
+ * «SUPER ROCKY 125CC AY125»). Se compara el nombre comercial (lo que va antes
+ * del primer «;») sin espacios ni guiones, en este orden:
+ *
+ *   1. Igual: «CUSTOM BLACK» = «CUSTOM BLACK».
+ *   2. El de Dinamo está dentro del nuestro: «HEAVY-MAX» en «HEAVY MAX 250».
+ *   3. El nuestro está dentro del de Dinamo: «ROCKY 125» en «SUPER ROCKY 125CC».
+ *
+ * En 2 y 3 se elige solo si hay UN candidato, y se devuelve `aproximado` para
+ * que la bitácora pida revisarlo. Con varios, no se elige ninguno.
+ */
+function seleccionarModelo(select, nombre) {
+  const buscado = claveModelo(nombre);
+  if (!buscado) throw new Error('sin modelo');
+
+  const opciones = opcionesReales(select).map((opcion) => ({
+    opcion,
+    clave: claveModelo(String(opcion.value).split(';')[0] || opcion.text),
+  }));
+
+  const exacta = opciones.find(({ clave, opcion }) => clave === buscado || claveModelo(opcion.text) === buscado);
+  if (exacta) return { texto: aplicarSeleccion(select, exacta.opcion), aproximado: false };
+
+  for (const coincide of [
+    ({ clave }) => clave.length >= 2 && buscado.includes(clave),
+    ({ clave }) => clave.includes(buscado),
+  ]) {
+    const candidatos = opciones.filter(coincide);
+    if (candidatos.length === 1) {
+      return { texto: aplicarSeleccion(select, candidatos[0].opcion), aproximado: true };
+    }
+    if (candidatos.length > 1) {
+      const nombres = candidatos.map(({ opcion }) => opcion.text.trim()).join(', ');
+      throw new Error(`«${nombre}» coincide con varios modelos (${nombres}); elígelo tú`);
+    }
+  }
+
+  const muestra = opciones.map(({ opcion }) => String(opcion.value).split(';')[0]).join(', ');
+  throw new Error(
+    `«${nombre}» no está en el inventario de esta ubicación. Hay: ${muestra}`,
+  );
+}
+
 /**
  * Elige la opción cuyo texto empieza con ese número («36», «36 QUINCENAS»).
  *
@@ -151,10 +223,15 @@ async function esperarOpciones(id, segundos = 15) {
  * seguro: ahí `btnGuardarDatos` es el botón de Cancelar.
  */
 function botonPorOnclick(nombreFuncion) {
-  const candidatos = [...document.querySelectorAll('input[type="button"], button, a')];
-  return (
-    candidatos.find((elemento) =>
-      String(elemento.getAttribute('onclick') ?? '').includes(`${nombreFuncion}(`),
-    ) ?? null
+  const candidatos = [...document.querySelectorAll('input[type="button"], button, a')].filter(
+    (elemento) => String(elemento.getAttribute('onclick') ?? '').includes(`${nombreFuncion}(`),
   );
+  // Hay funciones con dos botones (nextStep tiene uno para convenios, oculto).
+  // Gana el que una persona podría presionar: visible y habilitado.
+  return candidatos.find((elemento) => visible(elemento) && !elemento.disabled) ?? candidatos[0] ?? null;
+}
+
+/** ¿Está a la vista? Un elemento dentro de algo con display:none no tiene cajas. */
+function visible(elemento) {
+  return Boolean(elemento) && elemento.getClientRects().length > 0;
 }

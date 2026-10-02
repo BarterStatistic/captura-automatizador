@@ -15,9 +15,15 @@ import { IconoAlerta } from './Iconos.jsx';
 // Qué faltantes caen en cada grupo, para contar en su encabezado.
 const FALTANTES_POR_GRUPO = {
   cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
-  domicilio: ['domicilio.calle', 'domicilio.cp'],
+  domicilio: ['domicilio.calle', 'domicilio.numeroExterior', 'domicilio.cp'],
   empleo: ['empleo.nombre'],
+  venta: ['modelo', 'anio', 'plazo'],
 };
+
+// Los años que maneja Dinamo para unidades nuevas: el siguiente y los dos
+// anteriores al actual.
+const ANIO_ACTUAL = new Date().getFullYear();
+const ANIOS = [ANIO_ACTUAL + 1, ANIO_ACTUAL, ANIO_ACTUAL - 1].map(String);
 
 /**
  * Todo lo que se revisa antes de llenar: lo que leyó Gemini (editable, porque
@@ -131,11 +137,30 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
       <Grupo titulo="Domicilio" detalle="Del comprobante" faltan={cuantas('domicilio')}>
         <Campo
           clave="domicilio.calle"
-          etiqueta="Calle y número"
-          valor={lecturas.comprobante?.calle}
+          etiqueta="Calle"
+          valor={datos.domicilio.calle}
           falta={falta('domicilio.calle')}
-          nota="Tal como viene en el recibo; la app lo separa."
-          onCambio={(v) => onLectura('comprobante', 'calle', v)}
+          nota={
+            lecturas.comprobante?.calle
+              ? `En el recibo: «${lecturas.comprobante.calle}»`
+              : 'Sin número; va aparte.'
+          }
+          onCambio={(v) => onLectura('comprobante', 'calle_nombre', v)}
+        />
+        <Campo
+          clave="domicilio.numeroExterior"
+          etiqueta="Número exterior"
+          valor={datos.domicilio.numeroExterior}
+          falta={falta('domicilio.numeroExterior')}
+          mono
+          onCambio={(v) => onLectura('comprobante', 'numero_exterior', v)}
+        />
+        <Campo
+          etiqueta="Número interior"
+          valor={datos.domicilio.numeroInterior}
+          nota="Opcional."
+          mono
+          onCambio={(v) => onLectura('comprobante', 'numero_interior', v)}
         />
         <Campo
           etiqueta="Colonia"
@@ -154,10 +179,6 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           etiqueta="Tiempo viviendo ahí"
           valor={lecturas.formulario?.antiguedad_domicilio}
           onCambio={(v) => onLectura('formulario', 'antiguedad_domicilio', v)}
-        />
-        <Derivado
-          etiqueta="Se capturará como"
-          valor={`${datos.domicilio.calle} ${datos.domicilio.numeroExterior}`.trim()}
         />
       </Grupo>
 
@@ -219,7 +240,7 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         />
       </Grupo>
 
-      <Grupo titulo="Venta" faltan={0}>
+      <Grupo titulo="Venta" faltan={cuantas('venta')}>
         <Seleccion
           etiqueta="Tipo de venta"
           valor={manual.tipoVenta}
@@ -239,6 +260,8 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onManual('subesquema', v)}
         />
         <Seleccion
+          clave="plazo"
+          falta={falta('plazo')}
           etiqueta={`Plazo (${unidad})`}
           valor={manual.plazo}
           opciones={plazos.map((p) => ({ value: String(p), nombre: `${p} ${unidad}` }))}
@@ -248,11 +271,20 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Campo
           etiqueta="Ubicación"
           valor={manual.ubicacion}
-          nota="Se busca por texto en el catálogo de Dinamo."
+          nota="Vacío: si tu agencia tiene una sola ubicación en Dinamo, se elige sola."
           onCambio={(v) => onManual('ubicacion', v)}
         />
-        <Campo etiqueta="Año" valor={manual.anio} mono onCambio={(v) => onManual('anio', v)} />
         <Seleccion
+          clave="anio"
+          falta={falta('anio')}
+          etiqueta="Año"
+          valor={manual.anio}
+          opciones={ANIOS.map((anio) => ({ value: anio, nombre: anio }))}
+          onCambio={(v) => onManual('anio', v)}
+        />
+        <Seleccion
+          clave="modelo"
+          falta={falta('modelo')}
           etiqueta="Modelo"
           valor={manual.modelo}
           opciones={opcionesModelo}
@@ -260,7 +292,12 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           nota={modeloFuera ? 'No está en la lista de Dinamo: elige el modelo correcto.' : null}
           onCambio={(v) => onManual('modelo', v)}
         />
-        <Campo etiqueta="Color" valor={manual.color} onCambio={(v) => onManual('color', v)} />
+        <Campo
+          etiqueta="Color"
+          valor={manual.color}
+          nota="Vacío: si el modelo viene en un solo color, se elige solo."
+          onCambio={(v) => onManual('color', v)}
+        />
         <Seleccion
           etiqueta="Servicio preventivo 1"
           valor={manual.servicioIncluido}
@@ -425,12 +462,21 @@ function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, onCambio }
   );
 }
 
-function Seleccion({ etiqueta, valor, opciones, nota, aviso, onCambio }) {
-  const id = useId();
+function Seleccion({ clave, etiqueta, valor, opciones, nota, aviso, falta, onCambio }) {
+  const generado = useId();
+  const id = clave ? idDeFaltante(clave) : generado;
+  const clases = ['campo'];
+  if (aviso) clases.push('ficticio');
+  if (falta) clases.push('falta');
   return (
-    <div className={`campo${aviso ? ' ficticio' : ''}`}>
+    <div className={clases.join(' ')}>
       <label htmlFor={id}>{etiqueta}</label>
-      <select id={id} value={valor ?? ''} onChange={(evento) => onCambio(evento.target.value)}>
+      <select
+        id={id}
+        value={valor ?? ''}
+        aria-invalid={falta || undefined}
+        onChange={(evento) => onCambio(evento.target.value)}
+      >
         <option value="">Elegir…</option>
         {opciones.map((opcion) => (
           <option key={opcion.value} value={opcion.value}>
@@ -438,7 +484,7 @@ function Seleccion({ etiqueta, valor, opciones, nota, aviso, onCambio }) {
           </option>
         ))}
       </select>
-      {nota && <span className="nota">{nota}</span>}
+      {(nota || falta) && <span className="nota">{falta ? 'Falta este dato.' : nota}</span>}
     </div>
   );
 }

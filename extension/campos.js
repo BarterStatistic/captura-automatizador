@@ -13,7 +13,19 @@
 //   select       <select> elegido por value (catálogo fijo y verificado)
 //   selectTexto  <select> elegido por texto visible (catálogo que llega por AJAX,
 //                cuyos value son claves internas que nadie puede cotejar a ojo)
+//   selectModelo <select> de modelos: el nombre de Dinamo trae el código pegado
+//                («ALIEN-R NZ175-IT»), así que se compara el nombre comercial
+//   selectNumero <select> elegido por el número de su texto (el plazo)
 //   checkbox     casilla que se marca
+//   radio        botón de opción que se elige (dispara su onclick)
+//
+// Opciones de campo:
+//   opcional      sin dato no se avisa
+//   blur          tras escribir se sale del campo: ahí corre su validación
+//   unicaSiVacio  sin dato, si el catálogo trae una sola opción, se elige
+//   soloSiVisible solo se llena si la página lo está mostrando
+//
+// Cotejado contra el HTML real de dsc_captura_2022.php (2026-10-02).
 
 /** El accesorio que se cobra como servicio incluido. */
 const ACCESORIO_SERVICIO = {
@@ -21,6 +33,20 @@ const ACCESORIO_SERVICIO = {
   // depende del modelo y de la agencia. Buscar por índice cobraría otra cosa.
   codigo: '590144001',
   descripcion: 'SERVICIO PREVENTIVO 1',
+};
+
+/**
+ * El plan de pago (`select3`) que corresponde a cada esquema. Dinamo solo
+ * muestra ese selector en algunos casos; si no está a la vista, no se toca.
+ */
+const PLAN_POR_ESQUEMA = {
+  1: 'CREDINAMO',
+  53: 'CREDINAMO FLEX',
+  19: 'DINAMO NOMINA',
+  2: 'MOTONOMINA',
+  52: 'MOTONOMINA FLEX',
+  15: 'MOTOXPRESS',
+  51: 'MOTOXPRESS FLEX',
 };
 
 /** Lee `datos.cliente.curp` de un objeto, sin reventar si falta un tramo. */
@@ -61,11 +87,16 @@ function seccionReferencia(indice) {
   const numero = indice + 1;
   const base = `datos.referencias.${sufijo}`;
 
+  // `_ref` → '', `_ref_b` → '_b': así nombra Dinamo el segundo «Tipo».
+  const variante = sufijo.slice(3);
+
   return {
     id: indice === 0 ? 'referencia' : `referencia${numero}`,
     etiqueta: `Referencia ${numero}`,
-    // Las referencias 2 y 3 viven ocultas hasta que se marca su casilla.
+    // Las referencias 2 y 3 viven ocultas hasta que se marca su casilla, y solo
+    // se llenan si el expediente las trae (MOTOXPRESS y MOTOXPRESS FLEX).
     activar,
+    requiere: indice === 0 ? null : base,
     campos: [
       { id: `cbotipo_${sufijo}`, tipo: 'select', fijo: '1', etiqueta: 'Tipo de referencia' },
       { id: `txtnombre_${sufijo}`, tipo: 'texto', de: `${base}.nombres`, etiqueta: 'Nombre' },
@@ -81,12 +112,20 @@ function seccionReferencia(indice) {
         de: `${base}.apellidoMaterno`,
         etiqueta: 'Apellido materno',
       },
+      { id: `cbotipo_ref2${variante}`, tipo: 'select', fijo: '1', etiqueta: 'Personal o comercial' },
       { id: `txtcalle_${sufijo}`, tipo: 'texto', de: `${base}.calle`, etiqueta: 'Calle' },
       {
         id: `txtnum_ext_${sufijo}`,
         tipo: 'texto',
         de: `${base}.numeroExterior`,
         etiqueta: 'Número exterior',
+      },
+      {
+        id: `txtnum_int_${sufijo}`,
+        tipo: 'texto',
+        de: `${base}.numeroInterior`,
+        etiqueta: 'Número interior',
+        opcional: true,
       },
       { id: status, tipo: 'select', fijo: '2', etiqueta: 'Estatus laboral' },
       { id: centro, tipo: 'texto', fijo: 'trabajador', etiqueta: 'Centro laboral' },
@@ -142,11 +181,13 @@ const SECCIONES = [
         de: 'manual.ubicacion',
         etiqueta: 'Ubicación',
         dinamico: true,
+        // Cada usuario ve solo las ubicaciones de su agencia; con una, es esa.
+        unicaSiVacio: true,
       },
       { id: 'cboanios', tipo: 'selectTexto', de: 'manual.anio', etiqueta: 'Año', dinamico: true },
       {
         id: 'cbomodelos',
-        tipo: 'selectTexto',
+        tipo: 'selectModelo',
         de: 'manual.modelo',
         etiqueta: 'Modelo',
         dinamico: true,
@@ -157,6 +198,15 @@ const SECCIONES = [
         de: 'manual.color',
         etiqueta: 'Color',
         dinamico: true,
+        unicaSiVacio: true,
+      },
+      {
+        id: 'select3',
+        tipo: 'selectTexto',
+        de: 'derivado.planDePago',
+        etiqueta: 'Plan de pago',
+        soloSiVisible: true,
+        opcional: true,
       },
       // Quincenas, o semanas en los esquemas Flex. Se elige por el número que
       // muestra la opción, porque las claves internas de los plazos semanales
@@ -180,6 +230,15 @@ const SECCIONES = [
     buscarCliente: { id: 'txt_buscar_cliente', de: 'datos.cliente.rfc', boton: 'buscar_cliente' },
     datosFiscales: { boton: 'showFiscal' },
     campos: [
+      // Persona física. El RFC completo (13) también lo marca así al salir del
+      // campo, pero se elige antes para que el cálculo de la fecha use la
+      // posición correcta.
+      { id: 'radiobutton_pf', tipo: 'radio', fijo: true, texto: 'Persona física', etiqueta: 'Tipo de cliente' },
+      // Con 13 caracteres no salen las preguntas de homoclave (esas solo
+      // aparecen con 10). Al salir del campo Dinamo calcula la fecha de
+      // nacimiento (cbodia/cbomes/cboanio, deshabilitados), valida la edad
+      // mínima de 20 y copia el RFC a «RFC a facturar».
+      { id: 'txtrfc', tipo: 'texto', de: 'datos.cliente.rfc', etiqueta: 'RFC', blur: true },
       { id: 'txtnombre', tipo: 'texto', de: 'datos.cliente.nombres', etiqueta: 'Nombre(s)' },
       {
         id: 'txtpaterno',
@@ -204,7 +263,8 @@ const SECCIONES = [
         de: 'datos.empleo.nombre',
         etiqueta: 'Actividad económica',
       },
-      { id: 'txtemail', tipo: 'texto', de: 'datos.cliente.correo', etiqueta: 'Correo' },
+      { id: 'cbonacionalidad', tipo: 'select', fijo: '1', etiqueta: 'Nacionalidad' },
+      { id: 'txtemail', tipo: 'texto', de: 'datos.cliente.correo', etiqueta: 'Correo', blur: true },
       {
         id: 'cbo_dominio',
         tipo: 'selectTexto',
@@ -228,17 +288,33 @@ const SECCIONES = [
         de: 'datos.domicilio.numeroExterior',
         etiqueta: 'Número exterior',
       },
+      {
+        id: 'txtnum_int',
+        tipo: 'texto',
+        de: 'datos.domicilio.numeroInterior',
+        etiqueta: 'Número interior',
+        opcional: true,
+      },
       { id: 'cbovivienda', tipo: 'select', fijo: '2', etiqueta: 'Tipo de vivienda' },
       {
         id: 'txtant_anios',
         tipo: 'texto',
         de: 'datos.domicilio.antiguedadAnios',
-        etiqueta: 'Antigüedad en el domicilio',
+        etiqueta: 'Antigüedad en el domicilio (años)',
+      },
+      // Los meses de esa antigüedad: en el HTML se llama así, `select2`.
+      {
+        id: 'select2',
+        tipo: 'select',
+        de: 'datos.domicilio.antiguedadMeses',
+        etiqueta: 'Antigüedad en el domicilio (meses)',
+        opcional: true,
       },
       { id: 'cbohora_de', tipo: 'select', fijo: '10', etiqueta: 'Verificación desde' },
       { id: 'cbohora_a', tipo: 'select', fijo: '12', etiqueta: 'Verificación hasta' },
       { id: 'txtlada', tipo: 'texto', de: 'datos.cliente.lada', etiqueta: 'Lada' },
       { id: 'txttelefono', tipo: 'texto', de: 'datos.cliente.telefono', etiqueta: 'Teléfono' },
+      { id: 'cbotipo_tel', tipo: 'select', fijo: '5', etiqueta: 'Tipo de línea' },
       { id: 'check_cli_A', tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
     // txtcolonia, txtcp, txtmpio y txtciudad son readonly: solo SEPOMEX los llena.
@@ -264,7 +340,16 @@ const SECCIONES = [
         etiqueta: 'Antigüedad (meses)',
       },
       { id: 'cbosector', tipo: 'select', fijo: '2', etiqueta: 'Sector' },
+      { id: 'cboactividad', tipo: 'select', fijo: '1', etiqueta: 'Actividad' },
       { id: 'txtpuesto', tipo: 'texto', fijo: 'trabajador', etiqueta: 'Puesto' },
+      // El sueldo sale de los estados de cuenta: le pagan por depósito.
+      {
+        id: 'radiobutton_elec',
+        tipo: 'radio',
+        fijo: true,
+        texto: 'Electrónica',
+        etiqueta: 'Forma de percepción',
+      },
       {
         id: 'cbofrecuencia_pago',
         tipo: 'selectTexto',
@@ -280,6 +365,13 @@ const SECCIONES = [
         tipo: 'texto',
         de: 'datos.empleo.numeroExterior',
         etiqueta: 'Número exterior del trabajo',
+        opcional: true,
+      },
+      {
+        id: 'txtnum_int_emp',
+        tipo: 'texto',
+        de: 'datos.empleo.numeroInterior',
+        etiqueta: 'Número interior del trabajo',
         opcional: true,
       },
       { id: 'cbohora_de_emp', tipo: 'select', fijo: '16', etiqueta: 'Verificación desde' },
@@ -301,6 +393,8 @@ const SECCIONES = [
   },
 
   seccionReferencia(0),
+  seccionReferencia(1),
+  seccionReferencia(2),
 
   {
     id: 'final',
@@ -344,6 +438,7 @@ const FISCALES = {
 
 Object.assign(globalThis, {
   SECCIONES,
+  PLAN_POR_ESQUEMA,
   REFERENCIAS,
   FISCALES,
   ACCESORIO_SERVICIO,

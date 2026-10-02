@@ -19,10 +19,10 @@ import {
 
 const local = (valor) => JSON.parse(JSON.stringify(valor));
 
-test('al empezar se ofrecen los cinco tipos de crédito del equipo', () => {
+test('al empezar se ofrecen los seis tipos de crédito del equipo', () => {
   assert.deepEqual(
     TIPOS_CREDITO.map((tipo) => tipo.nombre),
-    ['MOTONOMINA', 'CREDINAMO', 'CREDINAMO FLEX', 'MOTOXPRESS', 'MOTOXPRESS FLEX'],
+    ['MOTONOMINA', 'MOTONOMINA FLEX', 'CREDINAMO', 'CREDINAMO FLEX', 'MOTOXPRESS', 'MOTOXPRESS FLEX'],
   );
 });
 
@@ -57,8 +57,8 @@ test('los value del catálogo son los del HTML de Dinamo', () => {
   assert.equal(esquemaPorValue('51').nombre, 'MOTOXPRESS FLEX');
 });
 
-test('el catálogo tiene los seis esquemas del formulario', () => {
-  assert.equal(ESQUEMAS_VENTA.length, 6);
+test('el catálogo tiene los siete esquemas del formulario', () => {
+  assert.equal(ESQUEMAS_VENTA.length, 7);
 });
 
 // --- Catálogos de la pantalla de tipo de venta -------------------------------
@@ -78,6 +78,7 @@ test('los esquemas Flex usan plazos semanales', () => {
   assert.equal(plazosDe('53').unidad, 'semanas');
   assert.deepEqual(local(plazosDe('53').plazos), [52, 65, 96, 128, 142, 154, 170]);
   assert.equal(esFlex('51'), true);
+  assert.equal(esFlex('52'), true);
   assert.equal(esFlex('15'), false);
 });
 

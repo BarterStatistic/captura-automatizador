@@ -27,7 +27,17 @@ const local = (iterable) => Array.from(iterable);
 test('las secciones van en el orden en que el formulario las habilita', () => {
   assert.deepEqual(
     local(SECCIONES.map((seccion) => seccion.id)),
-    ['tipoVenta', 'motocicleta', 'cliente', 'domicilio', 'empleo', 'referencia', 'final'],
+    [
+      'tipoVenta',
+      'motocicleta',
+      'cliente',
+      'domicilio',
+      'empleo',
+      'referencia',
+      'referencia2',
+      'referencia3',
+      'final',
+    ],
   );
 });
 
@@ -60,6 +70,8 @@ test('cada sección se valida con la función del onclick, no con un XPath', () 
     domicilio: 'valida_domicilio',
     empleo: 'valida_empleo',
     referencia: 'valida_referencia',
+    referencia2: 'valida_referencia_b',
+    referencia3: 'valida_referencia_c',
     final: null,
   };
 
@@ -98,7 +110,7 @@ test('las casillas de verificación van siempre marcadas', () => {
 
   assert.deepEqual(
     local(casillas.map((campo) => campo.id).sort()),
-    ['check_cli_A', 'check_emp_A', 'check_ref_A'],
+    ['check_cli_A', 'check_emp_A', 'check_ref_A', 'check_ref_b_A', 'check_ref_c_A'],
   );
   assert.ok(casillas.every((campo) => campo.fijo === true));
 });
@@ -156,4 +168,79 @@ test('el plazo se elige por su número, no por la clave interna', () => {
 
   assert.equal(plazo.tipo, 'selectNumero');
   assert.equal(plazo.de, 'manual.plazo');
+});
+
+// --- Contra el HTML real -------------------------------------------------------
+// `ids-dinamo.json` es la lista de controles de dsc_captura_2022.php, sacada del
+// HTML que guardó Braulio el 2026-10-02 (sin valores de clientes). Si Dinamo
+// renombra un campo, esto falla antes de que la extensión escriba en el vacío.
+
+const DINAMO = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./ids-dinamo.json', import.meta.url)), 'utf8'),
+);
+
+test('cada campo que llena la extensión existe en el HTML real de Dinamo', () => {
+  const faltan = todosLosCampos()
+    .map((campo) => campo.id)
+    .filter((id) => !(id in DINAMO.controles));
+
+  assert.deepEqual(local(faltan), []);
+});
+
+test('ningún campo de solo lectura se intenta escribir', () => {
+  const soloLectura = todosLosCampos()
+    .map((campo) => campo.id)
+    .filter((id) => DINAMO.controles[id]?.readonly);
+
+  assert.deepEqual(local(soloLectura), []);
+});
+
+test('cada botón que se presiona existe en la página', () => {
+  const funciones = SECCIONES.flatMap((seccion) => [seccion.validar, seccion.validarEmail])
+    .concat(SECCIONES.map((seccion) => seccion.buscarCliente?.boton))
+    .concat(SECCIONES.map((seccion) => seccion.datosFiscales?.boton))
+    .filter(Boolean);
+
+  for (const funcion of funciones) {
+    assert.ok(
+      DINAMO.onclicks.some((onclick) => onclick.includes(`${funcion}(`)),
+      `no hay botón con ${funcion}()`,
+    );
+  }
+});
+
+test('cada SEPOMEX que se abre tiene su enlace en la página', () => {
+  for (const seccion of SECCIONES.filter((s) => s.sepomex)) {
+    assert.ok(
+      DINAMO.onclicks.includes(`sepomex('${seccion.sepomex.tipo}')`),
+      `no hay enlace sepomex('${seccion.sepomex.tipo}')`,
+    );
+  }
+});
+
+test('el RFC del cliente se escribe y se sale del campo, antes que el nombre', () => {
+  const cliente = SECCIONES.find((seccion) => seccion.id === 'cliente');
+  const ids = cliente.campos.map((campo) => campo.id);
+  const rfc = cliente.campos.find((campo) => campo.id === 'txtrfc');
+
+  assert.equal(rfc.de, 'datos.cliente.rfc');
+  assert.equal(rfc.blur, true);
+  assert.ok(ids.indexOf('txtrfc') < ids.indexOf('txtnombre'));
+});
+
+test('el modelo se busca por nombre comercial y el plan solo si se ve', () => {
+  const moto = SECCIONES.find((seccion) => seccion.id === 'motocicleta');
+  const porId = Object.fromEntries(moto.campos.map((campo) => [campo.id, campo]));
+
+  assert.equal(porId.cbomodelos.tipo, 'selectModelo');
+  assert.equal(porId.select3.soloSiVisible, true);
+  assert.equal(porId.cboagencia_pto.unicaSiVacio, true);
+});
+
+test('las referencias 2 y 3 solo se llenan si el expediente las trae', () => {
+  const porId = Object.fromEntries(SECCIONES.map((seccion) => [seccion.id, seccion]));
+
+  assert.equal(porId.referencia.requiere, null);
+  assert.equal(porId.referencia2.requiere, 'datos.referencias.ref_b');
+  assert.equal(porId.referencia3.requiere, 'datos.referencias.ref_c');
 });

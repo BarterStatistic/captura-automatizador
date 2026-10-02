@@ -38,13 +38,29 @@ function capturarAvisos(activo) {
 
 let ultimoAviso = null;
 let emergenteTerminada = null;
+// Una pregunta de Dinamo («¿El cliente cuenta con homoclave?») no se contesta
+// sola: la corrida se detiene y la responde una persona.
+let preguntaPendiente = null;
+
+class PreguntaDeDinamo extends Error {}
 
 window.addEventListener('message', (evento) => {
   if (evento.source !== window) return;
   if (evento.data?.fuente === 'dinamo-hook' && evento.data.tipo === 'aviso') {
     ultimoAviso = evento.data.texto;
   }
+  if (evento.data?.fuente === 'dinamo-hook' && evento.data.tipo === 'pregunta') {
+    preguntaPendiente = evento.data.texto;
+  }
 });
+
+/** Si Dinamo hizo una pregunta, la corrida no sigue escribiendo encima. */
+function revisarPregunta() {
+  if (preguntaPendiente === null) return;
+  const texto = preguntaPendiente;
+  preguntaPendiente = null;
+  throw new PreguntaDeDinamo(texto);
+}
 
 chrome.runtime.onMessage.addListener((mensaje) => {
   if (mensaje?.tipo === 'emergente-terminada') emergenteTerminada = mensaje;
@@ -109,6 +125,7 @@ async function presionar(nombreFuncion, etiqueta, seccion) {
   boton.click();
   const aviso = await esperarAviso();
   if (aviso) publicar('aviso', `${etiqueta}: la página dijo «${aviso}».`, seccion);
+  revisarPregunta();
   return true;
 }
 
@@ -122,14 +139,14 @@ async function presionar(nombreFuncion, etiqueta, seccion) {
  * pidió. Por eso, si hay dudas, no se escribe nada.
  */
 async function marcarAccesorio(accesorio, seccion) {
-  const filas = [...document.querySelectorAll('input[id^="canAcce_"]')]
-    .map((entrada) => ({ entrada, fila: entrada.closest('tr') }))
-    .filter(({ fila }) => fila);
-
-  const coinciden = filas.filter(({ fila }) => {
-    const texto = fila.textContent ?? '';
-    return texto.includes(accesorio.codigo) || texto.toUpperCase().includes(accesorio.descripcion);
-  });
+  // Cada fila trae un oculto `impAcce_N` con valor «precio_ref_CÓDIGO_costo».
+  // Se compara el código EXACTO: por descripción, «SERVICIO PREVENTIVO 1»
+  // también coincide con «SERVICIO PREVENTIVO 1 (SINTETICO 2)», otro producto.
+  const coinciden = [...document.querySelectorAll('input[id^="impAcce_"]')]
+    .filter((oculto) => /^impAcce_\d+$/.test(oculto.id))
+    .filter((oculto) => String(oculto.value).split('_')[2] === accesorio.codigo)
+    .map((oculto) => ({ entrada: document.getElementById(oculto.id.replace('impAcce_', 'canAcce_')) }))
+    .filter(({ entrada }) => entrada);
 
   if (coinciden.length !== 1) {
     publicar(
@@ -162,7 +179,24 @@ async function llenarCampo(campo, expediente, seccion) {
   const esFijo = campo.fijo !== undefined;
   const valor = esFijo ? campo.fijo : valorEn(expediente, campo.de);
 
+  // Campos que la página solo muestra en ciertos esquemas (el plan de pago).
+  if (campo.soloSiVisible && !visible(document.getElementById(campo.id))) return;
+
   if (!esFijo && String(valor).trim() === '') {
+    // Sin dato, pero con una sola opción posible: esa es.
+    if (campo.unicaSiVacio) {
+      try {
+        const select = campo.dinamico ? await esperarOpciones(campo.id) : await esperarCampo(campo.id);
+        const quedo = seleccionarUnica(select);
+        if (quedo) {
+          publicar('campo', `${campo.etiqueta}: ${quedo} (la única disponible)`, seccion, campo.id, quedo);
+          await pausa(PAUSA_ENTRE_CAMPOS);
+          return;
+        }
+      } catch {
+        // cae al aviso de abajo
+      }
+    }
     if (!campo.opcional) {
       publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion, campo.id);
     }
@@ -199,6 +233,22 @@ async function llenarCampo(campo, expediente, seccion) {
     if (campo.tipo === 'checkbox') {
       if (!elemento.checked) elemento.click();
       quedo = elemento.checked ? 'marcada' : 'sin marcar';
+    } else if (campo.tipo === 'radio') {
+      // El clic dispara su onclick (prepara_controles, cambia_forma…).
+      if (!elemento.checked) elemento.click();
+      quedo = elemento.checked ? campo.texto ?? 'elegido' : 'sin elegir';
+    } else if (campo.tipo === 'selectModelo') {
+      if (campo.dinamico) await esperarOpciones(campo.id);
+      const elegido = seleccionarModelo(elemento, valor);
+      quedo = elegido.texto;
+      if (elegido.aproximado) {
+        publicar(
+          'aviso',
+          `${campo.etiqueta}: «${valor}» no está escrito igual en Dinamo; se eligió «${quedo}». Revísalo.`,
+          seccion,
+          campo.id,
+        );
+      }
     } else if (campo.tipo === 'select') {
       quedo = seleccionarPorValue(elemento, valor);
     } else if (campo.tipo === 'selectTexto') {
@@ -209,6 +259,12 @@ async function llenarCampo(campo, expediente, seccion) {
       quedo = seleccionarPorNumero(elemento, valor);
     } else {
       quedo = escribirTexto(elemento, valor);
+      // Algunos campos hacen su trabajo al salir (txtrfc calcula la fecha de
+      // nacimiento y valida la edad; txtemail valida el dominio).
+      if (campo.blur) {
+        elemento.blur();
+        await pausa(400);
+      }
     }
 
     // Se reporta lo que quedó, no lo que se quiso poner: si la página lo recortó
@@ -228,6 +284,7 @@ async function llenarCampo(campo, expediente, seccion) {
   }
 
   await pausa(PAUSA_ENTRE_CAMPOS);
+  revisarPregunta();
 }
 
 // --- Pasos especiales ----------------------------------------------------------
@@ -286,8 +343,16 @@ async function pasarPorSepomex(seccion) {
 
 // --- La corrida ----------------------------------------------------------------
 
+/** ¿Hay algo en esa ruta del expediente? (`valorEn` lo vuelve texto). */
+function existeEn(objeto, ruta) {
+  const valor = String(ruta)
+    .split('.')
+    .reduce((actual, tramo) => (actual == null ? undefined : actual[tramo]), objeto);
+  return valor != null;
+}
+
 async function esperarSeccionHabilitada(seccion, segundos = 25) {
-  const primero = seccion.campos.find((campo) => campo.tipo !== 'checkbox');
+  const primero = seccion.campos.find((campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio');
   if (!primero) return true;
 
   const limite = Date.now() + segundos * 1000;
@@ -298,15 +363,26 @@ async function esperarSeccionHabilitada(seccion, segundos = 25) {
   }
 }
 
-async function llenar(expediente) {
+async function llenar(expedienteRecibido) {
   if (llenando) return;
   llenando = true;
   capturarAvisos(true);
+  preguntaPendiente = null;
+
+  // Lo que se deduce del expediente y no viene escrito en él.
+  const expediente = {
+    ...expedienteRecibido,
+    derivado: { planDePago: PLAN_POR_ESQUEMA[expedienteRecibido?.manual?.esquemaVenta] ?? '' },
+  };
 
   try {
     publicar('inicio', 'Cargando la captura de Dinamo…');
 
     for (const seccion of SECCIONES) {
+      // Las referencias 2 y 3 solo existen en el expediente cuando el esquema
+      // las pide; si no vienen, la sección ni se abre.
+      if (seccion.requiere && !existeEn(expediente, seccion.requiere)) continue;
+
       publicar('seccion', `— ${seccion.etiqueta} —`, seccion.id);
 
       // Estos pasos van ANTES de comprobar que la sección esté habilitada,
@@ -344,8 +420,17 @@ async function llenar(expediente) {
         'el botón Grabar. La extensión no envía nada.',
     );
   } catch (error) {
-    publicar('error', `El llenado se interrumpió: ${error.message}`);
-    publicar('fin', 'La corrida terminó con errores.');
+    if (error instanceof PreguntaDeDinamo) {
+      publicar(
+        'error',
+        `Dinamo preguntó «${error.message}». La extensión no contesta preguntas: ` +
+          'respóndela tú en la pantalla y sigue a mano desde ahí.',
+      );
+      publicar('fin', 'La corrida se detuvo en una pregunta de Dinamo.');
+    } else {
+      publicar('error', `El llenado se interrumpió: ${error.message}`);
+      publicar('fin', 'La corrida terminó con errores.');
+    }
   } finally {
     capturarAvisos(false);
     llenando = false;

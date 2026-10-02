@@ -57,7 +57,8 @@ export function extrasAlManual(manual, lectura) {
   // capturista lo vea y lo corrija.
   llenar('modelo', modeloPorNombre(lectura.modelo) ?? lectura.modelo);
   llenar('color', lectura.color);
-  llenar('anio', lectura.anio);
+  // Solo el año de cuatro cifras: «modelo 2026» es 2026, como en el menú.
+  llenar('anio', /(?:^|\D)(20\d{2})(?!\d)/.exec(texto(lectura.anio))?.[1]);
   llenar('esquemaVenta', opcionPorNombre(ESQUEMAS_VENTA, lectura.esquema)?.value);
   llenar('subesquema', opcionPorNombre(SUBESQUEMAS, lectura.subesquema)?.value);
   // El plazo solo se toma si existe en el esquema: 24 sirve en quincenas, no

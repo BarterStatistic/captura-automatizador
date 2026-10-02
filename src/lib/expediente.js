@@ -16,6 +16,7 @@ const OBLIGATORIOS = [
   ['nombres', (d) => d.cliente.nombres],
   ['apellidoPaterno', (d) => d.cliente.apellidoPaterno],
   ['domicilio.calle', (d) => d.domicilio.calle],
+  ['domicilio.numeroExterior', (d) => d.domicilio.numeroExterior],
   ['domicilio.cp', (d) => d.domicilio.cp],
   ['correo', (d) => d.cliente.correo],
   ['empleo.nombre', (d) => d.empleo.nombre],
@@ -128,14 +129,28 @@ export function armarExpediente(lecturas, manual = {}) {
   // --- Domicilio -------------------------------------------------------------
   // Siempre el del comprobante. El de la INE no se usa nunca, y que el recibo
   // esté a nombre de otra persona es lo normal: no se compara ni se avisa.
-  const calleComprobante = partirCalle(comprobante.calle);
+  //
+  // Calle, número exterior e interior van en campos distintos de Dinamo. Se
+  // parten de la línea del recibo, pero si el capturista corrigió alguno en la
+  // revisión (`calle_nombre`, `numero_exterior`, `numero_interior`), manda lo
+  // corregido, aunque lo haya dejado vacío a propósito.
+  const partida = partirCalle(comprobante.calle);
+  const corregido = (campo, deLaLinea) =>
+    comprobante[campo] === undefined || comprobante[campo] === null
+      ? deLaLinea
+      : texto(comprobante[campo]);
+  const calleDomicilio = corregido('calle_nombre', partida.calle);
+  const antiguedadDomicilio = partirAntiguedad(formulario.antiguedad_domicilio);
   const domicilio = {
-    ...calleComprobante,
-    entreCalles: calleComprobante.calle,
+    calle: calleDomicilio,
+    numeroExterior: corregido('numero_exterior', partida.numeroExterior),
+    numeroInterior: corregido('numero_interior', partida.numeroInterior),
+    entreCalles: calleDomicilio,
     colonia: texto(comprobante.colonia),
     cp: texto(comprobante.cp),
     municipio: texto(comprobante.municipio),
-    antiguedadAnios: partirAntiguedad(formulario.antiguedad_domicilio)?.anios ?? 0,
+    antiguedadAnios: antiguedadDomicilio?.anios ?? 0,
+    antiguedadMeses: antiguedadDomicilio?.meses ?? 0,
   };
 
   // --- Empleo ----------------------------------------------------------------
@@ -152,6 +167,7 @@ export function armarExpediente(lecturas, manual = {}) {
     antiguedadMeses: antiguedadEmpleo.meses,
     calle: calleEmpleo.calle,
     numeroExterior: calleEmpleo.numeroExterior,
+    numeroInterior: calleEmpleo.numeroInterior,
     colonia: texto(formulario.colonia_empleo),
     jefe: texto(formulario.companero_nombre),
     lada: telefonoCompanero?.lada ?? '',
@@ -192,6 +208,13 @@ export function armarExpediente(lecturas, manual = {}) {
   // documento. Sin él no se sabe cuántas referencias llenar.
   const elegido = esquemaPorValue(manual.esquemaVenta);
   if (!elegido) faltantes.unshift('tipoCredito');
+
+  // La moto no sale de ningún documento: la elige el capturista (o la trae el
+  // formulario del vendedor). Sin modelo, año y plazo la sección Motocicleta
+  // de Dinamo no se puede llenar.
+  for (const campo of ['modelo', 'anio', 'plazo']) {
+    if (!texto(manual[campo])) faltantes.push(campo);
+  }
 
   // Si el vendedor escribió otro tipo en el formulario, gana lo elegido, pero
   // se avisa: suele ser un error de dedo de uno de los dos.

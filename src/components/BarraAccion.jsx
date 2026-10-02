@@ -7,10 +7,14 @@ export const ETIQUETAS_FALTANTE = {
   nombres: 'Nombre',
   apellidoPaterno: 'Apellido paterno',
   'domicilio.calle': 'Calle del domicilio',
+  'domicilio.numeroExterior': 'Número exterior',
   'domicilio.cp': 'Código postal',
   correo: 'Correo',
   'empleo.nombre': 'Trabajo',
   celular: 'Celular',
+  modelo: 'Modelo',
+  anio: 'Año',
+  plazo: 'Plazo',
 };
 
 /** El id del campo en la revisión, o de la sección para el tipo de crédito. */

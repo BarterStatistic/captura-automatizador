@@ -1,0 +1,3634 @@
+{
+ "fuente": "dsc_captura_2022.php?tipo_captura=CREDINAMO, HTML guardado el 2026-10-02. Solo ids, tipo y onclicks: sin valores de ningún cliente.",
+ "controles": {
+  "txtcontado_siva": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_fin": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_cli": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_dom": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtvalida_nomina": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "per_id_adm": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "per_id_promo": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "usu_clave": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "empresa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "suc_id": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtpromotor": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtIdIntTMK": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtPCliTntTMK": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "edo_clave_get": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "age_clave_get": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "cbocaptura": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "tipoCapturista": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "cnv2daVenta": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "cmbTp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbUni": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbEsquemaVenta": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbSubesquemaVenta": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbPlan": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbo_convenioesp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "compIng": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "btnSig": {
+   "tag": "input",
+   "readonly": false,
+   "type": "button"
+  },
+  "txtcontado": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "cmbSuc": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbDep": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cmbSub": {
+   "tag": "select",
+   "readonly": false
+  },
+  "btnSigConv": {
+   "tag": "input",
+   "readonly": false,
+   "type": "button"
+  },
+  "cboagencia3": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboagencia_pto": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboanios": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbomodelos": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbocolores": {
+   "tag": "select",
+   "readonly": false
+  },
+  "select3": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboPrimeraVenta": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboplazoscredimoto": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboplazo": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtporenganche_min": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtenganche_min": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtenganche_max": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtpor_enganche_act": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtenganche": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtparcialidad_min": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtparcialidad": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtenganche_ACCESS": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtparcialidad_ACCESS": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txttotal_enganche": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttotal_parcialidad": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "chkpromo": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txt_ref_": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_0": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_0": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_0": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_1": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_1": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_1": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_3": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_3": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_3": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_4": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_4": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_4": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_5": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_5": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_5": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_6": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_6": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_6": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_7": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_7": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_7": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_8": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_8": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_8": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_9": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_9": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_9": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_10": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_10": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_10": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_11": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_11": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_11": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_12": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_12": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_12": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_13": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_13": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_13": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_14": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_14": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_14": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_15": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_15": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_15": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_16": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_16": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_16": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_17": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_17": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_17": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_18": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_18": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_18": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_19": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_19": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_19": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_20": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_20": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_20": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_21": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_21": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_21": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_22": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_22": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_22": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_23": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_23": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_23": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_24": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_24": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_24": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_25": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_25": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_25": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_26": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_26": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_26": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_27": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_27": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_27": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_28": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_28": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_28": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_29": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_29": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_29": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_30": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_30": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_30": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_31": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_31": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_31": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_32": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_32": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_32": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_33": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_33": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_33": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_34": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_34": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_34": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_35": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_35": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_35": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_36": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_36": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_36": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_37": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_37": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_37": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_38": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_38": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_38": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_39": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_39": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_39": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_40": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_40": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_40": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_41": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_41": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_41": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_42": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_42": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_42": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_43": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_43": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_43": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_44": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_44": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_44": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_45": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_45": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_45": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_46": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_46": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_46": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_47": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_47": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_47": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_48": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_48": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_48": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_49": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_49": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_49": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_50": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_50": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_50": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_51": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_51": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_51": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_52": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_52": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_52": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_53": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_53": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_53": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_54": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_54": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_54": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_55": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_55": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_55": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_56": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_56": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_56": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_57": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_57": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_57": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_58": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_58": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_58": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_59": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_59": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_59": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_60": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_60": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_60": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_61": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_61": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_61": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_62": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_62": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_62": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_63": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_63": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_63": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_64": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_64": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_64": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_65": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_65": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_65": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_66": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_66": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_66": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_67": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_67": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_67": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_68": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_68": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_68": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_69": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_69": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_69": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_70": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_70": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_70": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_71": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_71": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_71": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_72": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_72": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_72": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_73": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_73": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_73": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_74": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_74": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_74": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_75": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_75": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_75": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_76": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_76": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_76": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_77": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_77": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_77": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_78": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_78": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_78": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_79": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_79": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_79": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_80": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_80": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_80": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_81": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_81": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_81": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_82": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_82": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_82": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_83": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_83": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_83": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_84": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_84": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_84": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_85": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_85": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_85": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_86": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_86": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_86": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_87": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_87": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_87": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_88": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_88": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_88": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_89": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_89": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_89": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_90": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_90": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_90": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_91": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_91": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_91": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_92": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_92": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_92": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_93": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_93": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_93": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_94": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_94": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_94": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_95": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_95": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_95": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_96": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_96": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_96": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_97": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_97": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_97": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_98": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_98": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_98": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "canAcce_99": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "impAcce_99": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "impAcce_Pub_99": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txttotal_contado": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txttotal": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txt_num_acce": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txt_buscar_cliente": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpkcli_clave": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtpkdom_clave": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtpktel_clave": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtrfc": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_liquida": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "chk_2da": {
+   "tag": "input",
+   "readonly": true,
+   "type": "checkbox"
+  },
+  "chekSinDatosFiscales": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "facturaRFCSDF": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "curpSiDatosFiscales": {
+   "tag": "input",
+   "readonly": false,
+   "type": "file"
+  },
+  "responsivaSinDatosFiscales": {
+   "tag": "input",
+   "readonly": false,
+   "type": "file"
+  },
+  "radiobutton_pf": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "radiobutton_pfa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "radiobutton_pm": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "txtnombre": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbodia": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbomes": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboanio": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbomedio": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txt_mediopublicitario": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbonacionalidad": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtife": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcurp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtfonacot_folio": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtfonacot_num": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtfonacot_imp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboEdoLab": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txt_otro": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboedocivil": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboregimen": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbosexo": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbodependientes": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboedo_nac": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboMpio_nac": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtemail": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbo_dominio": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txt_cli_correo_valida": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "cbotipo_cyc": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcta_facebook": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "id_fiscal": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "ButtonDF": {
+   "tag": "input",
+   "readonly": false,
+   "type": "button"
+  },
+  "txtnombre_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbodia_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbomes_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboanio_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtrfc_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbonacionalidad_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtife_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcurp_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbosexo_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboedo_nac_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboMpio_nac_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtemail_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbo_dominio_esposa": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txt_cli_correo_valida_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "txtcta_facebook_esposa": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtSueldoQnal": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtLiquido": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtNombreCT": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtClaveCT": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtNumEmp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtNumMat": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtClavePlaza": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtTipoPlaza": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtDeptoNom": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtPuestoNom": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboActEco": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboFechaValNomDia": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboFechaValNomMes": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboFechaValNomAnio": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtFolioPlat": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcalle": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtentre": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtRefenciaVFPAR": {
+   "tag": "textarea",
+   "readonly": false
+  },
+  "cbovivienda": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtant_anios": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "select2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtant_anios2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_meses2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_de": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_cli_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_cli_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_cli_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_cli_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_cli_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_cli_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txttitular_linea": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtlada_a": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_a": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_a": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "check_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txtcalle_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtentre_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_alterno": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_alterno": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_alterno": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_alterno": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbovivienda_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtant_anios_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_meses_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_de_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_alterno": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_alterno": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_alt_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_alt_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_alt_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_alt_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_alt_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_alt_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txtempleo": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtant_anios_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_meses_emp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbosector": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboactividad": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtpuesto": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbopuesto": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtforma_percep": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  },
+  "radiobutton_efec": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "radiobutton_elec": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "radiobutton_cheq": {
+   "tag": "input",
+   "readonly": false,
+   "type": "radio"
+  },
+  "cbofrecuencia_pago": {
+   "tag": "select",
+   "readonly": false
+  },
+  "diaPago": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtsueldo": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtjefe": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbooficina": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcalle_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_emp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_emp": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_emp": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_emp": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_emp": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbohora_de_emp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_emp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtRefenciaVFLAB": {
+   "tag": "textarea",
+   "readonly": false
+  },
+  "txtlada_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_emp": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_emp": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_emp_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_emp_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_emp_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_emp_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_emp_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_emp_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txtnombre_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcalle_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtentre_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_vivienda_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboestado_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_fam": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_fam": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_fam": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_fam": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtant_anios_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_meses_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtant_anios_fam2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_mese_fam2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_de_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_de_fam2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_fam2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_fam": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_fam": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_fam_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_fam_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_fam_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_fam_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_fam_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_fam_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "cbotipo_ref": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtnombre_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_ref2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcalle_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cmbStatusLabRef1": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtCentroLabRef1": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_ref": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_ref": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_ref": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_ref": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_ref": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbohora_de_ref": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_ref": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_ref": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_ref": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_ref_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_referencia2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "cbotipo_ref_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtnombre_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_ref2_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcalle_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cmbStatusLabRef2": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtCentroLabRef2": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_ref_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_ref_b": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_ref_b": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_ref_b": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_ref_b": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbohora_de_ref_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_ref_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_ref_b": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_ref_b": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_ref_b_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_b_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_b_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_b_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_b_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_b_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_referencia3": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "cbotipo_ref_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtnombre_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_ref2_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcalle_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cmbStatusLabRef3": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtCentroLabRef3": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_ref_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_ref_c": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_ref_c": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_ref_c": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_ref_c": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbohora_de_ref_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_ref_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_ref_c": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_ref_c": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_ref_c_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_c_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_c_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_c_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_c_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_c_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_referencia4": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "cbotipo_ref_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtnombre_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_ref2_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcalle_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cmbStatusLabRef4": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtCentroLabRef4": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_ref_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_ref_d": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_ref_d": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_ref_d": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_ref_d": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "cbohora_de_ref_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_ref_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_ref_d": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_ref_d": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_ref_d_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_d_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_d_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_d_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_d_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ref_d_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "ButtonRefd": {
+   "tag": "input",
+   "readonly": false,
+   "type": "button"
+  },
+  "check_aval": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txtnombre_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtpaterno_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtmaterno_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbodia_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbomes_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboanio_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboedo_nac_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboMpio_nac_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtrfc_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcurp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbodependientes_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbocivil_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboregimen_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbosexo_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbotipo_aval": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtemail_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_cyc_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cboestado_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcp_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcalle_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtentre_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbovivienda_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtant_anios_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_meses_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_de_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbohora_a_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtlada_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_aval": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_telefono_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "check_ava_A": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ava_B": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ava_C": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ava_D": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ava_E": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "check_ava_F": {
+   "tag": "input",
+   "readonly": false,
+   "type": "checkbox"
+  },
+  "txtempleo_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtant_meses_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboant_anios_emp_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbosector_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "cbopuesto_emp_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtsueldo_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cboestado_emp_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtmpio_emp_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtciudad_emp_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcolonia_emp_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtcalle_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtentre_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_ext_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtnum_int_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtcp_emp_ava": {
+   "tag": "input",
+   "readonly": true,
+   "type": "text"
+  },
+  "txtjefe_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtlada_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txttelefono_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "txtext_emp_ava": {
+   "tag": "input",
+   "readonly": false,
+   "type": "text"
+  },
+  "cbotipo_tel_emp_ava": {
+   "tag": "select",
+   "readonly": false
+  },
+  "txtcomenta": {
+   "tag": "textarea",
+   "readonly": false
+  },
+  "tipocaptura": {
+   "tag": "input",
+   "readonly": false,
+   "type": "hidden"
+  }
+ },
+ "onclicks": [
+  "buscar_cliente()",
+  "cambia_forma(1)",
+  "cambia_forma(2)",
+  "cambia_forma(3)",
+  "forzar_promo(this.checked)",
+  "habilita_controles_cliente_dom(false)",
+  "nextStep()",
+  "on_validar_email()",
+  "prepara_alterno()",
+  "prepara_aval()",
+  "prepara_controles()",
+  "prepara_referencia4()",
+  "recalcula_enganche('.05', '2750.5')",
+  "sepomex('ALT')",
+  "sepomex('AVA')",
+  "sepomex('AVA_EMP')",
+  "sepomex('CLI')",
+  "sepomex('EMP')",
+  "sepomex('FAM')",
+  "sepomex('REF')",
+  "sepomex('REFb')",
+  "sepomex('REFc')",
+  "sepomex('REFd')",
+  "showFiscal()",
+  "valida()",
+  "valida_alterno()",
+  "valida_aval()",
+  "valida_campos_nomina()",
+  "valida_cliente();validacionesSDF();",
+  "valida_domicilio()",
+  "valida_empleo()",
+  "valida_esposa()",
+  "valida_familiar()",
+  "valida_referencia()",
+  "valida_referencia_b()",
+  "valida_referencia_c()",
+  "valida_referencia_d()",
+  "verInventarioDisp();"
+ ]
+}

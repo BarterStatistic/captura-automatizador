@@ -9,6 +9,7 @@ export const ESQUEMAS_VENTA = [
   { value: '53', nombre: 'CREDINAMO FLEX' },
   { value: '19', nombre: 'DINAMO NOMINA' },
   { value: '2', nombre: 'MOTONOMINA' },
+  { value: '52', nombre: 'MOTONOMINA FLEX' },
   { value: '15', nombre: 'MOTOXPRESS' },
   { value: '51', nombre: 'MOTOXPRESS FLEX' },
 ];
@@ -16,9 +17,8 @@ export const ESQUEMAS_VENTA = [
 // Los tipos de crédito que se eligen al empezar cada captura, en el orden en
 // que los nombra el equipo. Es un subconjunto de ESQUEMAS_VENTA: DINAMO NOMINA
 // sigue en el catálogo (el formulario la puede mencionar) pero no se ofrece.
-// No existe MOTONOMINA FLEX en el `<select>` real de Dinamo, así que no se
-// inventa un value para ella.
-export const TIPOS_CREDITO = ['2', '1', '53', '15', '51'].map((value) =>
+// MOTONOMINA FLEX es el value 52 del `<select>` real (HTML del 2026-10-02).
+export const TIPOS_CREDITO = ['2', '52', '1', '53', '15', '51'].map((value) =>
   ESQUEMAS_VENTA.find((esquema) => esquema.value === value),
 );
 
@@ -55,7 +55,7 @@ export const SUBESQUEMAS = [
 export const PLAZOS_QUINCENALES = [12, 18, 24, 36, 48, 60, 72];
 export const PLAZOS_SEMANALES = [52, 65, 96, 128, 142, 154, 170];
 
-const FLEX = new Set(['53', '51']);
+const FLEX = new Set(['52', '53', '51']);
 const PLAZOS_POR_ESQUEMA = {
   51: [52, 65, 96, 128, 142, 144, 154, 170],
 };

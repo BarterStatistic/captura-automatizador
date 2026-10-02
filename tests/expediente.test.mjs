@@ -48,6 +48,9 @@ const LECTURAS = {
 const MANUAL = {
   celular: '844 555 6677',
   esquemaVenta: '1',
+  modelo: 'U5',
+  anio: '2026',
+  plazo: '24',
   referencias: { ref: { calle: 'ALLENDE', numeroExterior: '210' } },
 };
 
@@ -213,4 +216,55 @@ test('si el formulario coincide con lo elegido no hay aviso', () => {
   const { avisos } = armarExpediente(lecturas, { ...MANUAL, esquemaVenta: '1' });
 
   assert.ok(!avisos.some((aviso) => aviso.campo === 'tipoCredito'));
+});
+
+// --- Domicilio en campos separados ----------------------------------------------
+// Dinamo pide calle, número exterior y número interior por separado.
+
+test('la línea del recibo se parte en calle, exterior e interior', () => {
+  const lecturas = { ...LECTURAS, comprobante: { ...LECTURAS.comprobante, calle: 'C JUAREZ 300 2' } };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.domicilio.calle, 'JUAREZ');
+  assert.equal(datos.domicilio.numeroExterior, '300');
+  assert.equal(datos.domicilio.numeroInterior, '2');
+});
+
+test('lo corregido a mano en cada campo manda sobre la línea del recibo', () => {
+  const lecturas = {
+    ...LECTURAS,
+    comprobante: {
+      ...LECTURAS.comprobante,
+      calle: 'MORELOS 245 FRAC3',
+      calle_nombre: 'MORELOS PONIENTE',
+      numero_exterior: '245-A',
+      numero_interior: '',
+    },
+  };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.domicilio.calle, 'MORELOS PONIENTE');
+  assert.equal(datos.domicilio.numeroExterior, '245-A');
+  assert.equal(datos.domicilio.numeroInterior, '');
+});
+
+test('sin número exterior el expediente no arranca', () => {
+  const lecturas = { ...LECTURAS, comprobante: { ...LECTURAS.comprobante, calle: 'CERRADA DEL SOL' } };
+  const { faltantes } = armarExpediente(lecturas, MANUAL);
+
+  assert.ok(faltantes.includes('domicilio.numeroExterior'));
+});
+
+test('la antigüedad en el domicilio trae años y meses', () => {
+  const lecturas = { ...LECTURAS, formulario: { ...LECTURAS.formulario, antiguedad_domicilio: '2 años 3 meses' } };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.domicilio.antiguedadAnios, 2);
+  assert.equal(datos.domicilio.antiguedadMeses, 3);
+});
+
+test('sin modelo, año y plazo el expediente no arranca', () => {
+  const { faltantes } = armarExpediente(LECTURAS, { ...MANUAL, modelo: '', anio: '', plazo: '' });
+
+  assert.ok(['modelo', 'anio', 'plazo'].every((campo) => faltantes.includes(campo)));
 });
