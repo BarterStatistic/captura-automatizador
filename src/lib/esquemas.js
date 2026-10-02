@@ -13,6 +13,15 @@ export const ESQUEMAS_VENTA = [
   { value: '51', nombre: 'MOTOXPRESS FLEX' },
 ];
 
+// Los tipos de crédito que se eligen al empezar cada captura, en el orden en
+// que los nombra el equipo. Es un subconjunto de ESQUEMAS_VENTA: DINAMO NOMINA
+// sigue en el catálogo (el formulario la puede mencionar) pero no se ofrece.
+// No existe MOTONOMINA FLEX en el `<select>` real de Dinamo, así que no se
+// inventa un value para ella.
+export const TIPOS_CREDITO = ['2', '1', '53', '15', '51'].map((value) =>
+  ESQUEMAS_VENTA.find((esquema) => esquema.value === value),
+);
+
 export const TIPOS_VENTA = [
   { value: '1', nombre: 'CREDITO' },
   { value: '2', nombre: 'CONTADO' },
@@ -35,17 +44,38 @@ export const SUBESQUEMAS = [
   { value: '31', nombre: 'BURÓCRATAS MUNICIPAL' },
 ];
 
-// El `value` no tiene ninguna relación con los meses: son claves internas de
-// Dinamo. Por eso se guardan las dos cosas y la app muestra los meses.
-export const PLAZOS = [
-  { value: '530', meses: 12 },
-  { value: '531', meses: 18 },
-  { value: '541', meses: 24 },
-  { value: '546', meses: 36 },
-  { value: '544', meses: 48 },
-  { value: '547', meses: 60 },
-  { value: '549', meses: 72 },
-];
+// Los plazos son quincenales, salvo en los esquemas Flex, que son semanales.
+// Las listas salen del cotizador vigente (Cotizadores/cotizador-pt, tablas
+// Dinamo del 25/08/2026). MOTOXPRESS FLEX es el único que además ofrece 144.
+//
+// El plazo se guarda como el NÚMERO de quincenas o semanas, no como la clave
+// interna de Dinamo: `cboplazo` muestra ese número como texto y la extensión lo
+// elige por ahí. Solo se conocían las claves de las quincenas (530 = 12…), y
+// adivinar las de las semanas habría elegido otro plazo.
+export const PLAZOS_QUINCENALES = [12, 18, 24, 36, 48, 60, 72];
+export const PLAZOS_SEMANALES = [52, 65, 96, 128, 142, 154, 170];
+
+const FLEX = new Set(['53', '51']);
+const PLAZOS_POR_ESQUEMA = {
+  51: [52, 65, 96, 128, 142, 144, 154, 170],
+};
+
+export function esFlex(valueEsquema) {
+  return FLEX.has(String(valueEsquema));
+}
+
+/** `{ unidad, plazos }` del esquema: quincenas por defecto, semanas si es Flex. */
+export function plazosDe(valueEsquema) {
+  const value = String(valueEsquema ?? '');
+  if (!esFlex(value)) return { unidad: 'quincenas', plazos: PLAZOS_QUINCENALES };
+  return { unidad: 'semanas', plazos: PLAZOS_POR_ESQUEMA[value] ?? PLAZOS_SEMANALES };
+}
+
+/** El plazo como número si el esquema lo ofrece, o '' si no. */
+export function plazoValido(valueEsquema, plazo) {
+  const numero = Number(String(plazo ?? '').replace(/\D/g, ''));
+  return plazosDe(valueEsquema).plazos.includes(numero) ? String(numero) : '';
+}
 
 // Los dos esquemas de MOTOXPRESS exigen tres referencias; el resto se conforma
 // con una. Es regla de negocio de Dinamo, no algo que se lea del formulario.

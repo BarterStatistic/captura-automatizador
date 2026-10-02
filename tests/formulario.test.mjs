@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { extrasAlManual, opcionPorNombre, plazoPorMeses } from '../src/lib/formulario.js';
+import { extrasAlManual, opcionPorNombre } from '../src/lib/formulario.js';
 import { ESQUEMAS_VENTA, SUBESQUEMAS } from '../src/lib/esquemas.js';
 
 const VACIO = { celular: '', modelo: '', esquemaVenta: '', plazo: '', referencias: {} };
@@ -26,10 +26,19 @@ test('un nombre ambiguo o desconocido no elige nada', () => {
   assert.equal(opcionPorNombre(ESQUEMAS_VENTA, null), null);
 });
 
-test('el plazo se traduce a la clave interna de Dinamo', () => {
-  assert.equal(plazoPorMeses(24), '541');
-  assert.equal(plazoPorMeses('36 meses'), '546');
-  assert.equal(plazoPorMeses(30), null);
+test('el plazo se toma solo si el esquema lo ofrece', () => {
+  const quincenal = extrasAlManual({ ...VACIO, esquemaVenta: '1' }, { plazo: 24 });
+  const semanal = extrasAlManual({ ...VACIO, esquemaVenta: '53' }, { plazo: 24 });
+  const semanas = extrasAlManual({ ...VACIO, esquemaVenta: '53' }, { plazo: 96 });
+
+  assert.equal(quincenal.plazo, '24');
+  assert.equal(semanal.plazo, '');
+  assert.equal(semanas.plazo, '96');
+});
+
+test('el modelo se lleva al nombre del catálogo', () => {
+  assert.equal(extrasAlManual(VACIO, { modelo: 'una u5 175 roja' }).modelo, 'U5 175');
+  assert.equal(extrasAlManual(VACIO, { modelo: 'Italika FT150' }).modelo, 'Italika FT150');
 });
 
 test('los huecos se llenan con lo que trae el formulario', () => {
@@ -37,13 +46,13 @@ test('los huecos se llenan con lo que trae el formulario', () => {
     celular: '844 555 6677',
     modelo: 'DM 150',
     esquema: 'MOTOXPRESS',
-    plazo_meses: 48,
+    plazo: 48,
   });
 
   assert.equal(nuevo.celular, '844 555 6677');
   assert.equal(nuevo.modelo, 'DM 150');
   assert.equal(nuevo.esquemaVenta, '15');
-  assert.equal(nuevo.plazo, '544');
+  assert.equal(nuevo.plazo, '48');
 });
 
 test('lo que el capturista ya eligió no se sobrescribe', () => {

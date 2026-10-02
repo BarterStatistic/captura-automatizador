@@ -3,7 +3,11 @@
 //
 // No hay servidor, ni puerto, ni CORS: todo pasa por mensajes entre pestañas.
 
-const URL_CAPTURA_DEFECTO = 'http://dinamo2.intranet/dscn/dscframe/frame_principal.php';
+// La pantalla de captura, abierta directa y no dentro de frame_principal.php:
+// los content scripts solo corren en el marco de arriba (no hay `all_frames`),
+// así que dentro del marco general nunca se enteraban de la captura.
+const URL_CAPTURA_DEFECTO =
+  'http://dinamo2.intranet/dscn/dscframe/Nwcreditoscj/dsc_captura_2022.php?tipo_captura=CREDINAMO';
 
 // --- Trabajo pendiente por pestaña -------------------------------------------
 

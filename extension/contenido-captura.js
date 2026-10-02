@@ -204,6 +204,9 @@ async function llenarCampo(campo, expediente, seccion) {
     } else if (campo.tipo === 'selectTexto') {
       if (campo.dinamico) await esperarOpciones(campo.id);
       quedo = seleccionarPorTexto(elemento, valor);
+    } else if (campo.tipo === 'selectNumero') {
+      if (campo.dinamico) await esperarOpciones(campo.id);
+      quedo = seleccionarPorNumero(elemento, valor);
     } else {
       quedo = escribirTexto(elemento, valor);
     }

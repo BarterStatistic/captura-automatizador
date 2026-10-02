@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import ZonaDocumentos from './components/ZonaDocumentos.jsx';
 import Formulario from './components/Formulario.jsx';
+import TipoCredito from './components/TipoCredito.jsx';
+import Paso from './components/Paso.jsx';
+import Progreso from './components/Progreso.jsx';
+import BarraAccion from './components/BarraAccion.jsx';
+import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
 
@@ -19,6 +24,7 @@ import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
+import { esquemaPorValue, plazoValido, referenciasRequeridas } from './lib/esquemas.js';
 
 const MANUAL_INICIAL = {
   tipoVenta: '1',
@@ -35,6 +41,8 @@ const MANUAL_INICIAL = {
   ciudadReferencias: 'SALTILLO',
   referencias: {},
 };
+
+const SIN_TIPO = 'Primero elige el tipo de crédito de este cliente; después carga los documentos.';
 
 let contador = 0;
 const nuevoId = () => `${Date.now().toString(36)}-${(contador += 1)}`;
@@ -71,19 +79,21 @@ export default function App() {
   const [llenando, setLlenando] = useState(false);
   const [prueba, setPrueba] = useState(null);
   const [arrastrando, setArrastrando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   // La extensión se detecta al montar y no cambia mientras la pestaña vive.
   const [hayExtension] = useState(() => extensionDisponible());
 
   const expediente = useMemo(() => armarExpediente(lecturas, manual), [lecturas, manual]);
 
+  // Cada captura empieza eligiendo el tipo de crédito; sin él no se carga nada.
+  const tipoDefinido = Boolean(manual.esquemaVenta);
+
   const leyendoAlgo =
     Object.values(ranuras).some((ranura) => ranura.estado === 'leyendo') ||
     bandeja.some((item) => item.estado === 'clasificando') ||
     formEstado === 'leyendo';
   const hayLecturas = Object.keys(lecturas).length > 0;
-  const listoParaLlenar = hayLecturas && !leyendoAlgo && expediente.faltantes.length === 0;
-  const faltanDocumentos = DOCUMENTOS.filter((doc) => doc.obligatorio && !ranuras[doc.id]);
 
   function anotarError(mensaje) {
     setErrores((previos) => (previos.includes(mensaje) ? previos : [...previos, mensaje]));
@@ -207,7 +217,7 @@ export default function App() {
   // Los manejadores globales se registran una vez y leen siempre la versión
   // más reciente de las funciones a través de este ref.
   const manejadores = useRef(null);
-  manejadores.current = { agregarArchivos, leerFormulario };
+  manejadores.current = { agregarArchivos, leerFormulario, tipoDefinido, anotarError };
 
   useEffect(() => {
     let profundidad = 0;
@@ -234,9 +244,19 @@ export default function App() {
     function alSoltar(evento) {
       if (!llevaArchivos(evento)) return;
       evento.preventDefault();
+      if (!manejadores.current.tipoDefinido) {
+        manejadores.current.anotarError(SIN_TIPO);
+        return;
+      }
       manejadores.current.agregarArchivos(evento.dataTransfer.files);
     }
     function alPegar(evento) {
+      if (!manejadores.current.tipoDefinido) {
+        if (evento.target.closest?.('input, textarea, select, [contenteditable]')) return;
+        evento.preventDefault();
+        manejadores.current.anotarError(SIN_TIPO);
+        return;
+      }
       const archivos = [...(evento.clipboardData?.files ?? [])];
       if (archivos.length > 0) {
         evento.preventDefault();
@@ -294,6 +314,8 @@ export default function App() {
     await navigator.clipboard.writeText(
       JSON.stringify({ datos: expediente.datos, manual }, null, 2),
     );
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 1800);
   }
 
   async function comprobarConexion() {
@@ -317,123 +339,247 @@ export default function App() {
     setErrores([]);
     setEventos([]);
     setPrueba(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // --- Estado de cada paso, para el mapa y los encabezados ------------------------
+
+  const obligatorios = DOCUMENTOS.filter((doc) => doc.obligatorio);
+  const leidos = obligatorios.filter((doc) => ranuras[doc.id]?.estado === 'listo').length;
+  const docsLeyendo =
+    Object.values(ranuras).some((ranura) => ranura.estado === 'leyendo') ||
+    bandeja.some((item) => item.estado === 'clasificando');
+  const conError = Object.values(ranuras).filter((ranura) => ranura.estado === 'error').length;
+  const sinAcomodar = bandeja.filter((item) => item.estado === 'sin-identificar').length;
+  const docsConProblema = conError > 0 || sinAcomodar > 0;
+
+  let estadoDocs = 'pendiente';
+  if (!tipoDefinido) estadoDocs = 'bloqueado';
+  else if (docsConProblema) estadoDocs = 'atencion';
+  else if (docsLeyendo) estadoDocs = 'en-curso';
+  else if (leidos === obligatorios.length) estadoDocs = 'listo';
+
+  let estadoForm = 'pendiente';
+  if (!tipoDefinido) estadoForm = 'bloqueado';
+  else if (formEstado === 'leyendo') estadoForm = 'en-curso';
+  else if (formEstado === 'error') estadoForm = 'atencion';
+  else if (formEstado === 'listo') estadoForm = 'listo';
+
+  const faltanDatos = expediente.faltantes.filter((clave) => clave !== 'tipoCredito').length;
+  let estadoRevision = 'pendiente';
+  if (!tipoDefinido) estadoRevision = 'bloqueado';
+  else if (hayLecturas && faltanDatos > 0) estadoRevision = 'atencion';
+  else if (hayLecturas && !leyendoAlgo) estadoRevision = 'listo';
+
+  const tipoElegido = esquemaPorValue(manual.esquemaVenta);
+  const numReferencias = referenciasRequeridas(manual.esquemaVenta).length;
+  const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? '' : 's'}`;
+
+  const pasos = [
+    {
+      id: 'paso-tipo',
+      numero: 1,
+      titulo: 'Tipo de crédito',
+      estado: tipoDefinido ? 'listo' : 'pendiente',
+      resumen: tipoElegido
+        ? `${tipoElegido.nombre}. Pide ${numReferencias === 3 ? 'tres referencias' : 'una referencia'}.`
+        : 'Elige el tipo de crédito de este cliente para empezar.',
+      resumenCorto: tipoElegido?.nombre ?? 'Elegir',
+    },
+    {
+      id: 'paso-documentos',
+      numero: 2,
+      titulo: 'Documentos',
+      estado: estadoDocs,
+      resumen: [
+        `${leidos} de ${obligatorios.length} obligatorios leídos${
+          ranuras.estadoCuenta2 ? ', más el estado de cuenta opcional' : ''
+        }.`,
+        conError > 0 && `${plural(conError, 'archivo')} con error.`,
+        sinAcomodar > 0 &&
+          `${plural(sinAcomodar, 'archivo')} sin reconocer: elige a dónde va${sinAcomodar > 1 ? 'n' : ''}.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      resumenCorto: docsConProblema ? 'Revisar archivos' : `${leidos} de ${obligatorios.length} leídos`,
+    },
+    {
+      id: 'paso-formulario',
+      numero: 3,
+      titulo: 'Formulario del vendedor',
+      estado: estadoForm,
+      resumen:
+        formEstado === 'listo'
+          ? 'Leído. Lo que trajo ya está en la revisión.'
+          : 'Pega el mensaje que mandó el vendedor por WhatsApp.',
+      resumenCorto:
+        formEstado === 'listo' ? 'Leído' : formEstado === 'leyendo' ? 'Leyendo' : 'Pegar mensaje',
+    },
+    {
+      id: 'paso-revision',
+      numero: 4,
+      titulo: 'Revisión',
+      estado: estadoRevision,
+      resumen: !hayLecturas
+        ? 'Se arma sola con lo que lea Gemini.'
+        : faltanDatos > 0
+          ? `Falta${faltanDatos === 1 ? '' : 'n'} ${plural(faltanDatos, 'dato')} obligatorio${faltanDatos === 1 ? '' : 's'}.`
+          : 'Todo lo obligatorio está completo.',
+      resumenCorto: !hayLecturas
+        ? 'Esperando'
+        : faltanDatos > 0
+          ? `Falta${faltanDatos === 1 ? '' : 'n'} ${faltanDatos}`
+          : 'Completa',
+    },
+  ];
+  const paso = Object.fromEntries(pasos.map((p) => [p.id, p]));
+  const BLOQUEO = 'Primero elige el tipo de crédito.';
+
   return (
-    <div className="envoltura">
+    <div className="app">
       {arrastrando && (
-        <div className="capa-soltar">
-          <span>Suelta para agregar los documentos</span>
+        <div className={`capa-soltar${tipoDefinido ? '' : ' bloqueada'}`}>
+          <span>
+            {tipoDefinido
+              ? 'Suelta para agregar los documentos'
+              : 'Primero elige el tipo de crédito'}
+          </span>
         </div>
       )}
 
-      <header className="cabecera">
-        <div>
-          <h1>
-            Captura <span>Automatizador</span>
-          </h1>
-          <p className="subtitulo">
-            Documentos + formulario → Gemini → captura de crédito en Dinamo. No presiona Grabar.
-          </p>
-        </div>
-        <div className="botones" style={{ marginTop: 0 }}>
-          <span className={`insignia ${hayExtension ? 'si' : 'no'}`}>
-            {hayExtension ? `Extensión v${versionExtension()}` : 'Sin extensión'}
-          </span>
-          <button type="button" className="secundario" onClick={comprobarConexion}>
-            Probar conexión
-          </button>
-          <button type="button" onClick={nuevoExpediente}>
-            Nuevo expediente
-          </button>
+      <header className="barra-superior">
+        <div className="barra-superior-interior">
+          <div className="identidad">
+            <span className="identidad-nombre">
+              Captura <span>Automatizador</span>
+            </span>
+            <span className="identidad-detalle">Crédito Dinamo · no presiona Grabar</span>
+          </div>
+          <div className="barra-herramientas">
+            <span className={`indicador ${hayExtension ? 'ok' : 'falla'}`}>
+              <span className="punto" aria-hidden="true" />
+              {hayExtension ? `Extensión v${versionExtension()}` : 'Sin extensión'}
+            </span>
+            <button type="button" className="fantasma" onClick={comprobarConexion}>
+              Probar conexión
+            </button>
+            <button type="button" onClick={nuevoExpediente}>
+              Nuevo expediente
+            </button>
+          </div>
         </div>
       </header>
 
-      {prueba && (
-        <div className={`aviso ${prueba.ok ? 'verde' : prueba.ok === null ? 'ambar' : 'rojo'}`} style={{ whiteSpace: 'pre-wrap' }}>
-          {prueba.mensaje}
-        </div>
-      )}
+      <div className="cuerpo">
+        <aside className="lateral">
+          <Progreso pasos={pasos} />
+        </aside>
 
-      {!hayExtension && (
-        <div className="aviso ambar">
-          No hay extensión instalada en este navegador, así que no se puede llenar Dinamo desde
-          aquí. Puedes preparar el expediente igual y copiarlo para capturarlo a mano.
-        </div>
-      )}
+        <main className="contenido">
+          {prueba && (
+            <div
+              className={`aviso ${prueba.ok ? 'verde' : prueba.ok === null ? 'neutro' : 'rojo'} con-cerrar`}
+              role="status"
+            >
+              <span>{prueba.mensaje}</span>
+              <button type="button" className="icono" aria-label="Cerrar" onClick={() => setPrueba(null)}>
+                <IconoCerrar tamano={15} />
+              </button>
+            </div>
+          )}
 
-      {errores.map((error) => (
-        <div className="aviso rojo con-cerrar" key={error} style={{ whiteSpace: 'pre-wrap' }}>
-          <span>{error}</span>
-          <button
-            type="button"
-            className="mini"
-            onClick={() => setErrores((previos) => previos.filter((e) => e !== error))}
-          >
-            Cerrar
-          </button>
-        </div>
-      ))}
+          {!hayExtension && (
+            <div className="aviso ambar">
+              <IconoAlerta tamano={16} />
+              <span>
+                Este navegador no tiene la extensión, así que no se puede llenar Dinamo desde aquí.
+                Puedes preparar el expediente y copiarlo para capturarlo a mano.
+              </span>
+            </div>
+          )}
 
-      <div className="entrada">
-        <ZonaDocumentos
-          ranuras={ranuras}
-          bandeja={bandeja}
-          onArchivos={agregarArchivos}
-          onColocar={colocar}
-          onMover={mover}
-          onQuitar={quitar}
-          onDescartar={(id) => setBandeja((previa) => previa.filter((item) => item.id !== id))}
-          onReintentar={reintentar}
-        />
+          {errores.map((error) => (
+            <div className="aviso rojo con-cerrar" key={error} role="alert">
+              <span>{error}</span>
+              <button
+                type="button"
+                className="icono"
+                aria-label="Cerrar aviso"
+                onClick={() => setErrores((previos) => previos.filter((e) => e !== error))}
+              >
+                <IconoCerrar tamano={15} />
+              </button>
+            </div>
+          ))}
 
-        <Formulario
-          texto={formTexto}
-          estado={formEstado}
-          mensaje={formMensaje}
-          onTexto={setFormTexto}
-          onLeer={leerFormulario}
-        />
+          <Paso {...paso['paso-tipo']}>
+            <TipoCredito
+              valor={manual.esquemaVenta}
+              onCambio={(v) => {
+                setManual((previo) => ({
+                  ...previo,
+                  esquemaVenta: v,
+                  plazo: plazoValido(v, previo.plazo),
+                }));
+                setErrores((previos) => previos.filter((error) => error !== SIN_TIPO));
+              }}
+            />
+          </Paso>
+
+          <Paso {...paso['paso-documentos']} motivoBloqueo={BLOQUEO}>
+            <ZonaDocumentos
+              ranuras={ranuras}
+              bandeja={bandeja}
+              onArchivos={agregarArchivos}
+              onColocar={colocar}
+              onMover={mover}
+              onQuitar={quitar}
+              onDescartar={(id) => setBandeja((previa) => previa.filter((item) => item.id !== id))}
+              onReintentar={reintentar}
+            />
+          </Paso>
+
+          <Paso {...paso['paso-formulario']} motivoBloqueo={BLOQUEO}>
+            <Formulario
+              texto={formTexto}
+              estado={formEstado}
+              mensaje={formMensaje}
+              onTexto={setFormTexto}
+              onLeer={leerFormulario}
+            />
+          </Paso>
+
+          <Paso {...paso['paso-revision']} motivoBloqueo={BLOQUEO}>
+            {hayLecturas ? (
+              <Revision
+                lecturas={lecturas}
+                manual={manual}
+                expediente={expediente}
+                onLectura={corregirLectura}
+                onManual={cambiarManual}
+              />
+            ) : (
+              <p className="vacio">
+                Cuando Gemini lea los documentos o el formulario, aquí aparecen los datos para
+                revisarlos. Lo que falte se marca en rojo y abajo, junto al botón de llenar.
+              </p>
+            )}
+          </Paso>
+
+          <Bitacora eventos={eventos} />
+        </main>
       </div>
 
-      {hayLecturas && (
-        <>
-          <Revision
-            lecturas={lecturas}
-            manual={manual}
-            expediente={expediente}
-            onLectura={corregirLectura}
-            onManual={cambiarManual}
-          />
-
-          <div className="botones" style={{ marginBottom: 20 }}>
-            <button
-              type="button"
-              className="primario"
-              disabled={!listoParaLlenar || !hayExtension || llenando}
-              onClick={llenar}
-            >
-              {llenando ? 'Llenando en Dinamo…' : 'Llenar en Dinamo'}
-            </button>
-            <button type="button" className="secundario" onClick={copiarExpediente}>
-              Copiar expediente
-            </button>
-            {leyendoAlgo && <span className="insignia no">Todavía se está leyendo…</span>}
-            {faltanDocumentos.length > 0 && (
-              <span className="insignia no">
-                Sin cargar: {faltanDocumentos.map((doc) => doc.etiqueta).join(', ')}
-              </span>
-            )}
-            {expediente.faltantes.length > 0 && (
-              <span className="insignia no">
-                Faltan {expediente.faltantes.length} datos obligatorios
-              </span>
-            )}
-          </div>
-        </>
-      )}
-
-      <Bitacora eventos={eventos} />
+      <BarraAccion
+        hayLecturas={hayLecturas}
+        leyendo={leyendoAlgo}
+        faltantes={expediente.faltantes}
+        hayExtension={hayExtension}
+        llenando={llenando}
+        copiado={copiado}
+        onLlenar={llenar}
+        onCopiar={copiarExpediente}
+      />
     </div>
   );
 }

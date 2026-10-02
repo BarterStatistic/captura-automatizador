@@ -158,7 +158,16 @@ const SECCIONES = [
         etiqueta: 'Color',
         dinamico: true,
       },
-      { id: 'cboplazo', tipo: 'select', de: 'manual.plazo', etiqueta: 'Plazo' },
+      // Quincenas, o semanas en los esquemas Flex. Se elige por el número que
+      // muestra la opción, porque las claves internas de los plazos semanales
+      // no se conocen. Puede llegar por AJAX al elegir el modelo.
+      {
+        id: 'cboplazo',
+        tipo: 'selectNumero',
+        de: 'manual.plazo',
+        etiqueta: 'Plazo',
+        dinamico: true,
+      },
     ],
     accesorio: ACCESORIO_SERVICIO,
     validar: null,

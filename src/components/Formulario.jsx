@@ -1,3 +1,5 @@
+import { IconoReintentar } from './Iconos.jsx';
+
 /**
  * El formulario que manda el vendedor, pegado tal cual.
  *
@@ -6,53 +8,46 @@
  * documentos.
  */
 export default function Formulario({ texto, estado, mensaje, onTexto, onLeer }) {
-  const etiquetas = {
-    leyendo: 'Leyendo…',
-    listo: 'Leído',
-    error: 'Error',
-  };
-
   return (
-    <section className="tarjeta">
-      <div className="titulo-con-estado">
-        <h2>2. Formulario del vendedor</h2>
-        {estado && <span className={`estado ${estado}`}>{etiquetas[estado]}</span>}
-      </div>
-      <p className="ayuda">
-        Copia el mensaje completo que te mandó el vendedor (WhatsApp) y pégalo aquí. Se lee
-        al pegarlo: correo, trabajo, antigüedades, referencias y, si vienen, celular, moto,
-        esquema y plazo.
-      </p>
-
+    <div className="formulario">
+      <label className="formulario-etiqueta" htmlFor="texto-formulario">
+        Mensaje del vendedor
+      </label>
       <textarea
+        id="texto-formulario"
         className="pegar-formulario"
         value={texto}
-        placeholder={'1) Correo electrónico: …\n2) Nombre y dirección de su trabajo: …\n…'}
+        placeholder={
+          'Pega aquí el formulario tal como llegó por WhatsApp.\n\n' +
+          '1) Correo electrónico: …\n2) Nombre y dirección de su trabajo: …\n3) Antigüedad laboral: …'
+        }
         onChange={(evento) => onTexto(evento.target.value)}
         onPaste={(evento) => {
           // Se deja pegar normal y se lee con el valor ya actualizado.
           const area = evento.currentTarget;
           setTimeout(() => onLeer(area.value), 0);
         }}
-        rows={9}
+        rows={8}
       />
 
       {estado === 'error' && (
-        <div className="aviso rojo" style={{ whiteSpace: 'pre-wrap', marginTop: 10 }}>
+        <div className="aviso rojo" role="alert">
           {mensaje}
         </div>
       )}
 
-      <div className="botones">
+      <div className="formulario-pie">
+        <span className="nota-suave">Se lee al pegar. Si lo editas a mano, vuelve a leerlo.</span>
         <button
           type="button"
           className="secundario"
           disabled={!texto.trim() || estado === 'leyendo'}
           onClick={() => onLeer(texto)}
         >
-          {estado === 'listo' ? 'Volver a leer' : 'Leer formulario'}
+          <IconoReintentar tamano={14} />
+          {estado === 'leyendo' ? 'Leyendo…' : estado === 'listo' ? 'Volver a leer' : 'Leer formulario'}
         </button>
       </div>
-    </section>
+    </div>
   );
 }

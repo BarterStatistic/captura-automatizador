@@ -4,7 +4,8 @@
 // Solo llena lo que está vacío. Si el capturista ya eligió algo, eso manda: el
 // formulario se puede volver a leer y no debe deshacer lo que se corrigió a mano.
 
-import { ESQUEMAS_VENTA, PLAZOS, SUBESQUEMAS } from './esquemas.js';
+import { ESQUEMAS_VENTA, SUBESQUEMAS, plazoValido } from './esquemas.js';
+import { modeloPorNombre } from './motos.js';
 
 const texto = (valor) => String(valor ?? '').trim();
 
@@ -38,12 +39,6 @@ export function opcionPorNombre(catalogo, escrito) {
   return abreviadas.length === 1 ? abreviadas[0] : null;
 }
 
-/** El `value` interno de Dinamo para un plazo en meses, o null. */
-export function plazoPorMeses(meses) {
-  const numero = Number(String(meses ?? '').replace(/\D/g, ''));
-  return PLAZOS.find((plazo) => plazo.meses === numero)?.value ?? null;
-}
-
 /**
  * Devuelve una copia de `manual` con los huecos llenados desde la lectura del
  * formulario. Nunca sobrescribe un valor que ya tenga.
@@ -57,12 +52,17 @@ export function extrasAlManual(manual, lectura) {
   };
 
   llenar('celular', lectura.celular);
-  llenar('modelo', lectura.modelo);
+  // Si el modelo está en el catálogo se usa el nombre del catálogo, que es el
+  // que la extensión busca en Dinamo; si no, se deja lo escrito para que el
+  // capturista lo vea y lo corrija.
+  llenar('modelo', modeloPorNombre(lectura.modelo) ?? lectura.modelo);
   llenar('color', lectura.color);
   llenar('anio', lectura.anio);
   llenar('esquemaVenta', opcionPorNombre(ESQUEMAS_VENTA, lectura.esquema)?.value);
   llenar('subesquema', opcionPorNombre(SUBESQUEMAS, lectura.subesquema)?.value);
-  llenar('plazo', plazoPorMeses(lectura.plazo_meses));
+  // El plazo solo se toma si existe en el esquema: 24 sirve en quincenas, no
+  // en semanas.
+  llenar('plazo', plazoValido(nuevo.esquemaVenta, lectura.plazo));
 
   // La referencia 1 sale del punto 6 del formulario; las extra van a la 2 y 3,
   // que solo se capturan en MOTOXPRESS, pero se guardan igual por si cambia

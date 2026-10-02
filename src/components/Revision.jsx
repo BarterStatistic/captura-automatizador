@@ -1,12 +1,23 @@
+import { useId, useState } from 'react';
+
 import {
-  ESQUEMAS_VENTA,
-  PLAZOS,
   SUBESQUEMAS,
   TIPOS_UNIDAD,
   TIPOS_VENTA,
+  plazosDe,
   referenciasRequeridas,
 } from '../lib/esquemas.js';
+import { MODELOS_ORDENADOS } from '../lib/motos.js';
 import { CIUDADES, generarDomicilio } from '../lib/calles.js';
+import { idDeFaltante } from './BarraAccion.jsx';
+import { IconoAlerta } from './Iconos.jsx';
+
+// Qué faltantes caen en cada grupo, para contar en su encabezado.
+const FALTANTES_POR_GRUPO = {
+  cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
+  domicilio: ['domicilio.calle', 'domicilio.cp'],
+  empleo: ['empleo.nombre'],
+};
 
 /**
  * Todo lo que se revisa antes de llenar: lo que leyó Gemini (editable, porque
@@ -18,31 +29,60 @@ import { CIUDADES, generarDomicilio } from '../lib/calles.js';
  */
 export default function Revision({ lecturas, manual, expediente, onLectura, onManual }) {
   const { datos, faltantes, avisos } = expediente;
+  const [soloFaltantes, setSoloFaltantes] = useState(false);
   const falta = (nombre) => faltantes.includes(nombre);
+  const cuantas = (grupo) => FALTANTES_POR_GRUPO[grupo].filter(falta).length;
+  const referencias = referenciasRequeridas(manual.esquemaVenta);
+  const { unidad, plazos } = plazosDe(manual.esquemaVenta);
+
+  // Lo que trajo el formulario y no está en el catálogo se ofrece igual, marcado,
+  // para que el capturista lo vea y elija el bueno en vez de perderlo.
+  const modeloFuera = manual.modelo && !MODELOS_ORDENADOS.includes(manual.modelo);
+  const opcionesModelo = [
+    ...(modeloFuera
+      ? [{ value: manual.modelo, nombre: `${manual.modelo} (del formulario, no está en la lista)` }]
+      : []),
+    ...MODELOS_ORDENADOS.map((modelo) => ({ value: modelo, nombre: modelo })),
+  ];
 
   return (
-    <section className="tarjeta">
-      <h2>2. Revisión</h2>
-      <p className="ayuda">
-        Corrige aquí lo que Gemini haya leído mal. Lo marcado en rojo es obligatorio y
-        mantiene apagado el botón de llenado.
-      </p>
+    <div className={`revision${soloFaltantes ? ' solo-faltantes' : ''}`}>
+      <div className="revision-barra">
+        <p className="nota-suave">
+          Corrige lo que Gemini haya leído mal. Lo marcado en rojo es obligatorio.
+        </p>
+        <label className="interruptor">
+          <input
+            type="checkbox"
+            checked={soloFaltantes}
+            onChange={(evento) => setSoloFaltantes(evento.target.checked)}
+          />
+          <span className="interruptor-pista" aria-hidden="true" />
+          Solo lo que falta
+        </label>
+      </div>
 
       {avisos.map((aviso) => (
         <div className="aviso ambar" key={aviso.campo + aviso.mensaje}>
-          {aviso.mensaje}
+          <IconoAlerta tamano={16} />
+          <span>{aviso.mensaje}</span>
         </div>
       ))}
 
-      <div className="rejilla-campos">
-        <h3 className="grupo-titulo">Cliente</h3>
+      {soloFaltantes && faltantes.filter((f) => f !== 'tipoCredito').length === 0 && (
+        <p className="revision-vacia">No falta ningún dato obligatorio.</p>
+      )}
+
+      <Grupo titulo="Cliente" faltan={cuantas('cliente')}>
         <Campo
+          clave="nombres"
           etiqueta="Nombre(s)"
           valor={lecturas.ineFrente?.nombres}
           falta={falta('nombres')}
           onCambio={(v) => onLectura('ineFrente', 'nombres', v)}
         />
         <Campo
+          clave="apellidoPaterno"
           etiqueta="Apellido paterno"
           valor={lecturas.ineFrente?.apellido_paterno}
           falta={falta('apellidoPaterno')}
@@ -54,35 +94,43 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('ineFrente', 'apellido_materno', v)}
         />
         <Campo
+          clave="curp"
           etiqueta="CURP"
           valor={lecturas.ineFrente?.curp}
           falta={falta('curp')}
+          mono
           onCambio={(v) => onLectura('ineFrente', 'curp', v)}
         />
         <Campo
-          etiqueta="OCR del reverso (13 dígitos)"
+          etiqueta="OCR del reverso"
           valor={lecturas.ineAtras?.ocr}
-          nota="Va a txtife y a idCIF. Opcional."
+          nota="13 dígitos. Va a IFE e idCIF. Opcional."
+          mono
           onCambio={(v) => onLectura('ineAtras', 'ocr', v)}
         />
         <Campo
+          clave="correo"
           etiqueta="Correo"
           valor={lecturas.formulario?.correo}
           falta={falta('correo')}
           onCambio={(v) => onLectura('formulario', 'correo', v)}
         />
         <Campo
+          clave="celular"
           etiqueta="Celular del cliente"
           valor={manual.celular}
           falta={falta('celular')}
-          nota="10 dígitos. Se parte en lada 3 + número 7."
+          nota="10 dígitos."
+          mono
           onCambio={(v) => onManual('celular', v)}
         />
-        <Derivado etiqueta="RFC calculado" valor={datos.cliente.rfc} />
+        <Derivado etiqueta="RFC calculado" valor={datos.cliente.rfc} mono />
         <Derivado etiqueta="Razón social" valor={datos.cliente.razonSocial} />
+      </Grupo>
 
-        <h3 className="grupo-titulo">Domicilio (del comprobante)</h3>
+      <Grupo titulo="Domicilio" detalle="Del comprobante" faltan={cuantas('domicilio')}>
         <Campo
+          clave="domicilio.calle"
           etiqueta="Calle y número"
           valor={lecturas.comprobante?.calle}
           falta={falta('domicilio.calle')}
@@ -95,9 +143,11 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('comprobante', 'colonia', v)}
         />
         <Campo
+          clave="domicilio.cp"
           etiqueta="Código postal"
           valor={lecturas.comprobante?.cp}
           falta={falta('domicilio.cp')}
+          mono
           onCambio={(v) => onLectura('comprobante', 'cp', v)}
         />
         <Campo
@@ -109,9 +159,11 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           etiqueta="Se capturará como"
           valor={`${datos.domicilio.calle} ${datos.domicilio.numeroExterior}`.trim()}
         />
+      </Grupo>
 
-        <h3 className="grupo-titulo">Empleo</h3>
+      <Grupo titulo="Empleo" faltan={cuantas('empleo')}>
         <Campo
+          clave="empleo.nombre"
           etiqueta="Nombre del trabajo"
           valor={lecturas.formulario?.empleo}
           falta={falta('empleo.nombre')}
@@ -125,7 +177,7 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Campo
           etiqueta="Colonia del trabajo"
           valor={lecturas.formulario?.colonia_empleo}
-          nota="Se busca por colonia en SEPOMEX si no hay CP."
+          nota="Se busca en SEPOMEX si no hay CP."
           onCambio={(v) => onLectura('formulario', 'colonia_empleo', v)}
         />
         <Campo
@@ -141,21 +193,23 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Campo
           etiqueta="Teléfono del compañero"
           valor={lecturas.formulario?.companero_telefono}
+          mono
           onCambio={(v) => onLectura('formulario', 'companero_telefono', v)}
         />
         <Campo
           etiqueta="Sueldo mensual"
           valor={datos.empleo.sueldo}
-          nota="De los estados de cuenta (manda el primero)."
+          nota="De los estados de cuenta."
+          mono
           onCambio={(v) => onLectura('estadoCuenta1', 'sueldo_mensual', v)}
         />
         <Seleccion
           etiqueta="Frecuencia de pago"
           valor={datos.empleo.frecuenciaPago}
           opciones={[
-            { value: 'SEMANAL', nombre: 'SEMANAL' },
-            { value: 'QUINCENAL', nombre: 'QUINCENAL' },
-            { value: 'MENSUAL', nombre: 'MENSUAL' },
+            { value: 'SEMANAL', nombre: 'Semanal' },
+            { value: 'QUINCENAL', nombre: 'Quincenal' },
+            { value: 'MENSUAL', nombre: 'Mensual' },
           ]}
           onCambio={(v) => onLectura('estadoCuenta1', 'frecuencia_pago', v)}
         />
@@ -163,8 +217,9 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           etiqueta="Antigüedad que se capturará"
           valor={`${datos.empleo.antiguedadAnios} años, ${datos.empleo.antiguedadMeses} meses`}
         />
+      </Grupo>
 
-        <h3 className="grupo-titulo">Venta</h3>
+      <Grupo titulo="Venta" faltan={0}>
         <Seleccion
           etiqueta="Tipo de venta"
           valor={manual.tipoVenta}
@@ -178,31 +233,33 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onManual('tipoUnidad', v)}
         />
         <Seleccion
-          etiqueta="Esquema de venta"
-          valor={manual.esquemaVenta}
-          opciones={ESQUEMAS_VENTA}
-          onCambio={(v) => onManual('esquemaVenta', v)}
-        />
-        <Seleccion
           etiqueta="Subesquema"
           valor={manual.subesquema}
           opciones={SUBESQUEMAS}
           onCambio={(v) => onManual('subesquema', v)}
         />
         <Seleccion
-          etiqueta="Plazo"
+          etiqueta={`Plazo (${unidad})`}
           valor={manual.plazo}
-          opciones={PLAZOS.map((p) => ({ value: p.value, nombre: `${p.meses} meses` }))}
+          opciones={plazos.map((p) => ({ value: String(p), nombre: `${p} ${unidad}` }))}
+          nota={unidad === 'semanas' ? 'Esquema Flex: pagos semanales.' : 'Pagos quincenales.'}
           onCambio={(v) => onManual('plazo', v)}
         />
         <Campo
           etiqueta="Ubicación"
           valor={manual.ubicacion}
-          nota="Se elige por texto en el catálogo de Dinamo."
+          nota="Se busca por texto en el catálogo de Dinamo."
           onCambio={(v) => onManual('ubicacion', v)}
         />
-        <Campo etiqueta="Año" valor={manual.anio} onCambio={(v) => onManual('anio', v)} />
-        <Campo etiqueta="Modelo" valor={manual.modelo} onCambio={(v) => onManual('modelo', v)} />
+        <Campo etiqueta="Año" valor={manual.anio} mono onCambio={(v) => onManual('anio', v)} />
+        <Seleccion
+          etiqueta="Modelo"
+          valor={manual.modelo}
+          opciones={opcionesModelo}
+          aviso={modeloFuera}
+          nota={modeloFuera ? 'No está en la lista de Dinamo: elige el modelo correcto.' : null}
+          onCambio={(v) => onManual('modelo', v)}
+        />
         <Campo etiqueta="Color" valor={manual.color} onCambio={(v) => onManual('color', v)} />
         <Seleccion
           etiqueta="Servicio preventivo 1"
@@ -213,20 +270,20 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           ]}
           onCambio={(v) => onManual('servicioIncluido', v)}
         />
+      </Grupo>
 
-        <h3 className="grupo-titulo">
-          Referencias{' '}
-          {referenciasRequeridas(manual.esquemaVenta).length > 1
-            ? '(este esquema pide tres)'
-            : ''}
-        </h3>
+      <Grupo
+        titulo="Referencias"
+        detalle={referencias.length > 1 ? 'Este tipo de crédito pide tres' : 'Este tipo de crédito pide una'}
+        faltan={0}
+      >
         <Seleccion
           etiqueta="Ciudad de los domicilios generados"
           valor={manual.ciudadReferencias ?? 'SALTILLO'}
           opciones={CIUDADES.map((ciudad) => ({ value: ciudad, nombre: ciudad }))}
           onCambio={(v) => onManual('ciudadReferencias', v)}
         />
-        {referenciasRequeridas(manual.esquemaVenta).map((sufijo, indice) => (
+        {referencias.map((sufijo, indice) => (
           <BloqueReferencia
             key={sufijo}
             sufijo={sufijo}
@@ -238,8 +295,25 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
             onManual={onManual}
           />
         ))}
-      </div>
-    </section>
+      </Grupo>
+    </div>
+  );
+}
+
+function Grupo({ titulo, detalle, faltan, children }) {
+  return (
+    <fieldset className={`grupo${faltan > 0 ? ' con-faltantes' : ''}`}>
+      <legend>
+        <span className="grupo-nombre">{titulo}</span>
+        {detalle && <span className="grupo-detalle">{detalle}</span>}
+        {faltan > 0 && (
+          <span className="grupo-faltan">
+            Falta{faltan > 1 ? 'n' : ''} {faltan}
+          </span>
+        )}
+      </legend>
+      <div className="rejilla-campos">{children}</div>
+    </fieldset>
   );
 }
 
@@ -271,97 +345,110 @@ function BloqueReferencia({ sufijo, numero, esPrimera, lecturas, manual, onLectu
   }
 
   return (
-    <>
-      {esPrimera ? (
-        <>
-          <Campo
-            etiqueta={`Referencia ${numero}: nombre`}
-            valor={lecturas.formulario?.referencia_nombre}
-            onCambio={(v) => onLectura('formulario', 'referencia_nombre', v)}
-          />
-          <Campo
-            etiqueta={`Referencia ${numero}: teléfono`}
-            valor={lecturas.formulario?.referencia_telefono}
-            onCambio={(v) => onLectura('formulario', 'referencia_telefono', v)}
-          />
-        </>
-      ) : (
-        <>
-          <Campo
-            etiqueta={`Referencia ${numero}: nombre`}
-            valor={capturada.nombreCompleto}
-            onCambio={(v) => cambiar('nombreCompleto', v)}
-          />
-          <Campo
-            etiqueta={`Referencia ${numero}: teléfono`}
-            valor={capturada.telefono}
-            onCambio={(v) => cambiar('telefono', v)}
-          />
-        </>
-      )}
-      <Campo
-        etiqueta={`Referencia ${numero}: calle`}
-        valor={capturada.calle}
-        ficticio
-        nota="Domicilio generado, no sale de ningún documento."
-        onCambio={(v) => cambiar('calle', v)}
-      />
-      <Campo
-        etiqueta={`Referencia ${numero}: número`}
-        valor={capturada.numeroExterior}
-        ficticio
-        onCambio={(v) => cambiar('numeroExterior', v)}
-      />
-      <div className="campo">
-        <label>&nbsp;</label>
-        <button type="button" className="secundario" onClick={generar}>
-          Generar domicilio {numero}
+    <div className="referencia">
+      <div className="referencia-cabeza">
+        <span className="referencia-titulo">Referencia {numero}</span>
+        <button type="button" className="secundario chico" onClick={generar}>
+          Generar domicilio
         </button>
-        <span className="nota ficticio">Calle real de la zona, número inventado.</span>
       </div>
-    </>
-  );
-}
-
-function Campo({ etiqueta, valor, falta, nota, ficticio, onCambio }) {
-  return (
-    <div className={`campo${falta ? ' falta' : ''}`}>
-      <label>{etiqueta}</label>
-      <input
-        value={valor ?? ''}
-        onChange={(evento) => onCambio(evento.target.value)}
-        placeholder={falta ? 'Obligatorio' : ''}
-      />
-      {(nota || falta) && (
-        <span className={`nota${ficticio ? ' ficticio' : ''}`}>
-          {falta ? 'Falta este dato.' : nota}
-        </span>
-      )}
+      <div className="rejilla-campos">
+        {esPrimera ? (
+          <>
+            <Campo
+              etiqueta="Nombre"
+              valor={lecturas.formulario?.referencia_nombre}
+              onCambio={(v) => onLectura('formulario', 'referencia_nombre', v)}
+            />
+            <Campo
+              etiqueta="Teléfono"
+              valor={lecturas.formulario?.referencia_telefono}
+              mono
+              onCambio={(v) => onLectura('formulario', 'referencia_telefono', v)}
+            />
+          </>
+        ) : (
+          <>
+            <Campo
+              etiqueta="Nombre"
+              valor={capturada.nombreCompleto}
+              onCambio={(v) => cambiar('nombreCompleto', v)}
+            />
+            <Campo
+              etiqueta="Teléfono"
+              valor={capturada.telefono}
+              mono
+              onCambio={(v) => cambiar('telefono', v)}
+            />
+          </>
+        )}
+        <Campo
+          etiqueta="Calle"
+          valor={capturada.calle}
+          ficticio
+          nota="Generada: calle real, no sale de ningún documento."
+          onCambio={(v) => cambiar('calle', v)}
+        />
+        <Campo
+          etiqueta="Número"
+          valor={capturada.numeroExterior}
+          ficticio
+          nota="Generado."
+          mono
+          onCambio={(v) => cambiar('numeroExterior', v)}
+        />
+      </div>
     </div>
   );
 }
 
-function Seleccion({ etiqueta, valor, opciones, onCambio }) {
+function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, onCambio }) {
+  const generado = useId();
+  const id = clave ? idDeFaltante(clave) : generado;
+  const clases = ['campo'];
+  if (falta) clases.push('falta');
+  if (ficticio) clases.push('ficticio');
+
   return (
-    <div className="campo">
-      <label>{etiqueta}</label>
-      <select value={valor ?? ''} onChange={(evento) => onCambio(evento.target.value)}>
-        <option value="">— Elegir —</option>
+    <div className={clases.join(' ')}>
+      <label htmlFor={id}>{etiqueta}</label>
+      <input
+        id={id}
+        className={mono ? 'mono' : undefined}
+        value={valor ?? ''}
+        aria-invalid={falta || undefined}
+        onChange={(evento) => onCambio(evento.target.value)}
+        placeholder={falta ? 'Obligatorio' : ''}
+      />
+      {(nota || falta) && <span className="nota">{falta ? 'Falta este dato.' : nota}</span>}
+    </div>
+  );
+}
+
+function Seleccion({ etiqueta, valor, opciones, nota, aviso, onCambio }) {
+  const id = useId();
+  return (
+    <div className={`campo${aviso ? ' ficticio' : ''}`}>
+      <label htmlFor={id}>{etiqueta}</label>
+      <select id={id} value={valor ?? ''} onChange={(evento) => onCambio(evento.target.value)}>
+        <option value="">Elegir…</option>
         {opciones.map((opcion) => (
           <option key={opcion.value} value={opcion.value}>
             {opcion.nombre}
           </option>
         ))}
       </select>
+      {nota && <span className="nota">{nota}</span>}
     </div>
   );
 }
 
-function Derivado({ etiqueta, valor }) {
+function Derivado({ etiqueta, valor, mono }) {
+  const id = useId();
   return (
-    <div className="campo">
-      <label>{etiqueta}</label>
-      <input value={valor ?? ''} readOnly tabIndex={-1} />
+    <div className="campo derivado">
+      <label htmlFor={id}>{etiqueta}</label>
+      <input id={id} className={mono ? 'mono' : undefined} value={valor ?? ''} readOnly tabIndex={-1} />
       <span className="nota">Lo calcula la app.</span>
     </div>
   );

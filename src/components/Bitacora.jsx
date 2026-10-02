@@ -28,8 +28,8 @@ export default function Bitacora({ eventos }) {
   if (eventos.length === 0) return null;
 
   return (
-    <section className="tarjeta">
-      <h2>Avance</h2>
+    <section className="avance" aria-live="polite">
+      <h2>Avance del llenado en Dinamo</h2>
       <div className="bitacora">
         {eventos.map((evento, indice) => (
           <div className={`linea ${CLASES[evento.tipo] ?? ''}`} key={indice}>

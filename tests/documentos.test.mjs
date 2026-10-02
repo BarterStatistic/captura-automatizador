@@ -30,7 +30,7 @@ test('el formulario ya no es un archivo: se lee del texto que pega el capturista
 });
 
 test('el formulario extrae también el celular del cliente y los datos de la venta', () => {
-  for (const campo of ['celular', 'modelo', 'esquema', 'plazo_meses', 'referencias_extra']) {
+  for (const campo of ['celular', 'modelo', 'esquema', 'plazo', 'referencias_extra']) {
     assert.ok(campo in FORMULARIO.esquema.properties, `falta ${campo}`);
   }
 });

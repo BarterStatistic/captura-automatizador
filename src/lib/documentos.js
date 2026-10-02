@@ -160,7 +160,8 @@ Si el texto además trae estos datos, extráelos; si no aparecen, null:
 - "esquema": el esquema de venta tal como lo escribieron (CREDINAMO, MOTOXPRESS,
   MOTOXPRESS FLEX, MOTONOMINA, DINAMO NOMINA, CREDINAMO FLEX…)
 - "subesquema": ASALARIADO, HOME OFFICE, ESQUEMA 50, JUBILADOS, etc., si viene
-- "plazo_meses": el plazo en meses, solo el número
+- "plazo": el plazo, solo el número (son quincenas, o semanas en los esquemas
+  Flex; devuelve el número tal como lo escribieron)
 - "referencias_extra": si el texto trae MÁS referencias personales además de la
   del punto 6, una lista con { nombre, telefono } de cada una
 
@@ -193,7 +194,7 @@ Reglas:
       anio: { type: 'string', nullable: true },
       esquema: { type: 'string', nullable: true },
       subesquema: { type: 'string', nullable: true },
-      plazo_meses: { type: 'number', nullable: true },
+      plazo: { type: 'number', nullable: true },
       referencias_extra: {
         type: 'array',
         nullable: true,

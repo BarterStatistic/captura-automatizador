@@ -184,3 +184,33 @@ test('un sueldo corregido a mano con signo y comas se entiende', () => {
 
   assert.equal(datos.empleo.sueldo, 15500);
 });
+
+// --- Tipo de crédito ----------------------------------------------------------
+// Se elige al empezar cada captura; sin él el expediente no se puede llenar.
+
+test('sin tipo de crédito el expediente no arranca', () => {
+  const { faltantes } = armarExpediente(LECTURAS, { ...MANUAL, esquemaVenta: '' });
+
+  assert.ok(faltantes.includes('tipoCredito'));
+});
+
+test('con tipo de crédito elegido no falta', () => {
+  const { faltantes } = armarExpediente(LECTURAS, MANUAL);
+
+  assert.ok(!faltantes.includes('tipoCredito'));
+});
+
+test('si el formulario dice otro tipo, gana lo elegido y se avisa', () => {
+  const lecturas = { ...LECTURAS, formulario: { ...LECTURAS.formulario, esquema: 'Motoxpress' } };
+  const { datos, avisos } = armarExpediente(lecturas, { ...MANUAL, esquemaVenta: '1' });
+
+  assert.ok(avisos.some((aviso) => aviso.campo === 'tipoCredito'));
+  assert.deepEqual(Object.keys(datos.referencias), ['ref']);
+});
+
+test('si el formulario coincide con lo elegido no hay aviso', () => {
+  const lecturas = { ...LECTURAS, formulario: { ...LECTURAS.formulario, esquema: 'CREDINAMO' } };
+  const { avisos } = armarExpediente(lecturas, { ...MANUAL, esquemaVenta: '1' });
+
+  assert.ok(!avisos.some((aviso) => aviso.campo === 'tipoCredito'));
+});

@@ -110,6 +110,26 @@ function seleccionarPorTexto(select, texto) {
   throw new Error(`no se encontró «${texto}». Opciones: ${muestra}…`);
 }
 
+/**
+ * Elige la opción cuyo texto empieza con ese número («36», «36 QUINCENAS»).
+ *
+ * Para el plazo: la app manda el número de quincenas o semanas y el value es
+ * una clave interna que no se conoce para todos los esquemas. Se compara el
+ * número entero, no un pedazo del texto: «12» no debe caer en «128».
+ */
+function seleccionarPorNumero(select, numero) {
+  const buscado = Number(String(numero).replace(/\D/g, ''));
+  const opcion = [...select.options].find((o) => {
+    const inicio = /^\s*(\d+)/.exec(o.text);
+    return inicio && Number(inicio[1]) === buscado;
+  });
+  if (!opcion) {
+    const muestra = [...select.options].slice(1, 9).map((o) => o.text.trim()).join(', ');
+    throw new Error(`no existe el plazo ${numero}. Hay: ${muestra}…`);
+  }
+  return aplicarSeleccion(select, opcion);
+}
+
 /** Espera a que el AJAX pueble un select (más de la opción de placeholder). */
 async function esperarOpciones(id, segundos = 15) {
   const limite = Date.now() + segundos * 1000;

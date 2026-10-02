@@ -6,7 +6,8 @@
 
 import { partirTelefono, partirAntiguedad, razonSocial, partirCalle } from './normaliza.js';
 import { resolverRfc } from './rfc.js';
-import { referenciasRequeridas } from './esquemas.js';
+import { ESQUEMAS_VENTA, esquemaPorValue, referenciasRequeridas } from './esquemas.js';
+import { opcionPorNombre } from './formulario.js';
 
 // Sin estos, la corrida no arranca: son la identidad del cliente y el domicilio
 // que se va a capturar. Todo lo demás se puede completar a mano en Dinamo.
@@ -186,6 +187,23 @@ export function armarExpediente(lecturas, manual = {}) {
   const datos = { cliente, domicilio, empleo, referencias };
 
   const faltantes = OBLIGATORIOS.filter(([, leer]) => !texto(leer(datos))).map(([nombre]) => nombre);
+
+  // El tipo de crédito se elige al empezar la captura, no sale de ningún
+  // documento. Sin él no se sabe cuántas referencias llenar.
+  const elegido = esquemaPorValue(manual.esquemaVenta);
+  if (!elegido) faltantes.unshift('tipoCredito');
+
+  // Si el vendedor escribió otro tipo en el formulario, gana lo elegido, pero
+  // se avisa: suele ser un error de dedo de uno de los dos.
+  const delFormulario = opcionPorNombre(ESQUEMAS_VENTA, formulario.esquema);
+  if (elegido && delFormulario && delFormulario.value !== elegido.value) {
+    avisos.push({
+      campo: 'tipoCredito',
+      mensaje:
+        `El formulario del vendedor dice ${delFormulario.nombre}, pero se eligió ` +
+        `${elegido.nombre}. Se capturará ${elegido.nombre}; cámbialo arriba si no es el bueno.`,
+    });
+  }
 
   return { datos, faltantes, avisos };
 }

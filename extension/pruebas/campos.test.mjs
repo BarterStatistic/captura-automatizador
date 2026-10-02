@@ -150,3 +150,10 @@ test('cada campo sabe de dónde sale su valor', () => {
     assert.ok(campo.etiqueta, `el campo ${campo.id} necesita etiqueta para la bitácora`);
   }
 });
+
+test('el plazo se elige por su número, no por la clave interna', () => {
+  const plazo = todosLosCampos().find((campo) => campo.id === 'cboplazo');
+
+  assert.equal(plazo.tipo, 'selectNumero');
+  assert.equal(plazo.de, 'manual.plazo');
+});
