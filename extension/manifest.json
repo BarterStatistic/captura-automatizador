@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Captura Automatizador â€” Dinamo",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Llena la captura de crÃ©dito de Dinamo con el expediente que preparÃ³ la app. No presiona Grabar: eso lo hace una persona.",
   "icons": {
     "16": "iconos/icono-16.png",
@@ -51,16 +51,6 @@
         "dom.js",
         "campos.js",
         "contenido-captura.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "http://dinamo2.intranet/*consulta_localidad.php*"
-      ],
-      "js": [
-        "dom.js",
-        "contenido-sepomex.js"
       ],
       "run_at": "document_idle"
     },

@@ -139,18 +139,31 @@ el TEXTO que reenvía el vendedor: casi siempre es el formulario que el cliente
 contestó por WhatsApp, a veces con preguntas numeradas y a veces solo con las
 respuestas, y a veces con datos de la venta agregados por el vendedor.
 
-El formulario tiene seis puntos y tú extraes la RESPUESTA de cada uno:
+El formulario que mandan los vendedores tiene exactamente este esqueleto, y la
+respuesta va después de cada pregunta (en el mismo renglón o en el siguiente):
 
-1) Correo electrónico → "correo"
-2) Nombre y dirección de su trabajo → "empleo" (solo el nombre del negocio),
-   "direccion_empleo" (la calle con su número si lo dice) y "colonia_empleo"
-3) Antigüedad laboral → "antiguedad_laboral", tal como lo escribió ("6 meses")
-4) Nombre y teléfono de un compañero de trabajo → "companero_nombre" y
-   "companero_telefono"
-5) Tiempo viviendo en su casa actual → "antiguedad_domicilio", tal como lo
-   escribió ("6 años aprox")
-6) Nombre y teléfono de un amigo, conocido o familiar → "referencia_nombre" y
-   "referencia_telefono"
+  Favor de llenar la siguiente información para llenar su solicitud de crédito
+  1) Correo electrónico:
+  2) Nombre y dirección
+  3) Antigüedad laboral
+  4) Nombre y teléfono de algún compañero de su trabajo
+  5) Tiempo viviendo en su casa actual:
+  6) Nombre y teléfono de algún amigo, conocido o familiar
+  7) Número de seguro social (Opcional)
+
+Extrae la RESPUESTA de cada punto:
+
+1) → "correo"
+2) Es el nombre y la dirección del TRABAJO del cliente (los puntos 3 y 4 son
+   del mismo trabajo), no el nombre del cliente → "empleo" (solo el nombre del
+   negocio), "direccion_empleo" (la calle con su número si lo dice) y
+   "colonia_empleo"
+3) → "antiguedad_laboral", tal como lo escribió ("6 meses")
+4) → "companero_nombre" y "companero_telefono"
+5) → "antiguedad_domicilio", tal como lo escribió ("6 años aprox", "toda la
+   vida"); no lo conviertas
+6) → "referencia_nombre" y "referencia_telefono"
+7) → "nss": el número de seguro social, solo dígitos; si no lo puso, null
 
 Si el texto además trae estos datos, extráelos; si no aparecen, null:
 
@@ -187,6 +200,7 @@ Reglas:
       antiguedad_domicilio: { type: 'string', nullable: true },
       referencia_nombre: { type: 'string', nullable: true },
       referencia_telefono: { type: 'string', nullable: true },
+      nss: { type: 'string', nullable: true },
       celular: { type: 'string', nullable: true },
       nombre_cliente: { type: 'string', nullable: true },
       modelo: { type: 'string', nullable: true },

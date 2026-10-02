@@ -8,7 +8,6 @@ export const ETIQUETAS_FALTANTE = {
   apellidoPaterno: 'Apellido paterno',
   'domicilio.calle': 'Calle del domicilio',
   'domicilio.numeroExterior': 'Número exterior',
-  'domicilio.cp': 'Código postal',
   correo: 'Correo',
   'empleo.nombre': 'Trabajo',
   celular: 'Celular',

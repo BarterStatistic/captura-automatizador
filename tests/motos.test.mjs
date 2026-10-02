@@ -4,7 +4,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { MODELOS, MODELOS_ORDENADOS, modeloPorNombre } from '../src/lib/motos.js';
+import {
+  COLORES,
+  MODELOS,
+  MODELOS_ORDENADOS,
+  colorPorNombre,
+  modeloPorNombre,
+} from '../src/lib/motos.js';
 
 test('el catálogo trae los 37 modelos de la lista vigente, sin repetidos', () => {
   assert.equal(MODELOS.length, 37);
@@ -29,4 +35,17 @@ test('gana el nombre más largo: U5 175 no se confunde con U5', () => {
 test('un modelo que no está en el catálogo no se inventa', () => {
   assert.equal(modeloPorNombre('Italika FT150'), null);
   assert.equal(modeloPorNombre(''), null);
+});
+
+test('los colores están escritos como en Dinamo: mayúsculas, sin acentos', () => {
+  for (const color of COLORES) assert.match(color, /^[A-Z]+$/);
+  for (const deDinamo of ['AMARILLO', 'GRIS', 'ROJO']) assert.ok(COLORES.includes(deDinamo));
+});
+
+test('el color del vendedor se lleva al del catálogo', () => {
+  assert.equal(colorPorNombre('rojo'), 'ROJO');
+  assert.equal(colorPorNombre('Rojo con negro'), 'ROJO');
+  assert.equal(colorPorNombre('plateado'), 'PLATA');
+  assert.equal(colorPorNombre('café'), 'CAFE');
+  assert.equal(colorPorNombre('tornasol'), null);
 });

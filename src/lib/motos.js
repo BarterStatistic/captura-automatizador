@@ -76,3 +76,59 @@ export function modeloPorNombre(escrito) {
   );
   return contenidos[0] ?? null;
 }
+
+// --- Colores -----------------------------------------------------------------
+//
+// En Dinamo el color es un <select> (`cbocolores`) que se carga según el modelo,
+// con nombres en mayúsculas («AMARILLO», «GRIS», «ROJO» en el HTML del
+// 2026-10-02). No hay catálogo de colores por modelo, así que aquí van los
+// nombres de color de moto; la extensión busca el elegido en las opciones de
+// ese modelo y, si no viene en ese color, la bitácora dice cuáles hay.
+
+export const COLORES = [
+  'NEGRO',
+  'BLANCO',
+  'ROJO',
+  'AZUL',
+  'GRIS',
+  'PLATA',
+  'AMARILLO',
+  'VERDE',
+  'NARANJA',
+  'MORADO',
+  'ROSA',
+  'CAFE',
+  'DORADO',
+];
+
+// Cómo lo escribe la gente → cómo lo nombra Dinamo.
+const SINONIMOS = {
+  PLATEADO: 'PLATA',
+  MARRON: 'CAFE',
+  CHOCOLATE: 'CAFE',
+  GUINDA: 'ROJO',
+  VINO: 'ROJO',
+  ARENA: 'CAFE',
+  OLIVO: 'VERDE',
+  LILA: 'MORADO',
+  VIOLETA: 'MORADO',
+};
+
+/**
+ * El color del catálogo que corresponde a lo que escribió el vendedor, o null.
+ * «rojo con negro» es ROJO: se toma el primer color que se menciona.
+ */
+export function colorPorNombre(escrito) {
+  const palabras = String(escrito ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .split(/[^A-Z]+/)
+    .filter(Boolean);
+
+  for (const palabra of palabras) {
+    if (COLORES.includes(palabra)) return palabra;
+    if (SINONIMOS[palabra]) return SINONIMOS[palabra];
+  }
+  return null;
+}

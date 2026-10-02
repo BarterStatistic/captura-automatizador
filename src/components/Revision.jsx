@@ -7,7 +7,7 @@ import {
   plazosDe,
   referenciasRequeridas,
 } from '../lib/esquemas.js';
-import { MODELOS_ORDENADOS } from '../lib/motos.js';
+import { COLORES, MODELOS_ORDENADOS } from '../lib/motos.js';
 import { CIUDADES, generarDomicilio } from '../lib/calles.js';
 import { idDeFaltante } from './BarraAccion.jsx';
 import { IconoAlerta } from './Iconos.jsx';
@@ -15,7 +15,7 @@ import { IconoAlerta } from './Iconos.jsx';
 // Qué faltantes caen en cada grupo, para contar en su encabezado.
 const FALTANTES_POR_GRUPO = {
   cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
-  domicilio: ['domicilio.calle', 'domicilio.numeroExterior', 'domicilio.cp'],
+  domicilio: ['domicilio.calle', 'domicilio.numeroExterior'],
   empleo: ['empleo.nombre'],
   venta: ['modelo', 'anio', 'plazo'],
 };
@@ -49,6 +49,14 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
       ? [{ value: manual.modelo, nombre: `${manual.modelo} (del formulario, no está en la lista)` }]
       : []),
     ...MODELOS_ORDENADOS.map((modelo) => ({ value: modelo, nombre: modelo })),
+  ];
+
+  const colorFuera = manual.color && !COLORES.includes(manual.color);
+  const opcionesColor = [
+    ...(colorFuera
+      ? [{ value: manual.color, nombre: `${manual.color} (del formulario, no está en la lista)` }]
+      : []),
+    ...COLORES.map((color) => ({ value: color, nombre: color })),
   ];
 
   return (
@@ -168,17 +176,20 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('comprobante', 'colonia', v)}
         />
         <Campo
-          clave="domicilio.cp"
           etiqueta="Código postal"
           valor={lecturas.comprobante?.cp}
-          falta={falta('domicilio.cp')}
           mono
           onCambio={(v) => onLectura('comprobante', 'cp', v)}
+          nota="Para buscar la colonia en SEPOMEX (lo hace el vendedor)."
         />
         <Campo
           etiqueta="Tiempo viviendo ahí"
           valor={lecturas.formulario?.antiguedad_domicilio}
           onCambio={(v) => onLectura('formulario', 'antiguedad_domicilio', v)}
+        />
+        <Derivado
+          etiqueta="Antigüedad que se capturará"
+          valor={`${datos.domicilio.antiguedadAnios} años, ${datos.domicilio.antiguedadMeses} meses`}
         />
       </Grupo>
 
@@ -216,6 +227,13 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           valor={lecturas.formulario?.companero_telefono}
           mono
           onCambio={(v) => onLectura('formulario', 'companero_telefono', v)}
+        />
+        <Campo
+          etiqueta="Número de seguro social"
+          valor={lecturas.formulario?.nss}
+          nota="Opcional. Dinamo no tiene campo para él: solo de consulta."
+          mono
+          onCambio={(v) => onLectura('formulario', 'nss', v)}
         />
         <Campo
           etiqueta="Sueldo mensual"
@@ -292,10 +310,16 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           nota={modeloFuera ? 'No está en la lista de Dinamo: elige el modelo correcto.' : null}
           onCambio={(v) => onManual('modelo', v)}
         />
-        <Campo
+        <Seleccion
           etiqueta="Color"
           valor={manual.color}
-          nota="Vacío: si el modelo viene en un solo color, se elige solo."
+          opciones={opcionesColor}
+          aviso={colorFuera}
+          nota={
+            colorFuera
+              ? 'No es un color de la lista: elige el correcto.'
+              : 'Sin elegir: si el modelo viene en un solo color, se elige solo.'
+          }
           onCambio={(v) => onManual('color', v)}
         />
         <Seleccion

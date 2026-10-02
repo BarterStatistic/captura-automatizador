@@ -136,9 +136,10 @@ function seccionReferencia(indice) {
       { id: `cbotipo_tel_${sufijo}`, tipo: 'select', fijo: '5', etiqueta: 'Tipo de teléfono' },
       { id: `check_${sufijo}_A`, tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
-    // SEPOMEX del domicilio de la referencia: se busca por el CP que se generó
+    // La colonia la elige el vendedor en SEPOMEX; la corrida espera a que el
+    // CP (readonly) se llene antes de validar.
     // junto con la calle.
-    sepomex: { tipo: indice === 0 ? 'REF' : `REF${sufijo.slice(-1)}`, buscarPor: 'CP' },
+    colonia: { cp: `txtcp_${sufijo}`, que: `la referencia ${numero}` },
     validar: indice === 0 ? 'valida_referencia' : `valida_referencia_${sufijo.slice(-1)}`,
   };
 }
@@ -226,19 +227,19 @@ const SECCIONES = [
   {
     id: 'cliente',
     etiqueta: 'Datos del cliente',
-    // Antes de los campos: buscar al cliente por RFC y pasar por Datos Fiscales.
-    buscarCliente: { id: 'txt_buscar_cliente', de: 'datos.cliente.rfc', boton: 'buscar_cliente' },
-    datosFiscales: { boton: 'showFiscal' },
-    campos: [
-      // Persona física. El RFC completo (13) también lo marca así al salir del
-      // campo, pero se elige antes para que el cálculo de la fecha use la
-      // posición correcta.
-      { id: 'radiobutton_pf', tipo: 'radio', fijo: true, texto: 'Persona física', etiqueta: 'Tipo de cliente' },
+    // El orden lo impone Dinamo: sin RFC no deja capturar lo demás, y lo que
+    // sigue al RFC son los Datos Fiscales. Por eso `inicio` va antes que
+    // `datosFiscales`, y los `campos` después.
+    inicio: [
       // Con 13 caracteres no salen las preguntas de homoclave (esas solo
-      // aparecen con 10). Al salir del campo Dinamo calcula la fecha de
-      // nacimiento (cbodia/cbomes/cboanio, deshabilitados), valida la edad
-      // mínima de 20 y copia el RFC a «RFC a facturar».
+      // aparecen con 10). Al salir del campo Dinamo marca persona física,
+      // calcula la fecha de nacimiento (cbodia/cbomes/cboanio, deshabilitados),
+      // valida la edad mínima de 20 y copia el RFC a «RFC a facturar».
       { id: 'txtrfc', tipo: 'texto', de: 'datos.cliente.rfc', etiqueta: 'RFC', blur: true },
+    ],
+    // El botón «Datos Fiscales» (id ButtonDF, onclick showFiscal()).
+    datosFiscales: { id: 'ButtonDF', boton: 'showFiscal' },
+    campos: [
       { id: 'txtnombre', tipo: 'texto', de: 'datos.cliente.nombres', etiqueta: 'Nombre(s)' },
       {
         id: 'txtpaterno',
@@ -317,8 +318,13 @@ const SECCIONES = [
       { id: 'cbotipo_tel', tipo: 'select', fijo: '5', etiqueta: 'Tipo de línea' },
       { id: 'check_cli_A', tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
-    // txtcolonia, txtcp, txtmpio y txtciudad son readonly: solo SEPOMEX los llena.
-    sepomex: { tipo: 'CLI', buscarPor: 'CP', cp: 'datos.domicilio.cp', colonia: 'datos.domicilio.colonia' },
+    // txtcolonia, txtcp, txtmpio y txtciudad son readonly: los llena SEPOMEX, y
+    // SEPOMEX lo hace el vendedor a mano. La corrida espera a ver el CP.
+    colonia: {
+      cp: 'txtcp',
+      que: 'el domicilio del cliente',
+      pista: { cp: 'datos.domicilio.cp', colonia: 'datos.domicilio.colonia' },
+    },
     validar: 'valida_domicilio',
   },
 
@@ -386,9 +392,11 @@ const SECCIONES = [
       { id: 'cbotipo_tel_emp', tipo: 'select', fijo: '5', etiqueta: 'Tipo de teléfono' },
       { id: 'check_emp_A', tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
-    // La dirección de trabajo llega sin código postal casi siempre, así que aquí
-    // se busca por nombre de colonia.
-    sepomex: { tipo: 'EMP', buscarPor: 'COLONIA', colonia: 'datos.empleo.colonia' },
+    colonia: {
+      cp: 'txtcp_emp',
+      que: 'el trabajo',
+      pista: { colonia: 'datos.empleo.colonia' },
+    },
     validar: 'valida_empleo',
   },
 

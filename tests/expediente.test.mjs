@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { armarExpediente } from '../src/lib/expediente.js';
+import { armarExpediente, edadEn } from '../src/lib/expediente.js';
 
 // Un expediente de ejemplo, con la misma forma que devuelve Gemini.
 // Los datos son ficticios; las propiedades que se comprueban, no.
@@ -267,4 +267,40 @@ test('sin modelo, año y plazo el expediente no arranca', () => {
   const { faltantes } = armarExpediente(LECTURAS, { ...MANUAL, modelo: '', anio: '', plazo: '' });
 
   assert.ok(['modelo', 'anio', 'plazo'].every((campo) => faltantes.includes(campo)));
+});
+
+// --- El esqueleto real del formulario -------------------------------------------
+
+test('«toda la vida» en el domicilio se captura con la edad del cliente', () => {
+  const lecturas = { ...LECTURAS, formulario: { ...LECTURAS.formulario, antiguedad_domicilio: 'toda la vida' } };
+  // Nació el 1990-01-15; al 2026-10-02 tiene 36.
+  const { datos, avisos } = armarExpediente(lecturas, { ...MANUAL, hoy: new Date(2026, 9, 2) });
+
+  assert.equal(datos.domicilio.antiguedadAnios, 36);
+  assert.equal(datos.domicilio.antiguedadMeses, 0);
+  assert.ok(avisos.some((aviso) => aviso.campo === 'antiguedadDomicilio'));
+});
+
+test('sin fecha en la INE, la edad sale de la CURP', () => {
+  const lecturas = {
+    ...LECTURAS,
+    ineFrente: { ...LECTURAS.ineFrente, fecha_nacimiento: null },
+    formulario: { ...LECTURAS.formulario, antiguedad_domicilio: 'Toda su vida' },
+  };
+  const { datos } = armarExpediente(lecturas, { ...MANUAL, hoy: new Date(2026, 9, 2) });
+
+  assert.equal(datos.domicilio.antiguedadAnios, 36);
+});
+
+test('la edad cuenta si ya cumplió años este año', () => {
+  const nacio = new Date(1990, 9, 3);
+  assert.equal(edadEn(nacio, new Date(2026, 9, 2)), 35);
+  assert.equal(edadEn(nacio, new Date(2026, 9, 3)), 36);
+});
+
+test('el número de seguro social se guarda solo con dígitos', () => {
+  const lecturas = { ...LECTURAS, formulario: { ...LECTURAS.formulario, nss: '123-45 67890 1' } };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.cliente.nss, '12345678901');
 });

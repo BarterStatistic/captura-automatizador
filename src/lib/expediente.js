@@ -17,13 +17,39 @@ const OBLIGATORIOS = [
   ['apellidoPaterno', (d) => d.cliente.apellidoPaterno],
   ['domicilio.calle', (d) => d.domicilio.calle],
   ['domicilio.numeroExterior', (d) => d.domicilio.numeroExterior],
-  ['domicilio.cp', (d) => d.domicilio.cp],
   ['correo', (d) => d.cliente.correo],
   ['empleo.nombre', (d) => d.empleo.nombre],
   ['celular', (d) => d.cliente.celular],
 ];
 
 const texto = (valor) => String(valor ?? '').trim();
+
+// «Toda la vida», «desde que nací», «siempre»: no trae cifra, pero sí dice
+// cuánto: la edad del cliente.
+const TODA_LA_VIDA = /toda\s+(la|su|mi)\s+vida|desde\s+(que\s+)?naci|desde\s+siempre|^\s*siempre\s*$/i;
+
+/** Fecha de nacimiento (AAAA-MM-DD) de la INE; si no, la de la CURP. */
+function nacimiento(fechaIne, curp) {
+  const ine = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto(fechaIne));
+  if (ine) return new Date(Number(ine[1]), Number(ine[2]) - 1, Number(ine[3]));
+
+  const deCurp = /^[A-Z]{4}(\d{2})(\d{2})(\d{2})/.exec(texto(curp).toUpperCase());
+  if (!deCurp) return null;
+  // El carácter 17 de la CURP es dígito para nacidos antes de 2000, letra después.
+  const siglo = /\d/.test(texto(curp).charAt(16)) ? 1900 : 2000;
+  return new Date(siglo + Number(deCurp[1]), Number(deCurp[2]) - 1, Number(deCurp[3]));
+}
+
+/** Años cumplidos a la fecha `hoy`. */
+export function edadEn(fecha, hoy = new Date()) {
+  if (!fecha || Number.isNaN(fecha.getTime())) return null;
+  let anios = hoy.getFullYear() - fecha.getFullYear();
+  const aunNo =
+    hoy.getMonth() < fecha.getMonth() ||
+    (hoy.getMonth() === fecha.getMonth() && hoy.getDate() < fecha.getDate());
+  if (aunNo) anios -= 1;
+  return anios >= 0 ? anios : null;
+}
 
 /** Separa «Luis Perez» en nombre y apellidos, sin inventar el materno. */
 function partirNombre(completo) {
@@ -119,6 +145,9 @@ export function armarExpediente(lecturas, manual = {}) {
     // El OCR de 13 dígitos del reverso alimenta txtife y txtIdCIF. Es opcional:
     // si el reverso salió borroso, se captura a mano y no detiene la corrida.
     idCif: texto(ineAtras.ocr),
+    // Número de seguro social (punto 7, opcional). Dinamo no tiene dónde
+    // capturarlo: se muestra en la revisión y viaja en el expediente copiado.
+    nss: texto(formulario.nss).replace(/\D/g, ''),
     correo: texto(usuarioCorreo),
     dominioCorreo: texto(dominioCorreo) || 'gmail.com',
     celular: celular ? `${celular.lada}${celular.telefono}` : '',
@@ -140,7 +169,25 @@ export function armarExpediente(lecturas, manual = {}) {
       ? deLaLinea
       : texto(comprobante[campo]);
   const calleDomicilio = corregido('calle_nombre', partida.calle);
-  const antiguedadDomicilio = partirAntiguedad(formulario.antiguedad_domicilio);
+  let antiguedadDomicilio = partirAntiguedad(formulario.antiguedad_domicilio);
+  if (!antiguedadDomicilio && TODA_LA_VIDA.test(texto(formulario.antiguedad_domicilio))) {
+    const edad = edadEn(nacimiento(ineFrente.fecha_nacimiento, curp), manual.hoy ?? new Date());
+    if (edad !== null) {
+      // txtant_anios admite dos dígitos.
+      antiguedadDomicilio = { anios: Math.min(edad, 99), meses: 0 };
+      avisos.push({
+        campo: 'antiguedadDomicilio',
+        mensaje: `Vive ahí «${texto(formulario.antiguedad_domicilio)}»: se capturan ${Math.min(edad, 99)} años, su edad.`,
+      });
+    } else {
+      avisos.push({
+        campo: 'antiguedadDomicilio',
+        mensaje:
+          `Vive ahí «${texto(formulario.antiguedad_domicilio)}», pero no hay fecha de nacimiento ` +
+          'para calcular los años. Escríbelos a mano.',
+      });
+    }
+  }
   const domicilio = {
     calle: calleDomicilio,
     numeroExterior: corregido('numero_exterior', partida.numeroExterior),

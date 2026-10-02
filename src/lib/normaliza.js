@@ -38,17 +38,19 @@ export function partirAntiguedad(texto) {
 
   const anios = /(\d+)\s*a[ñn]os?/.exec(limpio);
   const meses = /(\d+)\s*mes(?:es)?/.exec(limpio);
+  // «2 años y medio», «año y medio»: el medio año son 6 meses, y Dinamo tiene
+  // campo de meses, así que se captura tal cual lo dijo el cliente.
+  const yMedio = /a[ñn]os?\s+y\s+medio/.test(limpio) ? 6 : 0;
 
   if (anios || meses) {
     return {
       anios: anios ? Number(anios[1]) : 0,
-      meses: meses ? Number(meses[1]) : 0,
+      meses: meses ? Number(meses[1]) : yMedio,
     };
   }
 
-  // «año y medio», «un año»: hay año pero sin cifra. Se redondea hacia abajo,
-  // que es lo prudente en una antigüedad declarada.
-  if (/\ba[ñn]o\b/.test(limpio)) return { anios: 1, meses: 0 };
+  // «un año», «año y medio»: hay año pero sin cifra.
+  if (/\ba[ñn]o\b/.test(limpio)) return { anios: 1, meses: yMedio };
 
   return null;
 }

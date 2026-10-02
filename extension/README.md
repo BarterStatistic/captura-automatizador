@@ -39,7 +39,7 @@ puente-captura.js ──sendMessage──► background.js
                                   (la página carga) ──►  contenido-captura.js
                                                            │ sección por sección
                                   background.js ◄──────────┘   │
-  ▲                                  │                          ├─► SEPOMEX
+  ▲                                  │                          │
   └──── postMessage(evento) ◄────────┘                          └─► Datos Fiscales
 ```
 
@@ -51,9 +51,19 @@ puente-captura.js ──sendMessage──► background.js
 | `dom.js` | Escritura sobre el DOM: esperas, setter nativo, selects |
 | `campos.js` | El mapeo: secciones, ids, tipos y valores fijos |
 | `contenido-captura.js` | El motor de llenado |
-| `contenido-sepomex.js` | La ventana de colonias |
 | `contenido-fiscales.js` | La ventana de Datos Fiscales |
 | `hook-avisos.js` | Captura `alert`, `confirm` y SweetAlert2 durante el llenado |
+
+## El orden del cliente y las colonias (desde 1.5.0)
+
+**Datos del cliente:** primero el RFC en `txtrfc` (Dinamo no deja capturar lo
+demás sin él; al salir del campo calcula la fecha de nacimiento y valida la
+edad), luego **Datos Fiscales** con el botón `ButtonDF`, y después el resto.
+Ya no se usa «Buscar cliente».
+
+**SEPOMEX lo hace el vendedor.** La extensión llena domicilio, empleo y
+referencias, avisa en la bitácora con qué buscar (CP o colonia) y espera hasta
+10 minutos a que el CP de esa sección aparezca; entonces valida y sigue sola.
 
 ## Tres cosas que no son obvias
 
@@ -73,6 +83,10 @@ fila equivocada le cobraría al cliente un accesorio que no pidió. Si hay cero
 coincidencias o más de una, no se escribe nada.
 
 ## Probar sin tocar Dinamo
+
+> La prueba que manda es `pruebas/campos.test.mjs` contra `ids-dinamo.json`
+> (los ids del HTML real). La página simulada es anterior a la 1.4.0: no tiene
+> `txtrfc`, `ButtonDF` ni la espera de colonia.
 
 `pruebas/captura-simulada.html` replica los ids, el `disabled` progresivo, los
 `onclick` reales, una objeción vía `Swal.fire`, y la lista de accesorios con sus
@@ -94,7 +108,6 @@ Sírvela por HTTP, no como `file://`. Lo que debe salir:
 |---|---|
 | `window.__grabarPresionado` | `false` — **siempre**, es la regla |
 | `window.__eventos.filter(e => e.tipo === 'error')` | vacío |
-| `window.__sepomexPedido` | `['CLI', 'EMP', 'REF']` |
 | `canAcce_91` (código 590144001) | `1` |
 | `canAcce_90` y `canAcce_92` | `0` — no se tocan |
 | `txtlada_emp` / `txttelefono_emp` | `551` / `2345678` |

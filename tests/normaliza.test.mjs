@@ -57,8 +57,10 @@ test('«2 años 3 meses» reparte ambas unidades', () => {
   assert.deepEqual(partirAntiguedad('2 años 3 meses'), { anios: 2, meses: 3 });
 });
 
-test('«año y medio» se redondea hacia abajo a un año', () => {
-  assert.deepEqual(partirAntiguedad('año y medio'), { anios: 1, meses: 0 });
+test('«y medio» son seis meses', () => {
+  assert.deepEqual(partirAntiguedad('año y medio'), { anios: 1, meses: 6 });
+  assert.deepEqual(partirAntiguedad('2 años y medio'), { anios: 2, meses: 6 });
+  assert.deepEqual(partirAntiguedad('un año'), { anios: 1, meses: 0 });
 });
 
 test('un texto sin cifras no da antigüedad', () => {

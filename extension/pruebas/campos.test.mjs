@@ -17,7 +17,8 @@ vm.runInContext(readFileSync(RUTA, 'utf8'), contexto);
 
 const { SECCIONES, valorEn, ACCESORIO_SERVICIO } = contexto;
 
-const todosLosCampos = () => SECCIONES.flatMap((seccion) => seccion.campos);
+const todosLosCampos = () =>
+  SECCIONES.flatMap((seccion) => [...(seccion.inicio ?? []), ...seccion.campos]);
 
 // `vm` crea otro realm, así que sus arrays no comparten prototipo con los de
 // aquí y deepEqual estricto los rechaza aunque el contenido sea idéntico.
@@ -130,16 +131,22 @@ test('los campos readonly de SEPOMEX no se intentan escribir', () => {
   }
 });
 
-test('el domicilio y el empleo abren SEPOMEX, y dicen con qué buscar', () => {
-  const domicilio = SECCIONES.find((s) => s.id === 'domicilio');
-  const empleo = SECCIONES.find((s) => s.id === 'empleo');
+test('SEPOMEX no se abre: la corrida espera a que el vendedor elija la colonia', () => {
+  const conColonia = Object.fromEntries(
+    SECCIONES.filter((seccion) => seccion.colonia).map((seccion) => [seccion.id, seccion.colonia.cp]),
+  );
 
-  assert.equal(domicilio.sepomex.tipo, 'CLI');
-  assert.equal(domicilio.sepomex.buscarPor, 'CP');
-
-  // El formulario de WhatsApp da colonia pero casi nunca código postal.
-  assert.equal(empleo.sepomex.tipo, 'EMP');
-  assert.equal(empleo.sepomex.buscarPor, 'COLONIA');
+  assert.deepEqual(local(Object.keys(conColonia)), [
+    'domicilio',
+    'empleo',
+    'referencia',
+    'referencia2',
+    'referencia3',
+  ]);
+  assert.equal(conColonia.domicilio, 'txtcp');
+  assert.equal(conColonia.empleo, 'txtcp_emp');
+  assert.equal(conColonia.referencia2, 'txtcp_ref_b');
+  assert.ok(SECCIONES.every((seccion) => !('sepomex' in seccion)));
 });
 
 // --- Lectura de valores del expediente ---------------------------------------
@@ -209,23 +216,25 @@ test('cada botón que se presiona existe en la página', () => {
   }
 });
 
-test('cada SEPOMEX que se abre tiene su enlace en la página', () => {
-  for (const seccion of SECCIONES.filter((s) => s.sepomex)) {
-    assert.ok(
-      DINAMO.onclicks.includes(`sepomex('${seccion.sepomex.tipo}')`),
-      `no hay enlace sepomex('${seccion.sepomex.tipo}')`,
-    );
+test('el CP que se espera es el campo readonly que llena SEPOMEX', () => {
+  for (const seccion of SECCIONES.filter((s) => s.colonia)) {
+    assert.equal(DINAMO.controles[seccion.colonia.cp]?.readonly, true, seccion.colonia.cp);
   }
 });
 
-test('el RFC del cliente se escribe y se sale del campo, antes que el nombre', () => {
+test('en el cliente va primero el RFC, luego Datos Fiscales, luego lo demás', () => {
   const cliente = SECCIONES.find((seccion) => seccion.id === 'cliente');
-  const ids = cliente.campos.map((campo) => campo.id);
-  const rfc = cliente.campos.find((campo) => campo.id === 'txtrfc');
+  const [rfc] = cliente.inicio;
 
+  assert.equal(cliente.inicio.length, 1);
+  assert.equal(rfc.id, 'txtrfc');
   assert.equal(rfc.de, 'datos.cliente.rfc');
   assert.equal(rfc.blur, true);
-  assert.ok(ids.indexOf('txtrfc') < ids.indexOf('txtnombre'));
+  assert.equal(cliente.datosFiscales.id, 'ButtonDF');
+  assert.equal(cliente.datosFiscales.boton, 'showFiscal');
+  assert.ok(!cliente.campos.some((campo) => campo.id === 'txtrfc'));
+  assert.ok(!('buscarCliente' in cliente), 'ya no se busca al cliente antes del RFC');
+  assert.equal(DINAMO.controles.ButtonDF?.tag, 'input');
 });
 
 test('el modelo se busca por nombre comercial y el plan solo si se ve', () => {

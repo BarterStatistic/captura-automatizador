@@ -138,3 +138,9 @@ test('lo que no se reconoce no se mete en ninguna casilla', () => {
   assert.deepEqual(ranurasPara(null), []);
   assert.deepEqual(ranurasPara('SELFIE'), []);
 });
+
+test('el formulario sigue el esqueleto que mandan los vendedores, con el NSS', () => {
+  assert.match(FORMULARIO.prompt, /7\) Número de seguro social/);
+  assert.match(FORMULARIO.prompt, /toda la\s+vida/);
+  assert.ok('nss' in FORMULARIO.esquema.properties);
+});

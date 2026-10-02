@@ -19,7 +19,11 @@ export default function Formulario({ texto, estado, mensaje, onTexto, onLeer }) 
         value={texto}
         placeholder={
           'Pega aquí el formulario tal como llegó por WhatsApp.\n\n' +
-          '1) Correo electrónico: …\n2) Nombre y dirección de su trabajo: …\n3) Antigüedad laboral: …'
+          '1) Correo electrónico:\n2) Nombre y dirección\n3) Antigüedad laboral\n' +
+          '4) Nombre y teléfono de algún compañero de su trabajo\n' +
+          '5) Tiempo viviendo en su casa actual:\n' +
+          '6) Nombre y teléfono de algún amigo, conocido o familiar\n' +
+          '7) Número de seguro social (Opcional)'
         }
         onChange={(evento) => onTexto(evento.target.value)}
         onPaste={(evento) => {

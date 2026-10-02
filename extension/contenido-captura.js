@@ -116,8 +116,9 @@ async function esperarEmergente(cual, segundos = 60) {
 
 // --- Botones ------------------------------------------------------------------
 
-async function presionar(nombreFuncion, etiqueta, seccion) {
-  const boton = botonPorOnclick(nombreFuncion);
+async function presionar(nombreFuncion, etiqueta, seccion, id = null) {
+  const porId = id ? document.getElementById(id) : null;
+  const boton = porId ?? botonPorOnclick(nombreFuncion);
   if (!boton) {
     publicar('error', `${etiqueta}: no se encontró el botón (${nombreFuncion}).`, seccion);
     return false;
@@ -289,28 +290,14 @@ async function llenarCampo(campo, expediente, seccion) {
 
 // --- Pasos especiales ----------------------------------------------------------
 
-async function buscarCliente(seccion, expediente) {
-  const rfc = valorEn(expediente, seccion.buscarCliente.de);
-  if (!rfc) {
-    publicar('aviso', 'Sin RFC calculado: no se buscó al cliente.', seccion.id);
-    return;
-  }
-
-  try {
-    const entrada = await esperarCampo(seccion.buscarCliente.id);
-    escribirTexto(entrada, rfc);
-    publicar('campo', `Buscar cliente: ${rfc}`, seccion.id, entrada.id, rfc);
-    await presionar(seccion.buscarCliente.boton, 'Buscar cliente', seccion.id);
-    await pausa(1500);
-  } catch (error) {
-    publicar('error', `Buscar cliente: ${error.message}`, seccion.id);
-  }
-}
-
 async function pasarPorDatosFiscales(seccion) {
   publicar('seccion', 'Abriendo Datos Fiscales…', seccion.id);
   prepararEmergente();
-  if (!(await presionar(seccion.datosFiscales.boton, 'Datos Fiscales', seccion.id))) return;
+  if (
+    !(await presionar(seccion.datosFiscales.boton, 'Datos Fiscales', seccion.id, seccion.datosFiscales.id))
+  ) {
+    return;
+  }
 
   const resultado = await esperarEmergente('fiscales');
   if (resultado.ok) {
@@ -320,24 +307,51 @@ async function pasarPorDatosFiscales(seccion) {
   }
 }
 
-async function pasarPorSepomex(seccion) {
-  publicar('seccion', `Abriendo SEPOMEX (${seccion.sepomex.tipo})…`, seccion.id);
-
-  const enlace = [...document.querySelectorAll('a')].find((a) =>
-    String(a.getAttribute('href') ?? '').includes(`sepomex('${seccion.sepomex.tipo}')`),
-  );
-  if (!enlace) {
-    publicar('error', 'No se encontró el enlace de SEPOMEX. Elige la colonia a mano.', seccion.id);
-    return;
+/**
+ * SEPOMEX lo hace el vendedor: la corrida avisa con qué buscar y espera a que el
+ * CP de la sección (readonly, solo lo llena esa ventana) tenga valor. Sin eso,
+ * «Validar Datos» rechazaría la sección y todo lo siguiente quedaría bloqueado.
+ */
+async function esperarColoniaManual(seccion, expediente, minutos = 10) {
+  const { cp, que, pista } = seccion.colonia;
+  const campoCp = document.getElementById(cp);
+  if (!campoCp) {
+    publicar('error', `No se encontró el campo de CP (${cp}). Elige la colonia y valida a mano.`, seccion.id);
+    return false;
   }
-  prepararEmergente();
-  enlace.click();
+  if (String(campoCp.value ?? '').trim()) return true;
 
-  const resultado = await esperarEmergente('sepomex');
-  if (resultado.ok) {
-    publicar('campo', `SEPOMEX: ${resultado.detalle}`, seccion.id);
-  } else {
-    publicar('error', `SEPOMEX: ${resultado.detalle}. Elige la colonia a mano.`, seccion.id);
+  const datos = [
+    pista?.cp && valorEn(expediente, pista.cp) ? `CP ${valorEn(expediente, pista.cp)}` : '',
+    pista?.colonia && valorEn(expediente, pista.colonia)
+      ? `colonia ${valorEn(expediente, pista.colonia)}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
+  publicar(
+    'aviso',
+    `Elige la colonia de ${que} en SEPOMEX${datos ? ` (${datos})` : ''}. ` +
+      'La extensión sigue sola en cuanto aparezca el código postal.',
+    seccion.id,
+  );
+
+  const limite = Date.now() + minutos * 60 * 1000;
+  for (;;) {
+    if (String(document.getElementById(cp)?.value ?? '').trim()) {
+      publicar('campo', `Colonia de ${que}: lista.`, seccion.id);
+      await pausa(500);
+      return true;
+    }
+    if (Date.now() >= limite) {
+      publicar(
+        'error',
+        `Pasaron ${minutos} minutos sin colonia para ${que}. La corrida se detiene aquí; sigue a mano.`,
+        seccion.id,
+      );
+      return false;
+    }
+    await pausa(1000);
   }
 }
 
@@ -352,7 +366,9 @@ function existeEn(objeto, ruta) {
 }
 
 async function esperarSeccionHabilitada(seccion, segundos = 25) {
-  const primero = seccion.campos.find((campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio');
+  const primero = [...(seccion.inicio ?? []), ...seccion.campos].find(
+    (campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio',
+  );
   if (!primero) return true;
 
   const limite = Date.now() + segundos * 1000;
@@ -385,12 +401,8 @@ async function llenar(expedienteRecibido) {
 
       publicar('seccion', `— ${seccion.etiqueta} —`, seccion.id);
 
-      // Estos pasos van ANTES de comprobar que la sección esté habilitada,
-      // porque son justamente los que la habilitan: marcar la casilla de la
-      // referencia, buscar al cliente y volver de Datos Fiscales.
+      // Las referencias 2 y 3 se abren marcando su casilla.
       if (seccion.activar) document.getElementById(seccion.activar)?.click();
-      if (seccion.buscarCliente) await buscarCliente(seccion, expediente);
-      if (seccion.datosFiscales) await pasarPorDatosFiscales(seccion);
 
       if (!(await esperarSeccionHabilitada(seccion))) {
         publicar(
@@ -402,12 +414,18 @@ async function llenar(expedienteRecibido) {
         break;
       }
 
+      // Lo que Dinamo exige primero (el RFC), luego Datos Fiscales, luego el resto.
+      for (const campo of seccion.inicio ?? []) {
+        await llenarCampo(campo, expediente, seccion.id);
+      }
+      if (seccion.datosFiscales) await pasarPorDatosFiscales(seccion);
+
       for (const campo of seccion.campos) {
         await llenarCampo(campo, expediente, seccion.id);
       }
 
       if (seccion.accesorio) await marcarAccesorio(seccion.accesorio, seccion.id);
-      if (seccion.sepomex) await pasarPorSepomex(seccion);
+      if (seccion.colonia && !(await esperarColoniaManual(seccion, expediente))) break;
       if (seccion.validarEmail) await presionar(seccion.validarEmail, 'Validar email', seccion.id);
       if (seccion.validar) await presionar(seccion.validar, 'Validar datos', seccion.id);
 
