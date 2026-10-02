@@ -257,9 +257,10 @@ export function armarExpediente(lecturas, manual = {}) {
   if (!elegido) faltantes.unshift('tipoCredito');
 
   // La moto no sale de ningún documento: la elige el capturista (o la trae el
-  // formulario del vendedor). Sin modelo, año y plazo la sección Motocicleta
-  // de Dinamo no se puede llenar.
-  for (const campo of ['modelo', 'anio', 'plazo']) {
+  // formulario del vendedor). Sin modelo y plazo la sección Motocicleta de
+  // Dinamo no se puede llenar. El año es opcional: la extensión usa el más
+  // reciente en que exista esa moto, como haría una persona en Dinamo.
+  for (const campo of ['modelo', 'plazo']) {
     if (!texto(manual[campo])) faltantes.push(campo);
   }
 

@@ -17,7 +17,7 @@ const FALTANTES_POR_GRUPO = {
   cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
   domicilio: ['domicilio.calle', 'domicilio.numeroExterior'],
   empleo: ['empleo.nombre'],
-  venta: ['modelo', 'anio', 'plazo'],
+  venta: ['modelo', 'plazo'],
 };
 
 // Los años que maneja Dinamo para unidades nuevas: el siguiente y los dos
@@ -293,11 +293,11 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onManual('ubicacion', v)}
         />
         <Seleccion
-          clave="anio"
-          falta={falta('anio')}
           etiqueta="Año"
           valor={manual.anio}
+          vacio="Automático"
           opciones={ANIOS.map((anio) => ({ value: anio, nombre: anio }))}
+          nota="Si la moto no existe en ese año, se usa el más reciente que la tenga y se avisa."
           onCambio={(v) => onManual('anio', v)}
         />
         <Seleccion
@@ -486,7 +486,7 @@ function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, onCambio }
   );
 }
 
-function Seleccion({ clave, etiqueta, valor, opciones, nota, aviso, falta, onCambio }) {
+function Seleccion({ clave, etiqueta, valor, opciones, nota, aviso, falta, vacio = 'Elegir…', onCambio }) {
   const generado = useId();
   const id = clave ? idDeFaltante(clave) : generado;
   const clases = ['campo'];
@@ -501,7 +501,7 @@ function Seleccion({ clave, etiqueta, valor, opciones, nota, aviso, falta, onCam
         aria-invalid={falta || undefined}
         onChange={(evento) => onCambio(evento.target.value)}
       >
-        <option value="">Elegir…</option>
+        <option value="">{vacio}</option>
         {opciones.map((opcion) => (
           <option key={opcion.value} value={opcion.value}>
             {opcion.nombre}

@@ -16,6 +16,9 @@
 //   selectModelo <select> de modelos: el nombre de Dinamo trae el código pegado
 //                («ALIEN-R NZ175-IT»), así que se compara el nombre comercial
 //   selectNumero <select> elegido por el número de su texto (el plazo)
+//   anioModelo   año + modelo juntos, como en Dinamo: el modelo se carga según
+//                el año, así que si no existe en el año pedido se prueba en los
+//                demás, del más reciente al más viejo
 //   checkbox     casilla que se marca
 //   radio        botón de opción que se elige (dispara su onclick)
 //
@@ -139,7 +142,7 @@ function seccionReferencia(indice) {
     // La colonia la elige el vendedor en SEPOMEX; la corrida espera a que el
     // CP (readonly) se llene antes de validar.
     // junto con la calle.
-    colonia: { cp: `txtcp_${sufijo}`, que: `la referencia ${numero}` },
+    colonia: { cp: `txtcp_${sufijo}`, que: `de la referencia ${numero}` },
     validar: indice === 0 ? 'valida_referencia' : `valida_referencia_${sufijo.slice(-1)}`,
   };
 }
@@ -185,13 +188,17 @@ const SECCIONES = [
         // Cada usuario ve solo las ubicaciones de su agencia; con una, es esa.
         unicaSiVacio: true,
       },
-      { id: 'cboanios', tipo: 'selectTexto', de: 'manual.anio', etiqueta: 'Año', dinamico: true },
+      // Año → modelos de ese año (selecciona_anio) → colores del modelo
+      // (colores()). Se resuelve en un solo paso para poder cambiar de año si
+      // la moto no existe en el pedido.
       {
         id: 'cbomodelos',
-        tipo: 'selectModelo',
+        tipo: 'anioModelo',
+        anio: 'cboanios',
+        colores: 'cbocolores',
         de: 'manual.modelo',
+        deAnio: 'manual.anio',
         etiqueta: 'Modelo',
-        dinamico: true,
       },
       {
         id: 'cbocolores',
@@ -227,9 +234,12 @@ const SECCIONES = [
   {
     id: 'cliente',
     etiqueta: 'Datos del cliente',
-    // El orden lo impone Dinamo: sin RFC no deja capturar lo demás, y lo que
-    // sigue al RFC son los Datos Fiscales. Por eso `inicio` va antes que
-    // `datosFiscales`, y los `campos` después.
+    // El orden lo impone Dinamo:
+    //   1. Buscar el RFC en «Buscar cliente»: es lo que habilita la sección.
+    //   2. Escribirlo en el campo RFC (`inicio`).
+    //   3. Datos Fiscales.
+    //   4. Lo demás (`campos`).
+    buscarCliente: { id: 'txt_buscar_cliente', de: 'datos.cliente.rfc', boton: 'buscar_cliente' },
     inicio: [
       // Con 13 caracteres no salen las preguntas de homoclave (esas solo
       // aparecen con 10). Al salir del campo Dinamo marca persona física,
@@ -322,7 +332,7 @@ const SECCIONES = [
     // SEPOMEX lo hace el vendedor a mano. La corrida espera a ver el CP.
     colonia: {
       cp: 'txtcp',
-      que: 'el domicilio del cliente',
+      que: 'del domicilio del cliente',
       pista: { cp: 'datos.domicilio.cp', colonia: 'datos.domicilio.colonia' },
     },
     validar: 'valida_domicilio',
@@ -394,7 +404,7 @@ const SECCIONES = [
     ],
     colonia: {
       cp: 'txtcp_emp',
-      que: 'el trabajo',
+      que: 'del trabajo',
       pista: { colonia: 'datos.empleo.colonia' },
     },
     validar: 'valida_empleo',

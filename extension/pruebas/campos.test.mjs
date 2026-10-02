@@ -188,7 +188,9 @@ const DINAMO = JSON.parse(
 
 test('cada campo que llena la extensión existe en el HTML real de Dinamo', () => {
   const faltan = todosLosCampos()
-    .map((campo) => campo.id)
+    .flatMap((campo) => [campo.id, campo.anio, campo.colores])
+    .concat(SECCIONES.map((seccion) => seccion.buscarCliente?.id))
+    .filter(Boolean)
     .filter((id) => !(id in DINAMO.controles));
 
   assert.deepEqual(local(faltan), []);
@@ -222,7 +224,7 @@ test('el CP que se espera es el campo readonly que llena SEPOMEX', () => {
   }
 });
 
-test('en el cliente va primero el RFC, luego Datos Fiscales, luego lo demás', () => {
+test('en el cliente: buscar el RFC, escribirlo, Datos Fiscales y luego lo demás', () => {
   const cliente = SECCIONES.find((seccion) => seccion.id === 'cliente');
   const [rfc] = cliente.inicio;
 
@@ -233,7 +235,10 @@ test('en el cliente va primero el RFC, luego Datos Fiscales, luego lo demás', (
   assert.equal(cliente.datosFiscales.id, 'ButtonDF');
   assert.equal(cliente.datosFiscales.boton, 'showFiscal');
   assert.ok(!cliente.campos.some((campo) => campo.id === 'txtrfc'));
-  assert.ok(!('buscarCliente' in cliente), 'ya no se busca al cliente antes del RFC');
+  assert.equal(cliente.buscarCliente.id, 'txt_buscar_cliente');
+  assert.equal(cliente.buscarCliente.de, 'datos.cliente.rfc');
+  assert.ok(DINAMO.onclicks.some((onclick) => onclick.includes('buscar_cliente(')));
+  assert.equal(DINAMO.controles.txt_buscar_cliente?.tag, 'input');
   assert.equal(DINAMO.controles.ButtonDF?.tag, 'input');
 });
 
@@ -241,7 +246,10 @@ test('el modelo se busca por nombre comercial y el plan solo si se ve', () => {
   const moto = SECCIONES.find((seccion) => seccion.id === 'motocicleta');
   const porId = Object.fromEntries(moto.campos.map((campo) => [campo.id, campo]));
 
-  assert.equal(porId.cbomodelos.tipo, 'selectModelo');
+  assert.equal(porId.cbomodelos.tipo, 'anioModelo');
+  assert.equal(porId.cbomodelos.anio, 'cboanios');
+  assert.equal(porId.cbomodelos.colores, 'cbocolores');
+  assert.ok(!('cboanios' in porId), 'el año se elige junto con el modelo');
   assert.equal(porId.select3.soloSiVisible, true);
   assert.equal(porId.cboagencia_pto.unicaSiVacio, true);
 });

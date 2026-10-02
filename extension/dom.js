@@ -202,6 +202,28 @@ function seleccionarPorNumero(select, numero) {
   return aplicarSeleccion(select, opcion);
 }
 
+/** Lo que trae un <select> ahora mismo, para notar cuando la página lo recarga. */
+function firmaOpciones(id) {
+  const select = document.getElementById(id);
+  return select ? [...select.options].map((o) => o.value).join('|') : '';
+}
+
+/**
+ * Espera a que el catálogo cambie respecto a `firma` (la página lo recargó por
+ * AJAX tras elegir algo). Si en `segundos` no cambia, sigue: puede que el año
+ * nuevo traiga la misma lista.
+ */
+async function esperarCambioOpciones(id, firma, segundos = 6) {
+  const limite = Date.now() + segundos * 1000;
+  for (;;) {
+    const actual = firmaOpciones(id);
+    const select = document.getElementById(id);
+    if (actual !== firma && select && select.options.length > 1) return true;
+    if (Date.now() >= limite) return false;
+    await pausa(200);
+  }
+}
+
 /** Espera a que el AJAX pueble un select (más de la opción de placeholder). */
 async function esperarOpciones(id, segundos = 15) {
   const limite = Date.now() + segundos * 1000;

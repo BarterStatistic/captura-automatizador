@@ -238,6 +238,11 @@ async function llenarCampo(campo, expediente, seccion) {
       // El clic dispara su onclick (prepara_controles, cambia_forma…).
       if (!elemento.checked) elemento.click();
       quedo = elemento.checked ? campo.texto ?? 'elegido' : 'sin elegir';
+    } else if (campo.tipo === 'anioModelo') {
+      await elegirAnioYModelo(campo, expediente, seccion);
+      await pausa(PAUSA_ENTRE_CAMPOS);
+      revisarPregunta();
+      return;
     } else if (campo.tipo === 'selectModelo') {
       if (campo.dinamico) await esperarOpciones(campo.id);
       const elegido = seleccionarModelo(elemento, valor);
@@ -290,6 +295,125 @@ async function llenarCampo(campo, expediente, seccion) {
 
 // --- Pasos especiales ----------------------------------------------------------
 
+/**
+ * Año y modelo, como los elige una persona en Dinamo: el año recarga la lista
+ * de modelos (y el modelo, la de colores). Si la moto no existe en el año
+ * pedido —p. ej. no hay U5 2027—, se prueba en los demás años, del más reciente
+ * al más viejo, y se avisa con cuál quedó. Sin año pedido, gana el más reciente
+ * que la tenga.
+ */
+async function elegirAnioYModelo(campo, expediente, seccion) {
+  const modelo = valorEn(expediente, campo.de);
+  if (!modelo) {
+    publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion, campo.id);
+    return;
+  }
+
+  let selectAnio;
+  try {
+    selectAnio = await esperarCampo(campo.anio);
+  } catch (error) {
+    publicar('error', `Año: ${error.message}.`, seccion, campo.anio);
+    return;
+  }
+
+  const disponibles = opcionesReales(selectAnio)
+    .map((opcion) => String(opcion.value))
+    .sort((a, b) => b.localeCompare(a));
+  const pedido = valorEn(expediente, campo.deAnio);
+  if (pedido && !disponibles.includes(pedido)) {
+    publicar('aviso', `Año ${pedido}: Dinamo no lo ofrece; se prueba con los que hay.`, seccion, campo.anio);
+  }
+  const orden = disponibles.includes(pedido)
+    ? [pedido, ...disponibles.filter((anio) => anio !== pedido)]
+    : disponibles;
+
+  const sinModelo = [];
+  for (const anio of orden) {
+    const firmaModelos = firmaOpciones(campo.id);
+    seleccionarPorValue(selectAnio, anio);
+    await esperarCambioOpciones(campo.id, firmaModelos);
+
+    let selectModelo;
+    try {
+      selectModelo = await esperarOpciones(campo.id, 8);
+    } catch {
+      sinModelo.push(anio);
+      continue;
+    }
+
+    const firmaColores = campo.colores ? firmaOpciones(campo.colores) : '';
+    let elegido;
+    try {
+      elegido = seleccionarModelo(selectModelo, modelo);
+    } catch (error) {
+      // Varios modelos parecidos: no se adivina, se pide a una persona.
+      if (/varios modelos/.test(error.message)) {
+        publicar('error', `${campo.etiqueta}: ${error.message}`, seccion, campo.id);
+        return;
+      }
+      sinModelo.push(anio);
+      continue;
+    }
+
+    publicar('campo', `Año: ${anio}`, seccion, campo.anio, anio);
+    publicar('campo', `${campo.etiqueta}: ${elegido.texto}`, seccion, campo.id, elegido.texto);
+    if (pedido && anio !== pedido) {
+      publicar(
+        'aviso',
+        `«${modelo}» no está en ${pedido}${sinModelo.length > 1 ? ` (ni en ${sinModelo.slice(1).join(', ')})` : ''}; ` +
+          `se usó ${anio}. El precio puede ser otro: revísalo.`,
+        seccion,
+        campo.anio,
+      );
+    } else if (!pedido) {
+      publicar('aviso', `Año: no se indicó; se usó ${anio}, el más reciente con «${modelo}».`, seccion, campo.anio);
+    }
+    if (elegido.aproximado) {
+      publicar(
+        'aviso',
+        `${campo.etiqueta}: «${modelo}» no está escrito igual en Dinamo; se eligió «${elegido.texto}». Revísalo.`,
+        seccion,
+        campo.id,
+      );
+    }
+    // Los colores llegan por AJAX tras elegir el modelo.
+    if (campo.colores) await esperarCambioOpciones(campo.colores, firmaColores);
+    return;
+  }
+
+  publicar(
+    'error',
+    `«${modelo}» no está en el inventario de esta ubicación en ningún año (${orden.join(', ')}). ` +
+      'Elige la moto a mano.',
+    seccion,
+    campo.id,
+  );
+}
+
+async function buscarCliente(seccion, expediente) {
+  const { id, de, boton } = seccion.buscarCliente;
+  const rfc = valorEn(expediente, de);
+  if (!rfc) {
+    publicar('aviso', 'Sin RFC calculado: no se buscó al cliente.', seccion.id);
+    return false;
+  }
+
+  let entrada;
+  try {
+    entrada = await esperarCampo(id, 25);
+  } catch (error) {
+    publicar('error', `Buscar cliente: el campo ${error.message}.`, seccion.id, id);
+    return false;
+  }
+
+  escribirTexto(entrada, rfc);
+  publicar('campo', `Buscar cliente: ${rfc}`, seccion.id, id, rfc);
+  await presionar(boton, 'Buscar cliente', seccion.id);
+  await pausa(1500);
+  return true;
+}
+
 async function pasarPorDatosFiscales(seccion) {
   publicar('seccion', 'Abriendo Datos Fiscales…', seccion.id);
   prepararEmergente();
@@ -331,7 +455,7 @@ async function esperarColoniaManual(seccion, expediente, minutos = 10) {
     .join(', ');
   publicar(
     'aviso',
-    `Elige la colonia de ${que} en SEPOMEX${datos ? ` (${datos})` : ''}. ` +
+    `Elige la colonia ${que} en SEPOMEX${datos ? ` (${datos})` : ''}. ` +
       'La extensión sigue sola en cuanto aparezca el código postal.',
     seccion.id,
   );
@@ -339,14 +463,14 @@ async function esperarColoniaManual(seccion, expediente, minutos = 10) {
   const limite = Date.now() + minutos * 60 * 1000;
   for (;;) {
     if (String(document.getElementById(cp)?.value ?? '').trim()) {
-      publicar('campo', `Colonia de ${que}: lista.`, seccion.id);
+      publicar('campo', `Colonia ${que}: lista.`, seccion.id);
       await pausa(500);
       return true;
     }
     if (Date.now() >= limite) {
       publicar(
         'error',
-        `Pasaron ${minutos} minutos sin colonia para ${que}. La corrida se detiene aquí; sigue a mano.`,
+        `Pasaron ${minutos} minutos sin colonia ${que}. La corrida se detiene aquí; sigue a mano.`,
         seccion.id,
       );
       return false;
@@ -365,16 +489,27 @@ function existeEn(objeto, ruta) {
   return valor != null;
 }
 
+/**
+ * Espera a que el primer campo de la sección se pueda usar. Devuelve null si sí,
+ * o un texto que dice exactamente qué le pasa al campo: así, si falla, se sabe
+ * si no existe, si sigue deshabilitado o si es de solo lectura.
+ */
 async function esperarSeccionHabilitada(seccion, segundos = 25) {
   const primero = [...(seccion.inicio ?? []), ...seccion.campos].find(
     (campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio',
   );
-  if (!primero) return true;
+  if (!primero) return null;
 
   const limite = Date.now() + segundos * 1000;
   for (;;) {
-    if (utilizable(document.getElementById(primero.id))) return true;
-    if (Date.now() >= limite) return false;
+    const elemento = document.getElementById(primero.id);
+    if (utilizable(elemento)) return null;
+    if (Date.now() >= limite) {
+      if (!elemento) return `no existe el campo ${primero.id} en esta página`;
+      if (elemento.disabled) return `el campo ${primero.id} (${primero.etiqueta}) sigue deshabilitado`;
+      if (elemento.readOnly) return `el campo ${primero.id} (${primero.etiqueta}) es de solo lectura`;
+      return `el campo ${primero.id} no se pudo usar`;
+    }
     await pausa(250);
   }
 }
@@ -404,17 +539,22 @@ async function llenar(expedienteRecibido) {
       // Las referencias 2 y 3 se abren marcando su casilla.
       if (seccion.activar) document.getElementById(seccion.activar)?.click();
 
-      if (!(await esperarSeccionHabilitada(seccion))) {
+      // Cliente: primero se busca el RFC; eso es lo que habilita la sección.
+      if (seccion.buscarCliente) await buscarCliente(seccion, expediente);
+
+      const problema = await esperarSeccionHabilitada(seccion);
+      if (problema) {
         publicar(
           'error',
-          `La sección «${seccion.etiqueta}» no se habilitó. La corrida se detiene aquí; ` +
-            'revisa la pantalla y continúa a mano desde este punto.',
+          `La sección «${seccion.etiqueta}» no se habilitó: ${problema}. La corrida se detiene ` +
+            'aquí; revisa la pantalla y continúa a mano desde este punto.',
           seccion.id,
         );
         break;
       }
 
-      // Lo que Dinamo exige primero (el RFC), luego Datos Fiscales, luego el resto.
+      // Lo que Dinamo exige primero (el RFC en su campo), luego Datos Fiscales,
+      // luego el resto.
       for (const campo of seccion.inicio ?? []) {
         await llenarCampo(campo, expediente, seccion.id);
       }

@@ -263,10 +263,11 @@ test('la antigüedad en el domicilio trae años y meses', () => {
   assert.equal(datos.domicilio.antiguedadMeses, 3);
 });
 
-test('sin modelo, año y plazo el expediente no arranca', () => {
+test('sin modelo y plazo el expediente no arranca; el año es opcional', () => {
   const { faltantes } = armarExpediente(LECTURAS, { ...MANUAL, modelo: '', anio: '', plazo: '' });
 
-  assert.ok(['modelo', 'anio', 'plazo'].every((campo) => faltantes.includes(campo)));
+  assert.ok(['modelo', 'plazo'].every((campo) => faltantes.includes(campo)));
+  assert.ok(!faltantes.includes('anio'), 'sin año, la extensión usa el más reciente');
 });
 
 // --- El esqueleto real del formulario -------------------------------------------
