@@ -1,13 +1,6 @@
 import { useId, useState } from 'react';
 
-import {
-  SUBESQUEMAS,
-  TIPOS_UNIDAD,
-  TIPOS_VENTA,
-  plazosDe,
-  referenciasRequeridas,
-} from '../lib/esquemas.js';
-import { COLORES, MODELOS_ORDENADOS } from '../lib/motos.js';
+import { referenciasRequeridas } from '../lib/esquemas.js';
 import { CIUDADES, generarDomicilio } from '../lib/calles.js';
 import { idDeFaltante } from './BarraAccion.jsx';
 import { IconoAlerta } from './Iconos.jsx';
@@ -17,18 +10,15 @@ const FALTANTES_POR_GRUPO = {
   cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
   domicilio: ['domicilio.calle', 'domicilio.numeroExterior'],
   empleo: ['empleo.nombre'],
-  venta: ['modelo', 'plazo'],
 };
-
-// Los años que maneja Dinamo para unidades nuevas: el siguiente y los dos
-// anteriores al actual.
-const ANIO_ACTUAL = new Date().getFullYear();
-const ANIOS = [ANIO_ACTUAL + 1, ANIO_ACTUAL, ANIO_ACTUAL - 1].map(String);
 
 /**
  * Todo lo que se revisa antes de llenar: lo que leyó Gemini (editable, porque
  * una foto borrosa se corrige aquí y no en Dinamo), lo que solo sabe el
  * capturista, y lo que la app derivó de ambos.
+ *
+ * La moto no está aquí: el tipo de venta y la moto los captura el vendedor a
+ * mano en Dinamo, y la extensión sigue desde los datos del cliente.
  *
  * Editar un campo leído recalcula el expediente completo, así que el RFC y los
  * teléfonos partidos se actualizan solos.
@@ -39,26 +29,6 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
   const falta = (nombre) => faltantes.includes(nombre);
   const cuantas = (grupo) => FALTANTES_POR_GRUPO[grupo].filter(falta).length;
   const referencias = referenciasRequeridas(manual.esquemaVenta);
-  const { unidad, plazos } = plazosDe(manual.esquemaVenta);
-
-  // Lo que trajo el formulario y no está en el catálogo se ofrece igual, marcado,
-  // para que el capturista lo vea y elija el bueno en vez de perderlo.
-  const modeloFuera = manual.modelo && !MODELOS_ORDENADOS.includes(manual.modelo);
-  const opcionesModelo = [
-    ...(modeloFuera
-      ? [{ value: manual.modelo, nombre: `${manual.modelo} (del formulario, no está en la lista)` }]
-      : []),
-    ...MODELOS_ORDENADOS.map((modelo) => ({ value: modelo, nombre: modelo })),
-  ];
-
-  const colorFuera = manual.color && !COLORES.includes(manual.color);
-  const opcionesColor = [
-    ...(colorFuera
-      ? [{ value: manual.color, nombre: `${manual.color} (del formulario, no está en la lista)` }]
-      : []),
-    ...COLORES.map((color) => ({ value: color, nombre: color })),
-  ];
-
   return (
     <div className={`revision${soloFaltantes ? ' solo-faltantes' : ''}`}>
       <div className="revision-barra">
@@ -255,81 +225,6 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Derivado
           etiqueta="Antigüedad que se capturará"
           valor={`${datos.empleo.antiguedadAnios} años, ${datos.empleo.antiguedadMeses} meses`}
-        />
-      </Grupo>
-
-      <Grupo titulo="Venta" faltan={cuantas('venta')}>
-        <Seleccion
-          etiqueta="Tipo de venta"
-          valor={manual.tipoVenta}
-          opciones={TIPOS_VENTA}
-          onCambio={(v) => onManual('tipoVenta', v)}
-        />
-        <Seleccion
-          etiqueta="Tipo de unidad"
-          valor={manual.tipoUnidad}
-          opciones={TIPOS_UNIDAD}
-          onCambio={(v) => onManual('tipoUnidad', v)}
-        />
-        <Seleccion
-          etiqueta="Subesquema"
-          valor={manual.subesquema}
-          opciones={SUBESQUEMAS}
-          onCambio={(v) => onManual('subesquema', v)}
-        />
-        <Seleccion
-          clave="plazo"
-          falta={falta('plazo')}
-          etiqueta={`Plazo (${unidad})`}
-          valor={manual.plazo}
-          opciones={plazos.map((p) => ({ value: String(p), nombre: `${p} ${unidad}` }))}
-          nota={unidad === 'semanas' ? 'Esquema Flex: pagos semanales.' : 'Pagos quincenales.'}
-          onCambio={(v) => onManual('plazo', v)}
-        />
-        <Campo
-          etiqueta="Ubicación"
-          valor={manual.ubicacion}
-          nota="Vacío: si tu agencia tiene una sola ubicación en Dinamo, se elige sola."
-          onCambio={(v) => onManual('ubicacion', v)}
-        />
-        <Seleccion
-          etiqueta="Año"
-          valor={manual.anio}
-          vacio="Automático"
-          opciones={ANIOS.map((anio) => ({ value: anio, nombre: anio }))}
-          nota="Si la moto no existe en ese año, se usa el más reciente que la tenga y se avisa."
-          onCambio={(v) => onManual('anio', v)}
-        />
-        <Seleccion
-          clave="modelo"
-          falta={falta('modelo')}
-          etiqueta="Modelo"
-          valor={manual.modelo}
-          opciones={opcionesModelo}
-          aviso={modeloFuera}
-          nota={modeloFuera ? 'No está en la lista de Dinamo: elige el modelo correcto.' : null}
-          onCambio={(v) => onManual('modelo', v)}
-        />
-        <Seleccion
-          etiqueta="Color"
-          valor={manual.color}
-          opciones={opcionesColor}
-          aviso={colorFuera}
-          nota={
-            colorFuera
-              ? 'No es un color de la lista: elige el correcto.'
-              : 'Sin elegir: si el modelo viene en un solo color, se elige solo.'
-          }
-          onCambio={(v) => onManual('color', v)}
-        />
-        <Seleccion
-          etiqueta="Servicio preventivo 1"
-          valor={manual.servicioIncluido}
-          opciones={[
-            { value: 'si', nombre: 'Incluido' },
-            { value: 'no', nombre: 'No incluido' },
-          ]}
-          onCambio={(v) => onManual('servicioIncluido', v)}
         />
       </Grupo>
 

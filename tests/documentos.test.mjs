@@ -29,8 +29,8 @@ test('el formulario ya no es un archivo: se lee del texto que pega el capturista
   assert.match(FORMULARIO.prompt, /vendedor/i);
 });
 
-test('el formulario extrae también el celular del cliente y los datos de la venta', () => {
-  for (const campo of ['celular', 'modelo', 'esquema', 'plazo', 'referencias_extra']) {
+test('el formulario extrae también el celular, el tipo de crédito y más referencias', () => {
+  for (const campo of ['celular', 'esquema', 'referencias_extra']) {
     assert.ok(campo in FORMULARIO.esquema.properties, `falta ${campo}`);
   }
 });
@@ -143,4 +143,10 @@ test('el formulario sigue el esqueleto que mandan los vendedores, con el NSS', (
   assert.match(FORMULARIO.prompt, /7\) Número de seguro social/);
   assert.match(FORMULARIO.prompt, /toda la\s+vida/);
   assert.ok('nss' in FORMULARIO.esquema.properties);
+});
+
+test('el formulario ya no pide la moto: la captura el vendedor', () => {
+  for (const campo of ['modelo', 'color', 'anio', 'plazo', 'subesquema']) {
+    assert.ok(!(campo in FORMULARIO.esquema.properties), `${campo} sobra`);
+  }
 });

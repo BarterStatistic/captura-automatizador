@@ -33,7 +33,9 @@ deshace.
    «Cargar desempaquetada» → elige la carpeta `extension`. Desde la 1.1.0
    reconoce el dominio de Vercel; si cambia el dominio, cambia `manifest.json`.
 3. Suelta los documentos, pega el formulario del vendedor, revisa lo que leyó
-   Gemini y pulsa **«Llenar en Dinamo»**.
+   Gemini. Captura **a mano en Dinamo el tipo de venta y la moto** (modelo,
+   color, plazo, servicio) y luego pulsa **«Llenar en Dinamo»**: la extensión
+   sigue desde «Buscar cliente» hasta las referencias, en esa misma pestaña.
 
 Sin la extensión la app funciona igual, pero en vez de llenar ofrece copiar el
 expediente para capturarlo a mano. Útil desde el celular, donde Edge y Chrome no
@@ -51,7 +53,7 @@ puede mover de casilla.
 
 **Formulario**: se pega el texto que manda el vendedor (el formulario que el
 cliente contestó). Se lee al pegarlo. Además de los seis puntos, si el texto trae
-celular del cliente, moto, esquema, plazo o más referencias, llena esos campos,
+celular del cliente, tipo de crédito o más referencias, llena esos campos,
 sin pisar lo que ya se haya elegido a mano.
 
 Lo que nada de eso trae —la ubicación, y el domicilio de las referencias— se

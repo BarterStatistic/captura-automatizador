@@ -1,11 +1,11 @@
-// Lleva los datos de venta que traiga el formulario del vendedor a la captura
-// manual: celular, moto, esquema, plazo y las referencias 2 y 3.
+// Lleva lo que traiga el formulario del vendedor además de los siete puntos a
+// la captura manual: celular, tipo de crédito y las referencias 2 y 3. La moto
+// no: la captura el vendedor en Dinamo.
 //
 // Solo llena lo que está vacío. Si el capturista ya eligió algo, eso manda: el
 // formulario se puede volver a leer y no debe deshacer lo que se corrigió a mano.
 
-import { ESQUEMAS_VENTA, SUBESQUEMAS, plazoValido } from './esquemas.js';
-import { colorPorNombre, modeloPorNombre } from './motos.js';
+import { ESQUEMAS_VENTA } from './esquemas.js';
 
 const texto = (valor) => String(valor ?? '').trim();
 
@@ -52,18 +52,7 @@ export function extrasAlManual(manual, lectura) {
   };
 
   llenar('celular', lectura.celular);
-  // Si el modelo está en el catálogo se usa el nombre del catálogo, que es el
-  // que la extensión busca en Dinamo; si no, se deja lo escrito para que el
-  // capturista lo vea y lo corrija.
-  llenar('modelo', modeloPorNombre(lectura.modelo) ?? lectura.modelo);
-  llenar('color', colorPorNombre(lectura.color) ?? lectura.color);
-  // Solo el año de cuatro cifras: «modelo 2026» es 2026, como en el menú.
-  llenar('anio', /(?:^|\D)(20\d{2})(?!\d)/.exec(texto(lectura.anio))?.[1]);
   llenar('esquemaVenta', opcionPorNombre(ESQUEMAS_VENTA, lectura.esquema)?.value);
-  llenar('subesquema', opcionPorNombre(SUBESQUEMAS, lectura.subesquema)?.value);
-  // El plazo solo se toma si existe en el esquema: 24 sirve en quincenas, no
-  // en semanas.
-  llenar('plazo', plazoValido(nuevo.esquemaVenta, lectura.plazo));
 
   // La referencia 1 sale del punto 6 del formulario; las extra van a la 2 y 3,
   // que solo se capturan en MOTOXPRESS, pero se guardan igual por si cambia

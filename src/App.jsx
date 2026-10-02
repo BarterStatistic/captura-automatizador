@@ -24,19 +24,12 @@ import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
-import { esquemaPorValue, plazoValido, referenciasRequeridas } from './lib/esquemas.js';
+import { esquemaPorValue, referenciasRequeridas } from './lib/esquemas.js';
 
+// La moto (tipo de venta, modelo, color, plazo) la captura el vendedor en
+// Dinamo; aquí solo queda lo que la extensión usa del cliente en adelante.
 const MANUAL_INICIAL = {
-  tipoVenta: '1',
-  tipoUnidad: '1',
   esquemaVenta: '',
-  subesquema: '',
-  plazo: '',
-  ubicacion: '',
-  anio: '',
-  modelo: '',
-  color: '',
-  servicioIncluido: 'si',
   celular: '',
   ciudadReferencias: 'SALTILLO',
   referencias: {},
@@ -516,11 +509,7 @@ export default function App() {
             <TipoCredito
               valor={manual.esquemaVenta}
               onCambio={(v) => {
-                setManual((previo) => ({
-                  ...previo,
-                  esquemaVenta: v,
-                  plazo: plazoValido(v, previo.plazo),
-                }));
+                cambiarManual('esquemaVenta', v);
                 setErrores((previos) => previos.filter((error) => error !== SIN_TIPO));
               }}
             />

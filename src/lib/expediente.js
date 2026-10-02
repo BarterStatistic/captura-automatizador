@@ -256,14 +256,6 @@ export function armarExpediente(lecturas, manual = {}) {
   const elegido = esquemaPorValue(manual.esquemaVenta);
   if (!elegido) faltantes.unshift('tipoCredito');
 
-  // La moto no sale de ningún documento: la elige el capturista (o la trae el
-  // formulario del vendedor). Sin modelo y plazo la sección Motocicleta de
-  // Dinamo no se puede llenar. El año es opcional: la extensión usa el más
-  // reciente en que exista esa moto, como haría una persona en Dinamo.
-  for (const campo of ['modelo', 'plazo']) {
-    if (!texto(manual[campo])) faltantes.push(campo);
-  }
-
   // Si el vendedor escribió otro tipo en el formulario, gana lo elegido, pero
   // se avisa: suele ser un error de dedo de uno de los dos.
   const delFormulario = opcionPorNombre(ESQUEMAS_VENTA, formulario.esquema);

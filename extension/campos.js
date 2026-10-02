@@ -13,44 +13,18 @@
 //   select       <select> elegido por value (catálogo fijo y verificado)
 //   selectTexto  <select> elegido por texto visible (catálogo que llega por AJAX,
 //                cuyos value son claves internas que nadie puede cotejar a ojo)
-//   selectModelo <select> de modelos: el nombre de Dinamo trae el código pegado
-//                («ALIEN-R NZ175-IT»), así que se compara el nombre comercial
-//   selectNumero <select> elegido por el número de su texto (el plazo)
-//   anioModelo   año + modelo juntos, como en Dinamo: el modelo se carga según
-//                el año, así que si no existe en el año pedido se prueba en los
-//                demás, del más reciente al más viejo
 //   checkbox     casilla que se marca
 //   radio        botón de opción que se elige (dispara su onclick)
 //
 // Opciones de campo:
 //   opcional      sin dato no se avisa
 //   blur          tras escribir se sale del campo: ahí corre su validación
-//   unicaSiVacio  sin dato, si el catálogo trae una sola opción, se elige
-//   soloSiVisible solo se llena si la página lo está mostrando
 //
 // Cotejado contra el HTML real de dsc_captura_2022.php (2026-10-02).
-
-/** El accesorio que se cobra como servicio incluido. */
-const ACCESORIO_SERVICIO = {
-  // El código de producto es estable; el índice de la fila (canAcce_N) no lo es:
-  // depende del modelo y de la agencia. Buscar por índice cobraría otra cosa.
-  codigo: '590144001',
-  descripcion: 'SERVICIO PREVENTIVO 1',
-};
-
-/**
- * El plan de pago (`select3`) que corresponde a cada esquema. Dinamo solo
- * muestra ese selector en algunos casos; si no está a la vista, no se toca.
- */
-const PLAN_POR_ESQUEMA = {
-  1: 'CREDINAMO',
-  53: 'CREDINAMO FLEX',
-  19: 'DINAMO NOMINA',
-  2: 'MOTONOMINA',
-  52: 'MOTONOMINA FLEX',
-  15: 'MOTOXPRESS',
-  51: 'MOTOXPRESS FLEX',
-};
+//
+// El tipo de venta y la moto (modelo, color, plazo, servicio) los captura el
+// vendedor a mano. La extensión empieza en «Buscar cliente» y llega hasta las
+// referencias.
 
 /** Lee `datos.cliente.curp` de un objeto, sin reventar si falta un tramo. */
 function valorEn(objeto, ruta) {
@@ -148,89 +122,6 @@ function seccionReferencia(indice) {
 }
 
 const SECCIONES = [
-  {
-    id: 'tipoVenta',
-    etiqueta: 'Tipo de venta',
-    campos: [
-      { id: 'cmbTp', tipo: 'select', de: 'manual.tipoVenta', etiqueta: 'Tipo de venta' },
-      { id: 'cmbUni', tipo: 'select', de: 'manual.tipoUnidad', etiqueta: 'Tipo de unidad' },
-      {
-        id: 'cmbEsquemaVenta',
-        tipo: 'select',
-        de: 'manual.esquemaVenta',
-        etiqueta: 'Esquema de venta',
-      },
-      {
-        id: 'cmbSubesquemaVenta',
-        tipo: 'select',
-        de: 'manual.subesquema',
-        etiqueta: 'Subesquema',
-      },
-    ],
-    // `nextStep()` es lo que hace avanzar; no es una validación, pero cumple el
-    // mismo papel: revela la sección siguiente.
-    validar: 'nextStep',
-  },
-
-  {
-    id: 'motocicleta',
-    etiqueta: 'Motocicleta',
-    campos: [
-      // Estos catálogos llegan por AJAX y sus value son claves internas
-      // (cbomodelos trae cosas como "173_438;...;879"), así que se eligen por
-      // el texto que ve una persona.
-      {
-        id: 'cboagencia_pto',
-        tipo: 'selectTexto',
-        de: 'manual.ubicacion',
-        etiqueta: 'Ubicación',
-        dinamico: true,
-        // Cada usuario ve solo las ubicaciones de su agencia; con una, es esa.
-        unicaSiVacio: true,
-      },
-      // Año → modelos de ese año (selecciona_anio) → colores del modelo
-      // (colores()). Se resuelve en un solo paso para poder cambiar de año si
-      // la moto no existe en el pedido.
-      {
-        id: 'cbomodelos',
-        tipo: 'anioModelo',
-        anio: 'cboanios',
-        colores: 'cbocolores',
-        de: 'manual.modelo',
-        deAnio: 'manual.anio',
-        etiqueta: 'Modelo',
-      },
-      {
-        id: 'cbocolores',
-        tipo: 'selectTexto',
-        de: 'manual.color',
-        etiqueta: 'Color',
-        dinamico: true,
-        unicaSiVacio: true,
-      },
-      {
-        id: 'select3',
-        tipo: 'selectTexto',
-        de: 'derivado.planDePago',
-        etiqueta: 'Plan de pago',
-        soloSiVisible: true,
-        opcional: true,
-      },
-      // Quincenas, o semanas en los esquemas Flex. Se elige por el número que
-      // muestra la opción, porque las claves internas de los plazos semanales
-      // no se conocen. Puede llegar por AJAX al elegir el modelo.
-      {
-        id: 'cboplazo',
-        tipo: 'selectNumero',
-        de: 'manual.plazo',
-        etiqueta: 'Plazo',
-        dinamico: true,
-      },
-    ],
-    accesorio: ACCESORIO_SERVICIO,
-    validar: null,
-  },
-
   {
     id: 'cliente',
     etiqueta: 'Datos del cliente',
@@ -456,10 +347,8 @@ const FISCALES = {
 
 Object.assign(globalThis, {
   SECCIONES,
-  PLAN_POR_ESQUEMA,
   REFERENCIAS,
   FISCALES,
-  ACCESORIO_SERVICIO,
   seccionReferencia,
   valorEn,
 });

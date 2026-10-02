@@ -130,74 +130,13 @@ async function presionar(nombreFuncion, etiqueta, seccion, id = null) {
   return true;
 }
 
-// --- Accesorio ----------------------------------------------------------------
-
-/**
- * Pone cantidad 1 en el accesorio de servicio, localizándolo por su código.
- *
- * `canAcce_N` es la posición en una lista que cambia según modelo y agencia:
- * escribir en el índice equivocado le cobraría al cliente un accesorio que no
- * pidió. Por eso, si hay dudas, no se escribe nada.
- */
-async function marcarAccesorio(accesorio, seccion) {
-  // Cada fila trae un oculto `impAcce_N` con valor «precio_ref_CÓDIGO_costo».
-  // Se compara el código EXACTO: por descripción, «SERVICIO PREVENTIVO 1»
-  // también coincide con «SERVICIO PREVENTIVO 1 (SINTETICO 2)», otro producto.
-  const coinciden = [...document.querySelectorAll('input[id^="impAcce_"]')]
-    .filter((oculto) => /^impAcce_\d+$/.test(oculto.id))
-    .filter((oculto) => String(oculto.value).split('_')[2] === accesorio.codigo)
-    .map((oculto) => ({ entrada: document.getElementById(oculto.id.replace('impAcce_', 'canAcce_')) }))
-    .filter(({ entrada }) => entrada);
-
-  if (coinciden.length !== 1) {
-    publicar(
-      'error',
-      coinciden.length === 0
-        ? `No se encontró el accesorio ${accesorio.codigo} (${accesorio.descripcion}). Márcalo a mano.`
-        : `Hay ${coinciden.length} accesorios que coinciden con ${accesorio.codigo}. No se marcó ninguno: elígelo tú.`,
-      seccion,
-    );
-    return;
-  }
-
-  const { entrada } = coinciden[0];
-  if (!utilizable(entrada)) {
-    publicar('error', 'El accesorio de servicio está deshabilitado.', seccion);
-    return;
-  }
-
-  escribirTexto(entrada, '1');
-  // `modifica_accesorios()` corre en el blur y recalcula el enganche.
-  entrada.dispatchEvent(new Event('blur', { bubbles: true }));
-  entrada.blur();
-  publicar('campo', `Servicio preventivo: 1 (${accesorio.codigo})`, seccion, entrada.id, '1');
-  await pausa(600);
-}
-
 // --- Un campo ------------------------------------------------------------------
 
 async function llenarCampo(campo, expediente, seccion) {
   const esFijo = campo.fijo !== undefined;
   const valor = esFijo ? campo.fijo : valorEn(expediente, campo.de);
 
-  // Campos que la página solo muestra en ciertos esquemas (el plan de pago).
-  if (campo.soloSiVisible && !visible(document.getElementById(campo.id))) return;
-
   if (!esFijo && String(valor).trim() === '') {
-    // Sin dato, pero con una sola opción posible: esa es.
-    if (campo.unicaSiVacio) {
-      try {
-        const select = campo.dinamico ? await esperarOpciones(campo.id) : await esperarCampo(campo.id);
-        const quedo = seleccionarUnica(select);
-        if (quedo) {
-          publicar('campo', `${campo.etiqueta}: ${quedo} (la única disponible)`, seccion, campo.id, quedo);
-          await pausa(PAUSA_ENTRE_CAMPOS);
-          return;
-        }
-      } catch {
-        // cae al aviso de abajo
-      }
-    }
     if (!campo.opcional) {
       publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion, campo.id);
     }
@@ -238,31 +177,11 @@ async function llenarCampo(campo, expediente, seccion) {
       // El clic dispara su onclick (prepara_controles, cambia_forma…).
       if (!elemento.checked) elemento.click();
       quedo = elemento.checked ? campo.texto ?? 'elegido' : 'sin elegir';
-    } else if (campo.tipo === 'anioModelo') {
-      await elegirAnioYModelo(campo, expediente, seccion);
-      await pausa(PAUSA_ENTRE_CAMPOS);
-      revisarPregunta();
-      return;
-    } else if (campo.tipo === 'selectModelo') {
-      if (campo.dinamico) await esperarOpciones(campo.id);
-      const elegido = seleccionarModelo(elemento, valor);
-      quedo = elegido.texto;
-      if (elegido.aproximado) {
-        publicar(
-          'aviso',
-          `${campo.etiqueta}: «${valor}» no está escrito igual en Dinamo; se eligió «${quedo}». Revísalo.`,
-          seccion,
-          campo.id,
-        );
-      }
     } else if (campo.tipo === 'select') {
       quedo = seleccionarPorValue(elemento, valor);
     } else if (campo.tipo === 'selectTexto') {
       if (campo.dinamico) await esperarOpciones(campo.id);
       quedo = seleccionarPorTexto(elemento, valor);
-    } else if (campo.tipo === 'selectNumero') {
-      if (campo.dinamico) await esperarOpciones(campo.id);
-      quedo = seleccionarPorNumero(elemento, valor);
     } else {
       quedo = escribirTexto(elemento, valor);
       // Algunos campos hacen su trabajo al salir (txtrfc calcula la fecha de
@@ -294,102 +213,6 @@ async function llenarCampo(campo, expediente, seccion) {
 }
 
 // --- Pasos especiales ----------------------------------------------------------
-
-/**
- * Año y modelo, como los elige una persona en Dinamo: el año recarga la lista
- * de modelos (y el modelo, la de colores). Si la moto no existe en el año
- * pedido —p. ej. no hay U5 2027—, se prueba en los demás años, del más reciente
- * al más viejo, y se avisa con cuál quedó. Sin año pedido, gana el más reciente
- * que la tenga.
- */
-async function elegirAnioYModelo(campo, expediente, seccion) {
-  const modelo = valorEn(expediente, campo.de);
-  if (!modelo) {
-    publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion, campo.id);
-    return;
-  }
-
-  let selectAnio;
-  try {
-    selectAnio = await esperarCampo(campo.anio);
-  } catch (error) {
-    publicar('error', `Año: ${error.message}.`, seccion, campo.anio);
-    return;
-  }
-
-  const disponibles = opcionesReales(selectAnio)
-    .map((opcion) => String(opcion.value))
-    .sort((a, b) => b.localeCompare(a));
-  const pedido = valorEn(expediente, campo.deAnio);
-  if (pedido && !disponibles.includes(pedido)) {
-    publicar('aviso', `Año ${pedido}: Dinamo no lo ofrece; se prueba con los que hay.`, seccion, campo.anio);
-  }
-  const orden = disponibles.includes(pedido)
-    ? [pedido, ...disponibles.filter((anio) => anio !== pedido)]
-    : disponibles;
-
-  const sinModelo = [];
-  for (const anio of orden) {
-    const firmaModelos = firmaOpciones(campo.id);
-    seleccionarPorValue(selectAnio, anio);
-    await esperarCambioOpciones(campo.id, firmaModelos);
-
-    let selectModelo;
-    try {
-      selectModelo = await esperarOpciones(campo.id, 8);
-    } catch {
-      sinModelo.push(anio);
-      continue;
-    }
-
-    const firmaColores = campo.colores ? firmaOpciones(campo.colores) : '';
-    let elegido;
-    try {
-      elegido = seleccionarModelo(selectModelo, modelo);
-    } catch (error) {
-      // Varios modelos parecidos: no se adivina, se pide a una persona.
-      if (/varios modelos/.test(error.message)) {
-        publicar('error', `${campo.etiqueta}: ${error.message}`, seccion, campo.id);
-        return;
-      }
-      sinModelo.push(anio);
-      continue;
-    }
-
-    publicar('campo', `Año: ${anio}`, seccion, campo.anio, anio);
-    publicar('campo', `${campo.etiqueta}: ${elegido.texto}`, seccion, campo.id, elegido.texto);
-    if (pedido && anio !== pedido) {
-      publicar(
-        'aviso',
-        `«${modelo}» no está en ${pedido}${sinModelo.length > 1 ? ` (ni en ${sinModelo.slice(1).join(', ')})` : ''}; ` +
-          `se usó ${anio}. El precio puede ser otro: revísalo.`,
-        seccion,
-        campo.anio,
-      );
-    } else if (!pedido) {
-      publicar('aviso', `Año: no se indicó; se usó ${anio}, el más reciente con «${modelo}».`, seccion, campo.anio);
-    }
-    if (elegido.aproximado) {
-      publicar(
-        'aviso',
-        `${campo.etiqueta}: «${modelo}» no está escrito igual en Dinamo; se eligió «${elegido.texto}». Revísalo.`,
-        seccion,
-        campo.id,
-      );
-    }
-    // Los colores llegan por AJAX tras elegir el modelo.
-    if (campo.colores) await esperarCambioOpciones(campo.colores, firmaColores);
-    return;
-  }
-
-  publicar(
-    'error',
-    `«${modelo}» no está en el inventario de esta ubicación en ningún año (${orden.join(', ')}). ` +
-      'Elige la moto a mano.',
-    seccion,
-    campo.id,
-  );
-}
 
 async function buscarCliente(seccion, expediente) {
   const { id, de, boton } = seccion.buscarCliente;
@@ -514,20 +337,32 @@ async function esperarSeccionHabilitada(seccion, segundos = 25) {
   }
 }
 
-async function llenar(expedienteRecibido) {
+/** ¿El vendedor ya capturó la moto? Basta con que haya modelo elegido. */
+function motoCapturada() {
+  const modelo = document.getElementById('cbomodelos');
+  return Boolean(modelo) && !VALORES_VACIOS.has(String(modelo.value).trim());
+}
+
+async function llenar(expediente) {
   if (llenando) return;
   llenando = true;
   capturarAvisos(true);
   preguntaPendiente = null;
 
-  // Lo que se deduce del expediente y no viene escrito en él.
-  const expediente = {
-    ...expedienteRecibido,
-    derivado: { planDePago: PLAN_POR_ESQUEMA[expedienteRecibido?.manual?.esquemaVenta] ?? '' },
-  };
-
   try {
-    publicar('inicio', 'Cargando la captura de Dinamo…');
+    publicar('inicio', 'Llenando la captura de Dinamo desde los datos del cliente…');
+
+    // La moto es del vendedor. Sin ella no se empieza: los datos del cliente
+    // se capturan sobre una venta ya armada.
+    if (!motoCapturada()) {
+      publicar(
+        'error',
+        'Primero captura en Dinamo el tipo de venta y la moto (falta elegir el modelo). ' +
+          'Después vuelve a la app y presiona «Llenar en Dinamo».',
+      );
+      publicar('fin', 'No se llenó nada: falta capturar la moto.');
+      return;
+    }
 
     for (const seccion of SECCIONES) {
       // Las referencias 2 y 3 solo existen en el expediente cuando el esquema
@@ -564,7 +399,6 @@ async function llenar(expedienteRecibido) {
         await llenarCampo(campo, expediente, seccion.id);
       }
 
-      if (seccion.accesorio) await marcarAccesorio(seccion.accesorio, seccion.id);
       if (seccion.colonia && !(await esperarColoniaManual(seccion, expediente))) break;
       if (seccion.validarEmail) await presionar(seccion.validarEmail, 'Validar email', seccion.id);
       if (seccion.validar) await presionar(seccion.validar, 'Validar datos', seccion.id);
@@ -598,23 +432,13 @@ async function llenar(expedienteRecibido) {
 // --- Enganche -------------------------------------------------------------------
 
 /**
- * Pide su trabajo al background.
- *
- * Se reintenta porque la carrera corre en los dos sentidos: con la página en
- * caché este script puede pedir turno antes de que el background alcance a
- * registrar el trabajo.
+ * El background avisa cuando la app pidió llenar. La pestaña ya estaba abierta
+ * (el vendedor capturó ahí la moto), así que no se recarga: se empieza aquí.
  */
-async function pedirTrabajo(intentos = 4) {
-  for (let i = 0; i < intentos; i += 1) {
-    const respuesta = await chrome.runtime
-      .sendMessage({ tipo: 'listo-para-llenar' })
-      .catch(() => null);
-    if (respuesta?.expediente) {
-      idPestanaApp = respuesta.idPestanaApp;
-      return llenar(respuesta.expediente);
-    }
-    await pausa(300);
+chrome.runtime.onMessage.addListener((mensaje) => {
+  if (mensaje?.tipo === 'iniciar-llenado') {
+    idPestanaApp = mensaje.idPestanaApp;
+    llenar(mensaje.expediente);
   }
-}
-
-pedirTrabajo();
+  return false;
+});

@@ -169,12 +169,8 @@ Si el texto además trae estos datos, extráelos; si no aparecen, null:
 
 - "celular": el celular DEL CLIENTE (no el del compañero ni el de la referencia)
 - "nombre_cliente": el nombre del cliente tal como viene
-- "modelo", "color" y "anio" de la moto
 - "esquema": el esquema de venta tal como lo escribieron (CREDINAMO, MOTOXPRESS,
-  MOTOXPRESS FLEX, MOTONOMINA, DINAMO NOMINA, CREDINAMO FLEX…)
-- "subesquema": ASALARIADO, HOME OFFICE, ESQUEMA 50, JUBILADOS, etc., si viene
-- "plazo": el plazo, solo el número (son quincenas, o semanas en los esquemas
-  Flex; devuelve el número tal como lo escribieron)
+  MOTOXPRESS FLEX, MOTONOMINA, MOTONOMINA FLEX, CREDINAMO FLEX…)
 - "referencias_extra": si el texto trae MÁS referencias personales además de la
   del punto 6, una lista con { nombre, telefono } de cada una
 
@@ -203,12 +199,7 @@ Reglas:
       nss: { type: 'string', nullable: true },
       celular: { type: 'string', nullable: true },
       nombre_cliente: { type: 'string', nullable: true },
-      modelo: { type: 'string', nullable: true },
-      color: { type: 'string', nullable: true },
-      anio: { type: 'string', nullable: true },
       esquema: { type: 'string', nullable: true },
-      subesquema: { type: 'string', nullable: true },
-      plazo: { type: 'number', nullable: true },
       referencias_extra: {
         type: 'array',
         nullable: true,

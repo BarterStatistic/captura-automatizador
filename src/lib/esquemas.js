@@ -44,39 +44,6 @@ export const SUBESQUEMAS = [
   { value: '31', nombre: 'BURÓCRATAS MUNICIPAL' },
 ];
 
-// Los plazos son quincenales, salvo en los esquemas Flex, que son semanales.
-// Las listas salen del cotizador vigente (Cotizadores/cotizador-pt, tablas
-// Dinamo del 25/08/2026). MOTOXPRESS FLEX es el único que además ofrece 144.
-//
-// El plazo se guarda como el NÚMERO de quincenas o semanas, no como la clave
-// interna de Dinamo: `cboplazo` muestra ese número como texto y la extensión lo
-// elige por ahí. Solo se conocían las claves de las quincenas (530 = 12…), y
-// adivinar las de las semanas habría elegido otro plazo.
-export const PLAZOS_QUINCENALES = [12, 18, 24, 36, 48, 60, 72];
-export const PLAZOS_SEMANALES = [52, 65, 96, 128, 142, 154, 170];
-
-const FLEX = new Set(['52', '53', '51']);
-const PLAZOS_POR_ESQUEMA = {
-  51: [52, 65, 96, 128, 142, 144, 154, 170],
-};
-
-export function esFlex(valueEsquema) {
-  return FLEX.has(String(valueEsquema));
-}
-
-/** `{ unidad, plazos }` del esquema: quincenas por defecto, semanas si es Flex. */
-export function plazosDe(valueEsquema) {
-  const value = String(valueEsquema ?? '');
-  if (!esFlex(value)) return { unidad: 'quincenas', plazos: PLAZOS_QUINCENALES };
-  return { unidad: 'semanas', plazos: PLAZOS_POR_ESQUEMA[value] ?? PLAZOS_SEMANALES };
-}
-
-/** El plazo como número si el esquema lo ofrece, o '' si no. */
-export function plazoValido(valueEsquema, plazo) {
-  const numero = Number(String(plazo ?? '').replace(/\D/g, ''));
-  return plazosDe(valueEsquema).plazos.includes(numero) ? String(numero) : '';
-}
-
 // Los dos esquemas de MOTOXPRESS exigen tres referencias; el resto se conforma
 // con una. Es regla de negocio de Dinamo, no algo que se lea del formulario.
 const TRES_REFERENCIAS = new Set(['15', '51']);

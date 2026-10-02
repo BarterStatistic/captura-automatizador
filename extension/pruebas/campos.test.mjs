@@ -15,7 +15,7 @@ const RUTA = fileURLToPath(new URL('../campos.js', import.meta.url));
 const contexto = vm.createContext({});
 vm.runInContext(readFileSync(RUTA, 'utf8'), contexto);
 
-const { SECCIONES, valorEn, ACCESORIO_SERVICIO } = contexto;
+const { SECCIONES, valorEn } = contexto;
 
 const todosLosCampos = () =>
   SECCIONES.flatMap((seccion) => [...(seccion.inicio ?? []), ...seccion.campos]);
@@ -29,8 +29,6 @@ test('las secciones van en el orden en que el formulario las habilita', () => {
   assert.deepEqual(
     local(SECCIONES.map((seccion) => seccion.id)),
     [
-      'tipoVenta',
-      'motocicleta',
       'cliente',
       'domicilio',
       'empleo',
@@ -65,8 +63,6 @@ test('la última sección no valida nada: ahí se detiene la corrida', () => {
 
 test('cada sección se valida con la función del onclick, no con un XPath', () => {
   const esperado = {
-    tipoVenta: 'nextStep',
-    motocicleta: null,
     cliente: 'valida_cliente',
     domicilio: 'valida_domicilio',
     empleo: 'valida_empleo',
@@ -116,11 +112,6 @@ test('las casillas de verificación van siempre marcadas', () => {
   assert.ok(casillas.every((campo) => campo.fijo === true));
 });
 
-test('el accesorio de servicio se localiza por código de producto', () => {
-  assert.equal(ACCESORIO_SERVICIO.codigo, '590144001');
-  assert.match(ACCESORIO_SERVICIO.descripcion, /SERVICIO PREVENTIVO 1/);
-});
-
 // --- Los campos que no se pueden teclear -------------------------------------
 
 test('los campos readonly de SEPOMEX no se intentan escribir', () => {
@@ -168,13 +159,6 @@ test('cada campo sabe de dónde sale su valor', () => {
     assert.ok(tieneOrigen, `el campo ${campo.id} no dice de dónde sale su valor`);
     assert.ok(campo.etiqueta, `el campo ${campo.id} necesita etiqueta para la bitácora`);
   }
-});
-
-test('el plazo se elige por su número, no por la clave interna', () => {
-  const plazo = todosLosCampos().find((campo) => campo.id === 'cboplazo');
-
-  assert.equal(plazo.tipo, 'selectNumero');
-  assert.equal(plazo.de, 'manual.plazo');
 });
 
 // --- Contra el HTML real -------------------------------------------------------
@@ -242,22 +226,20 @@ test('en el cliente: buscar el RFC, escribirlo, Datos Fiscales y luego lo demás
   assert.equal(DINAMO.controles.ButtonDF?.tag, 'input');
 });
 
-test('el modelo se busca por nombre comercial y el plan solo si se ve', () => {
-  const moto = SECCIONES.find((seccion) => seccion.id === 'motocicleta');
-  const porId = Object.fromEntries(moto.campos.map((campo) => [campo.id, campo]));
-
-  assert.equal(porId.cbomodelos.tipo, 'anioModelo');
-  assert.equal(porId.cbomodelos.anio, 'cboanios');
-  assert.equal(porId.cbomodelos.colores, 'cbocolores');
-  assert.ok(!('cboanios' in porId), 'el año se elige junto con el modelo');
-  assert.equal(porId.select3.soloSiVisible, true);
-  assert.equal(porId.cboagencia_pto.unicaSiVacio, true);
-});
-
 test('las referencias 2 y 3 solo se llenan si el expediente las trae', () => {
   const porId = Object.fromEntries(SECCIONES.map((seccion) => [seccion.id, seccion]));
 
   assert.equal(porId.referencia.requiere, null);
   assert.equal(porId.referencia2.requiere, 'datos.referencias.ref_b');
   assert.equal(porId.referencia3.requiere, 'datos.referencias.ref_c');
+});
+
+test('la moto es del vendedor: la extensión empieza en el cliente', () => {
+  const ids = todosLosCampos().map((campo) => campo.id);
+
+  assert.equal(SECCIONES[0].id, 'cliente');
+  for (const deLaMoto of ['cmbTp', 'cmbEsquemaVenta', 'cboagencia_pto', 'cboanios', 'cbomodelos', 'cbocolores', 'cboplazo', 'select3']) {
+    assert.ok(!ids.includes(deLaMoto), `${deLaMoto} lo captura el vendedor`);
+  }
+  assert.ok(!ids.some((id) => id.startsWith('canAcce_')), 'el servicio lo marca el vendedor');
 });

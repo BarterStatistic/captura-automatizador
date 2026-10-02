@@ -54,12 +54,25 @@ puente-captura.js ──sendMessage──► background.js
 | `contenido-fiscales.js` | La ventana de Datos Fiscales |
 | `hook-avisos.js` | Captura `alert`, `confirm` y SweetAlert2 durante el llenado |
 
-## El orden del cliente y las colonias (desde 1.5.0)
+## Qué llena y qué no (desde 1.7.0)
 
-**Datos del cliente:** primero el RFC en `txtrfc` (Dinamo no deja capturar lo
-demás sin él; al salir del campo calcula la fecha de nacimiento y valida la
-edad), luego **Datos Fiscales** con el botón `ButtonDF`, y después el resto.
-Ya no se usa «Buscar cliente».
+**La moto es del vendedor.** Tipo de venta, modelo, color, plazo y servicio
+preventivo se capturan a mano en Dinamo. La extensión empieza en «Buscar
+cliente» y llega hasta las referencias.
+
+**La pestaña de captura nunca se recarga** (se perdería la moto). Al presionar
+«Llenar en Dinamo»:
+
+- Si la captura ya está abierta, se llena ahí mismo, siempre que ya tenga un
+  modelo elegido; si no, avisa que falta capturar la moto y no toca nada.
+- Si no está abierta, la abre y pide capturar la moto y volver a presionar.
+
+## El orden del cliente y las colonias
+
+**Datos del cliente:** primero se busca el RFC en «Buscar cliente» (eso
+habilita la sección), luego se escribe en `txtrfc` (al salir del campo Dinamo
+calcula la fecha de nacimiento y valida la edad), luego **Datos Fiscales** con
+el botón `ButtonDF`, y después el resto.
 
 **SEPOMEX lo hace el vendedor.** La extensión llena domicilio, empleo y
 referencias, avisa en la bitácora con qué buscar (CP o colonia) y espera hasta
@@ -77,10 +90,9 @@ Fiscales esto es crítico: `btnGuardarDatos` es el botón de **Cancelar** cuando
 cliente ya tenía datos capturados, y el que guarda es `btnModificarDatos`. Se
 localiza el que llama a `validarDatosAEnviar`.
 
-**El accesorio se busca por código de producto**, no por `canAcce_N`. Ese índice
-es la posición en una lista que cambia con el modelo y la agencia; escribir en la
-fila equivocada le cobraría al cliente un accesorio que no pidió. Si hay cero
-coincidencias o más de una, no se escribe nada.
+**Las preguntas de Dinamo no se contestan solas.** Los avisos de un botón
+(SweetAlert) se anotan y se cierran; los que preguntan algo («¿El cliente cuenta
+con homoclave?») detienen la corrida para que los conteste una persona.
 
 ## Probar sin tocar Dinamo
 

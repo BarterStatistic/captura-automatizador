@@ -25,22 +25,38 @@ async function urlCaptura() {
   return guardada || URL_CAPTURA_DEFECTO;
 }
 
-/** Abre la captura, reusando una pestaña que ya esté en el sistema. */
+/**
+ * La moto la captura el vendedor a mano; la extensión sigue desde los datos del
+ * cliente. Por eso la pestaña de captura NUNCA se recarga: se perdería la moto.
+ *
+ * - Ya abierta: se le pide a su contenido que empiece ahí mismo.
+ * - No abierta: se abre y se le pide al vendedor capturar la moto y volver a
+ *   presionar «Llenar en Dinamo». No se llena nada en esa vuelta.
+ */
 async function abrirCaptura(idPestanaApp, expediente) {
   const url = await urlCaptura();
   const base = url.split('?')[0];
+  const [abierta] = await chrome.tabs.query({ url: `${base}*` });
 
-  const abiertas = await chrome.tabs.query({ url: `${base}*` });
-  const pestana = abiertas.length
-    ? await chrome.tabs.update(abiertas[0].id, { url, active: true })
-    : await chrome.tabs.create({ url, active: true });
+  if (!abierta) {
+    const nueva = await chrome.tabs.create({ url, active: true });
+    await chrome.windows.update(nueva.windowId, { focused: true });
+    entregarALaApp(idPestanaApp, {
+      tipo: 'aviso',
+      mensaje:
+        'Se abrió la captura de Dinamo. Captura ahí el tipo de venta y la moto; luego vuelve ' +
+        'y presiona «Llenar en Dinamo» otra vez.',
+    });
+    entregarALaApp(idPestanaApp, { tipo: 'fin', mensaje: 'Esperando a que captures la moto.' });
+    return nueva.id;
+  }
 
-  await guardar(`pendiente-${pestana.id}`, { expediente, idPestanaApp });
-  // Las emergentes preguntan por el expediente de su pestaña madre, así que se
-  // guarda aparte: el pendiente se consume al empezar y ellas nacen después.
-  await guardar(`expediente-${pestana.id}`, expediente);
-  await chrome.windows.update(pestana.windowId, { focused: true });
-  return pestana.id;
+  // Datos Fiscales pide el expediente de su pestaña madre.
+  await guardar(`expediente-${abierta.id}`, expediente);
+  await chrome.tabs.update(abierta.id, { active: true });
+  await chrome.windows.update(abierta.windowId, { focused: true });
+  await chrome.tabs.sendMessage(abierta.id, { tipo: 'iniciar-llenado', expediente, idPestanaApp });
+  return abierta.id;
 }
 
 chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
@@ -53,20 +69,6 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
   }
 
   // --- Desde la pestaña de captura -------------------------------------------
-  if (mensaje?.tipo === 'listo-para-llenar') {
-    const clave = `pendiente-${remitente.tab.id}`;
-    tomar(clave)
-      .then(async (registro) => {
-        if (!registro) return responder({});
-        // Se consume: si alguien recarga Dinamo a mano, no vuelve a llenarse
-        // solo a sus espaldas.
-        await chrome.storage.session.remove(clave);
-        responder(registro);
-      })
-      .catch(() => responder({}));
-    return true;
-  }
-
   if (mensaje?.tipo === 'evento-llenado') {
     if (mensaje.idPestanaApp !== undefined) entregarALaApp(mensaje.idPestanaApp, mensaje.evento);
     return false;
@@ -145,5 +147,5 @@ async function intentarEntrega(idPestanaApp, evento, intentos = 4) {
 
 // Sin esto, storage.session junta basura de pestañas muertas.
 chrome.tabs.onRemoved.addListener((idPestana) => {
-  chrome.storage.session.remove([`pendiente-${idPestana}`, `expediente-${idPestana}`]);
+  chrome.storage.session.remove(`expediente-${idPestana}`);
 });

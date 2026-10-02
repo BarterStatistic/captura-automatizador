@@ -8,9 +8,6 @@ import {
   ESQUEMAS_VENTA,
   referenciasRequeridas,
   esquemaPorValue,
-  plazosDe,
-  plazoValido,
-  esFlex,
   TIPOS_VENTA,
   TIPOS_UNIDAD,
   SUBESQUEMAS,
@@ -64,35 +61,6 @@ test('el catálogo tiene los siete esquemas del formulario', () => {
 // --- Catálogos de la pantalla de tipo de venta -------------------------------
 // Los value salen del HTML real; equivocarse aquí captura un crédito distinto
 // al que se vendió.
-
-test('los plazos son quincenales por defecto', () => {
-  for (const value of ['2', '1', '15']) {
-    assert.deepEqual(local(plazosDe(value)), {
-      unidad: 'quincenas',
-      plazos: [12, 18, 24, 36, 48, 60, 72],
-    });
-  }
-});
-
-test('los esquemas Flex usan plazos semanales', () => {
-  assert.equal(plazosDe('53').unidad, 'semanas');
-  assert.deepEqual(local(plazosDe('53').plazos), [52, 65, 96, 128, 142, 154, 170]);
-  assert.equal(esFlex('51'), true);
-  assert.equal(esFlex('52'), true);
-  assert.equal(esFlex('15'), false);
-});
-
-test('MOTOXPRESS FLEX es el único que ofrece 144 semanas', () => {
-  assert.ok(plazosDe('51').plazos.includes(144));
-  assert.ok(!plazosDe('53').plazos.includes(144));
-});
-
-test('un plazo que el esquema no ofrece no se acepta', () => {
-  assert.equal(plazoValido('1', '24'), '24');
-  assert.equal(plazoValido('53', '24'), '');
-  assert.equal(plazoValido('53', '96 semanas'), '96');
-  assert.equal(plazoValido('', ''), '');
-});
 
 test('tipo de venta y tipo de unidad son los del formulario', () => {
   assert.deepEqual(TIPOS_VENTA, [

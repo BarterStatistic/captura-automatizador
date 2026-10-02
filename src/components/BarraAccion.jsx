@@ -11,9 +11,6 @@ export const ETIQUETAS_FALTANTE = {
   correo: 'Correo',
   'empleo.nombre': 'Trabajo',
   celular: 'Celular',
-  modelo: 'Modelo',
-  anio: 'Año',
-  plazo: 'Plazo',
 };
 
 /** El id del campo en la revisión, o de la sección para el tipo de crédito. */
@@ -68,7 +65,7 @@ export default function BarraAccion({
     estado = (
       <span className="accion-nota lista">
         <IconoCheck tamano={15} />
-        Expediente completo. Revisa y llena.
+        Expediente completo. Captura la moto en Dinamo y luego llena.
       </span>
     );
   }
