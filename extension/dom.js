@@ -1,7 +1,6 @@
-// Utilidades de escritura sobre el DOM de Dinamo, compartidas por el motor de
-// la captura y por las dos ventanas emergentes.
+// Utilidades de escritura sobre el DOM de Dinamo para el motor de la captura.
 //
-// Se carga como script clásico antes que ellos, así que lo que define queda
+// Se carga como script clásico antes que él, así que lo que define queda
 // disponible en su mismo scope.
 
 const pausa = (ms) => new Promise((seguir) => setTimeout(seguir, ms));
@@ -134,8 +133,7 @@ async function esperarOpciones(id, segundos = 15) {
  * Busca un botón por la función de su `onclick`.
  *
  * Los XPath absolutos del mapeo original se rompen en cuanto alguien inserta un
- * <tr>; el nombre de la función no. Y en Datos Fiscales esto es lo único
- * seguro: ahí `btnGuardarDatos` es el botón de Cancelar.
+ * <tr>; el nombre de la función no.
  */
 function botonPorOnclick(nombreFuncion) {
   const candidatos = [...document.querySelectorAll('input[type="button"], button, a')].filter(

@@ -22,7 +22,7 @@ import {
 import { clasificarArchivo, leerDocumento, leerTexto, URL_API } from './lib/gemini.js';
 import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
-import { extrasAlManual } from './lib/formulario.js';
+import { extrasAlManual, respaldoDelTexto } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
 import { esquemaPorValue, referenciasRequeridas } from './lib/esquemas.js';
 
@@ -31,6 +31,9 @@ import { esquemaPorValue, referenciasRequeridas } from './lib/esquemas.js';
 const MANUAL_INICIAL = {
   esquemaVenta: '',
   celular: '',
+  // Correcciones a mano del sueldo y la frecuencia (mandan sobre el cálculo).
+  sueldo: '',
+  frecuenciaPago: '',
   ciudadReferencias: 'SALTILLO',
   referencias: {},
 };
@@ -192,8 +195,10 @@ export default function App() {
     setFormMensaje('');
 
     leerTexto(FORMULARIO, texto)
-      .then((lectura) => {
+      .then((leida) => {
         if (token !== formToken.current) return;
+        // Lo que Gemini dejó vacío de las personas se busca directo en el texto.
+        const lectura = respaldoDelTexto(leida, texto);
         setLecturas((previas) => ({ ...previas, formulario: lectura }));
         setManual((previo) => extrasAlManual(previo, lectura));
         setFormEstado('listo');

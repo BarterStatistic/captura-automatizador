@@ -295,3 +295,44 @@ test('el número de seguro social se guarda solo con dígitos', () => {
 
   assert.equal(datos.cliente.nss, '12345678901');
 });
+
+// --- Nómina: sueldo y frecuencia desde los depósitos --------------------------------
+
+const DEPOSITOS = [
+  { fecha: '2026-08-14', monto: 3000, concepto: 'PAGO NOMINA' },
+  { fecha: '2026-08-21', monto: 3000, concepto: 'PAGO NOMINA' },
+  { fecha: '2026-08-28', monto: 3000, concepto: 'PAGO NOMINA' },
+  { fecha: '2026-09-04', monto: 3100, concepto: 'PAGO NOMINA' },
+];
+
+test('la frecuencia, el sueldo y el día de pago salen de los depósitos de nómina', () => {
+  const lecturas = {
+    ...SIN_COMBINAR,
+    // Lo que Gemini estimó por su cuenta pierde ante el cálculo con los depósitos.
+    estadoCuenta1: { depositos_nomina: DEPOSITOS.slice(0, 2), sueldo_mensual: 99999, frecuencia_pago: 'MENSUAL' },
+    estadoCuenta2: { depositos_nomina: DEPOSITOS.slice(2) },
+  };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.frecuenciaPago, 'SEMANAL');
+  assert.equal(datos.empleo.sueldo, 12000);
+  assert.equal(datos.empleo.diaPago, 'VIERNES');
+  assert.equal(datos.empleo.nomina.depositos, 4);
+});
+
+test('lo que el capturista corrige a mano manda sobre el cálculo', () => {
+  const lecturas = { ...SIN_COMBINAR, estadoCuenta1: { depositos_nomina: DEPOSITOS } };
+  const { datos } = armarExpediente(lecturas, { ...MANUAL, sueldo: '14,000', frecuenciaPago: 'QUINCENAL' });
+
+  assert.equal(datos.empleo.sueldo, 14000);
+  assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
+  assert.equal(datos.empleo.diaPago, '', 'el día de pago solo aplica a pago semanal');
+});
+
+test('sin depósitos listados se usa lo que estimó Gemini', () => {
+  const lecturas = { ...SIN_COMBINAR, estadoCuenta1: { depositos_nomina: [], sueldo_mensual: 16000, frecuencia_pago: 'QUINCENAL' } };
+  const { datos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.empleo.sueldo, 16000);
+  assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
+});

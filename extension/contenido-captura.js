@@ -1,4 +1,4 @@
-// El llenado de la Captura de Ventas DSC, sección por sección.
+// El llenado de la Captura de Ventas DSC, de corrido.
 //
 // Dos reglas que no se tocan:
 //
@@ -7,24 +7,38 @@
 //   2. NUNCA se presiona Grabar (`valida()`). Una captura de crédito no se
 //      deshace, así que la envía una persona después de revisar.
 //
-// La página nace con todos los campos `disabled` y cada «Validar Datos» habilita
-// la sección siguiente. Por eso esto es una máquina de pasos y no un recorrido
-// plano: si una sección no se habilita, la corrida se detiene ahí en vez de
-// seguir escribiendo en campos que nadie está leyendo.
+// Desde la 1.8.0 la corrida no espera a nadie. Escribe todo lo que tiene, de
+// «Buscar cliente» a las referencias, y lo que solo puede hacer una persona
+// (las colonias en SEPOMEX, los «Validar Datos» que dependen de ellas, las
+// preguntas de Dinamo, los datos que faltan) lo junta en un resumen final que
+// la app muestra como «Pendiente a mano».
+//
+// Si una sección sigue bloqueada (sus campos `disabled` hasta que se valide la
+// anterior), se escribe igual: un campo deshabilitado guarda su valor, y en
+// cuanto Dinamo lo habilita ya está lleno.
 
-const PAUSA_ENTRE_CAMPOS = 350;
+const PAUSA_ENTRE_CAMPOS = 120;
+// Lo que se le da a una sección para habilitarse antes de escribirla como esté.
+const ESPERA_SECCION = 2;
 
 let idPestanaApp;
 let llenando = false;
 
+// Lo que queda para una persona, en el orden en que se encontró.
+let pendientes = [];
+
+function pendiente(texto) {
+  if (!pendientes.includes(texto)) pendientes.push(texto);
+}
+
 // --- Comunicación -------------------------------------------------------------
 
-function publicar(tipo, mensaje, seccion = null, campo = null, valor = null) {
+function publicar(tipo, mensaje, seccion = null, campo = null, valor = null, extra = {}) {
   chrome.runtime
     .sendMessage({
       tipo: 'evento-llenado',
       idPestanaApp,
-      evento: { tipo, mensaje, seccion, campo, valor },
+      evento: { tipo, mensaje, seccion, campo, valor, ...extra },
     })
     .catch(() => {}); // el service worker pudo reciclarse; el llenado sigue
 }
@@ -37,43 +51,24 @@ function capturarAvisos(activo) {
 }
 
 let ultimoAviso = null;
-let emergenteTerminada = null;
-// Una pregunta de Dinamo («¿El cliente cuenta con homoclave?») no se contesta
-// sola: la corrida se detiene y la responde una persona.
-let preguntaPendiente = null;
-
-class PreguntaDeDinamo extends Error {}
 
 window.addEventListener('message', (evento) => {
   if (evento.source !== window) return;
-  if (evento.data?.fuente === 'dinamo-hook' && evento.data.tipo === 'aviso') {
-    ultimoAviso = evento.data.texto;
+  if (evento.data?.fuente !== 'dinamo-hook') return;
+  if (evento.data.tipo === 'aviso') ultimoAviso = evento.data.texto;
+  // Una pregunta de Dinamo («¿El cliente cuenta con homoclave?») no se contesta
+  // sola, pero tampoco detiene la corrida: queda en pantalla y en el resumen.
+  if (evento.data.tipo === 'pregunta') {
+    publicar('aviso', `Dinamo preguntó «${evento.data.texto}». Contéstala tú en la pantalla.`);
+    pendiente(`Contesta la pregunta de Dinamo: «${evento.data.texto}».`);
   }
-  if (evento.data?.fuente === 'dinamo-hook' && evento.data.tipo === 'pregunta') {
-    preguntaPendiente = evento.data.texto;
-  }
-});
-
-/** Si Dinamo hizo una pregunta, la corrida no sigue escribiendo encima. */
-function revisarPregunta() {
-  if (preguntaPendiente === null) return;
-  const texto = preguntaPendiente;
-  preguntaPendiente = null;
-  throw new PreguntaDeDinamo(texto);
-}
-
-chrome.runtime.onMessage.addListener((mensaje) => {
-  if (mensaje?.tipo === 'emergente-terminada') emergenteTerminada = mensaje;
-  return false;
 });
 
 /**
  * Espera a que la página dispare un aviso, hasta `ms`.
  *
  * Se comprueba SIEMPRE antes de rendirse: el aviso viaja del contexto de la
- * página al del content script por postMessage, que es asíncrono, y el
- * navegador ralentiza los temporizadores de pestañas en segundo plano, así que
- * una espera de 50 ms puede durar un segundo y dejar un hueco enorme.
+ * página al del content script por postMessage, que es asíncrono.
  */
 async function esperarAviso(ms = 1200) {
   const limite = Date.now() + ms;
@@ -88,66 +83,97 @@ async function esperarAviso(ms = 1200) {
   }
 }
 
-/**
- * Descarta cualquier respuesta vieja ANTES de abrir la ventana.
- *
- * No se puede limpiar dentro de `esperarEmergente`: entre el clic que abre la
- * ventana y la llamada a esperar hay más de un segundo (la espera de avisos),
- * y una ventana que conteste rápido lo haría en ese hueco. Limpiar entonces
- * borraría justo la respuesta que se está esperando, y la corrida se quedaría
- * colgada hasta agotar el tiempo.
- */
-function prepararEmergente() {
-  emergenteTerminada = null;
-}
-
-async function esperarEmergente(cual, segundos = 60) {
-  const limite = Date.now() + segundos * 1000;
-  for (;;) {
-    if (emergenteTerminada?.cual === cual) {
-      const resultado = emergenteTerminada;
-      emergenteTerminada = null;
-      return resultado;
-    }
-    if (Date.now() >= limite) return { ok: false, detalle: 'la ventana no respondió a tiempo' };
-    await pausa(200);
-  }
-}
-
 // --- Botones ------------------------------------------------------------------
 
-async function presionar(nombreFuncion, etiqueta, seccion, id = null) {
-  const porId = id ? document.getElementById(id) : null;
-  const boton = porId ?? botonPorOnclick(nombreFuncion);
-  if (!boton) {
-    publicar('error', `${etiqueta}: no se encontró el botón (${nombreFuncion}).`, seccion);
+async function presionar(nombreFuncion, etiqueta, seccion) {
+  const boton = botonPorOnclick(nombreFuncion);
+  if (!boton || boton.disabled) {
+    publicar('aviso', `${etiqueta}: el botón no se pudo presionar; hazlo tú.`, seccion);
+    pendiente(`Presiona «${etiqueta}».`);
     return false;
   }
   boton.click();
   const aviso = await esperarAviso();
   if (aviso) publicar('aviso', `${etiqueta}: la página dijo «${aviso}».`, seccion);
-  revisarPregunta();
   return true;
 }
 
 // --- Un campo ------------------------------------------------------------------
 
+/**
+ * El campo, habilitado o no: uno deshabilitado guarda lo que se le escribe.
+ * Solo falla si no existe o es de solo lectura, los dos casos en que escribir
+ * no sirve. La espera a que se habilite es por sección, no por campo: con 60
+ * campos bloqueados, esperar en cada uno hacía la corrida de varios minutos.
+ */
+function campoParaEscribir(id) {
+  const elemento = document.getElementById(id);
+  if (!elemento) throw new ErrorTiempo('no apareció en la página');
+  if (elemento.readOnly) throw new ErrorTiempo('es de solo lectura');
+  return elemento;
+}
+
+/**
+ * Un momento para que la sección se habilite (la anterior pudo validarse
+ * recién, o el AJAX de «Buscar cliente» sigue en camino). Si no, se escribe
+ * igual.
+ */
+async function esperarSeccion(seccion) {
+  const primero = [...(seccion.inicio ?? []), ...seccion.campos].find(
+    (campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio',
+  );
+  if (!primero) return;
+  const limite = Date.now() + ESPERA_SECCION * 1000;
+  while (!utilizable(document.getElementById(primero.id)) && Date.now() < limite) {
+    await pausa(150);
+  }
+}
+
+/** Marca una casilla o un radio aunque esté deshabilitado (ahí el clic no hace nada). */
+function marcar(elemento) {
+  if (elemento.checked) return;
+  if (!elemento.disabled) elemento.click();
+  if (!elemento.checked) {
+    elemento.checked = true;
+    elemento.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
+
+/** Sale del campo para que corra su validación (txtrfc, txtemail). */
+function salirDe(elemento) {
+  if (document.activeElement === elemento) elemento.blur();
+  else elemento.dispatchEvent(new FocusEvent('blur'));
+}
+
+function valorDelCampo(campo, expediente) {
+  if (campo.fijo !== undefined) return campo.fijo;
+  const valor = valorEn(expediente, campo.de);
+  // txtsueldo solo acepta dígitos: «12,500.40» se vuelve 12500.
+  if (campo.entero && valor.trim() !== '') {
+    const numero = Number(valor.replace(/[^\d.]/g, ''));
+    return Number.isFinite(numero) && numero > 0 ? String(Math.round(numero)) : '';
+  }
+  return valor;
+}
+
 async function llenarCampo(campo, expediente, seccion) {
   const esFijo = campo.fijo !== undefined;
-  const valor = esFijo ? campo.fijo : valorEn(expediente, campo.de);
+  const valor = valorDelCampo(campo, expediente);
 
   if (!esFijo && String(valor).trim() === '') {
     if (!campo.opcional) {
-      publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion, campo.id);
+      publicar('aviso', `${campo.etiqueta}: sin dato, se dejó vacío.`, seccion.id, campo.id);
+      pendiente(`${seccion.etiqueta} · ${campo.etiqueta}: no venía en los documentos.`);
     }
     return;
   }
 
   let elemento;
   try {
-    elemento = await esperarCampo(campo.id);
+    elemento = campoParaEscribir(campo.id);
   } catch (error) {
-    publicar('error', `${campo.etiqueta}: ${error.message}.`, seccion, campo.id);
+    publicar('error', `${campo.etiqueta}: ${error.message}.`, seccion.id, campo.id);
+    pendiente(`${seccion.etiqueta} · ${campo.etiqueta}: escríbelo a mano (${valor}).`);
     return;
   }
 
@@ -161,7 +187,7 @@ async function llenarCampo(campo, expediente, seccion) {
     publicar(
       'aviso',
       `${campo.etiqueta}: ya venía con «${elemento.value}», se respetó.`,
-      seccion,
+      seccion.id,
       campo.id,
       elemento.value,
     );
@@ -171,45 +197,47 @@ async function llenarCampo(campo, expediente, seccion) {
   try {
     let quedo;
     if (campo.tipo === 'checkbox') {
-      if (!elemento.checked) elemento.click();
+      marcar(elemento);
       quedo = elemento.checked ? 'marcada' : 'sin marcar';
     } else if (campo.tipo === 'radio') {
       // El clic dispara su onclick (prepara_controles, cambia_forma…).
-      if (!elemento.checked) elemento.click();
+      marcar(elemento);
       quedo = elemento.checked ? campo.texto ?? 'elegido' : 'sin elegir';
     } else if (campo.tipo === 'select') {
       quedo = seleccionarPorValue(elemento, valor);
     } else if (campo.tipo === 'selectTexto') {
-      if (campo.dinamico) await esperarOpciones(campo.id);
+      if (campo.dinamico) await esperarOpciones(campo.id, 4);
       quedo = seleccionarPorTexto(elemento, valor);
     } else {
       quedo = escribirTexto(elemento, valor);
       // Algunos campos hacen su trabajo al salir (txtrfc calcula la fecha de
       // nacimiento y valida la edad; txtemail valida el dominio).
       if (campo.blur) {
-        elemento.blur();
+        salirDe(elemento);
         await pausa(400);
       }
     }
 
     // Se reporta lo que quedó, no lo que se quiso poner: si la página lo recortó
     // o lo normalizó, quien revisa tiene que verlo.
-    publicar('campo', `${campo.etiqueta}: ${quedo}`, seccion, campo.id, quedo);
+    publicar('campo', `${campo.etiqueta}: ${quedo}`, seccion.id, campo.id, quedo);
 
     if (campo.tipo === 'texto' && quedo !== String(valor)) {
       publicar(
         'aviso',
         `${campo.etiqueta}: Dinamo lo dejó como «${quedo}» en vez de «${valor}». Revísalo.`,
-        seccion,
+        seccion.id,
         campo.id,
       );
     }
   } catch (error) {
-    publicar('error', `${campo.etiqueta}: ${error.message}`, seccion, campo.id);
+    publicar('error', `${campo.etiqueta}: ${error.message}`, seccion.id, campo.id);
+    if (!campo.opcional) {
+      pendiente(`${seccion.etiqueta} · ${campo.etiqueta}: elígelo a mano (${valor}).`);
+    }
   }
 
   await pausa(PAUSA_ENTRE_CAMPOS);
-  revisarPregunta();
 }
 
 // --- Pasos especiales ----------------------------------------------------------
@@ -219,56 +247,31 @@ async function buscarCliente(seccion, expediente) {
   const rfc = valorEn(expediente, de);
   if (!rfc) {
     publicar('aviso', 'Sin RFC calculado: no se buscó al cliente.', seccion.id);
-    return false;
+    pendiente('Busca al cliente por RFC en «Buscar cliente»: la app no pudo calcularlo.');
+    return;
   }
 
   let entrada;
   try {
-    entrada = await esperarCampo(id, 25);
+    entrada = await esperarCampo(id, ESPERA_SECCION);
   } catch (error) {
     publicar('error', `Buscar cliente: el campo ${error.message}.`, seccion.id, id);
-    return false;
+    pendiente(`Busca al cliente por RFC (${rfc}) en «Buscar cliente».`);
+    return;
   }
 
   escribirTexto(entrada, rfc);
   publicar('campo', `Buscar cliente: ${rfc}`, seccion.id, id, rfc);
   await presionar(boton, 'Buscar cliente', seccion.id);
+  // Si el cliente ya existe, Dinamo trae sus datos por AJAX: se espera a que
+  // termine para no escribir encima de una respuesta que todavía no llega.
   await pausa(1500);
-  return true;
 }
 
-async function pasarPorDatosFiscales(seccion) {
-  publicar('seccion', 'Abriendo Datos Fiscales…', seccion.id);
-  prepararEmergente();
-  if (
-    !(await presionar(seccion.datosFiscales.boton, 'Datos Fiscales', seccion.id, seccion.datosFiscales.id))
-  ) {
-    return;
-  }
-
-  const resultado = await esperarEmergente('fiscales');
-  if (resultado.ok) {
-    publicar('campo', `Datos Fiscales: ${resultado.detalle}`, seccion.id);
-  } else {
-    publicar('error', `Datos Fiscales: ${resultado.detalle}. Complétalo a mano.`, seccion.id);
-  }
-}
-
-/**
- * SEPOMEX lo hace el vendedor: la corrida avisa con qué buscar y espera a que el
- * CP de la sección (readonly, solo lo llena esa ventana) tenga valor. Sin eso,
- * «Validar Datos» rechazaría la sección y todo lo siguiente quedaría bloqueado.
- */
-async function esperarColoniaManual(seccion, expediente, minutos = 10) {
-  const { cp, que, pista } = seccion.colonia;
-  const campoCp = document.getElementById(cp);
-  if (!campoCp) {
-    publicar('error', `No se encontró el campo de CP (${cp}). Elige la colonia y valida a mano.`, seccion.id);
-    return false;
-  }
-  if (String(campoCp.value ?? '').trim()) return true;
-
-  const datos = [
+/** «CP 25000, colonia Centro», con lo que haya en el expediente. */
+function pistaDeColonia(seccion, expediente) {
+  const { pista } = seccion.colonia;
+  return [
     pista?.cp && valorEn(expediente, pista.cp) ? `CP ${valorEn(expediente, pista.cp)}` : '',
     pista?.colonia && valorEn(expediente, pista.colonia)
       ? `colonia ${valorEn(expediente, pista.colonia)}`
@@ -276,30 +279,24 @@ async function esperarColoniaManual(seccion, expediente, minutos = 10) {
   ]
     .filter(Boolean)
     .join(', ');
-  publicar(
-    'aviso',
-    `Elige la colonia ${que} en SEPOMEX${datos ? ` (${datos})` : ''}. ` +
-      'La extensión sigue sola en cuanto aparezca el código postal.',
-    seccion.id,
-  );
+}
 
-  const limite = Date.now() + minutos * 60 * 1000;
-  for (;;) {
-    if (String(document.getElementById(cp)?.value ?? '').trim()) {
-      publicar('campo', `Colonia ${que}: lista.`, seccion.id);
-      await pausa(500);
-      return true;
-    }
-    if (Date.now() >= limite) {
-      publicar(
-        'error',
-        `Pasaron ${minutos} minutos sin colonia ${que}. La corrida se detiene aquí; sigue a mano.`,
-        seccion.id,
-      );
-      return false;
-    }
-    await pausa(1000);
+/**
+ * Lo que la sección deja para el vendedor: elegir la colonia en SEPOMEX y, ya
+ * con ella, presionar «Validar Datos». Se anota al final de la corrida, cuando
+ * ya se sabe si la colonia se eligió mientras tanto.
+ */
+function pendienteDeSeccion(seccion, expediente) {
+  const cp = String(document.getElementById(seccion.colonia.cp)?.value ?? '').trim();
+  if (cp) {
+    pendiente(`${seccion.etiqueta}: presiona «Validar Datos».`);
+    return;
   }
+  const datos = pistaDeColonia(seccion, expediente);
+  pendiente(
+    `${seccion.etiqueta}: elige la colonia ${seccion.colonia.que} en SEPOMEX` +
+      `${datos ? ` (${datos})` : ''} y presiona «Validar Datos».`,
+  );
 }
 
 // --- La corrida ----------------------------------------------------------------
@@ -312,42 +309,30 @@ function existeEn(objeto, ruta) {
   return valor != null;
 }
 
-/**
- * Espera a que el primer campo de la sección se pueda usar. Devuelve null si sí,
- * o un texto que dice exactamente qué le pasa al campo: así, si falla, se sabe
- * si no existe, si sigue deshabilitado o si es de solo lectura.
- */
-async function esperarSeccionHabilitada(seccion, segundos = 25) {
-  const primero = [...(seccion.inicio ?? []), ...seccion.campos].find(
-    (campo) => campo.tipo !== 'checkbox' && campo.tipo !== 'radio',
-  );
-  if (!primero) return null;
-
-  const limite = Date.now() + segundos * 1000;
-  for (;;) {
-    const elemento = document.getElementById(primero.id);
-    if (utilizable(elemento)) return null;
-    if (Date.now() >= limite) {
-      if (!elemento) return `no existe el campo ${primero.id} en esta página`;
-      if (elemento.disabled) return `el campo ${primero.id} (${primero.etiqueta}) sigue deshabilitado`;
-      if (elemento.readOnly) return `el campo ${primero.id} (${primero.etiqueta}) es de solo lectura`;
-      return `el campo ${primero.id} no se pudo usar`;
-    }
-    await pausa(250);
-  }
-}
-
 /** ¿El vendedor ya capturó la moto? Basta con que haya modelo elegido. */
 function motoCapturada() {
   const modelo = document.getElementById('cbomodelos');
   return Boolean(modelo) && !VALORES_VACIOS.has(String(modelo.value).trim());
 }
 
+/** Lo que Dinamo pide y la extensión nunca llena; se anota solo si sigue vacío. */
+function pendientesFijos() {
+  const vacio = (id) => {
+    const elemento = document.getElementById(id);
+    return Boolean(elemento) && VALORES_VACIOS.has(String(elemento.value ?? '').trim());
+  };
+  if (vacio('cboedo_nac') || vacio('cboMpio_nac')) {
+    pendiente('Datos del cliente: elige el estado y el municipio de nacimiento.');
+  }
+  pendiente('Datos Fiscales del cliente (botón «DATOS FISCALES CLIENTE»): captúralos si el trámite los pide.');
+}
+
 async function llenar(expediente) {
   if (llenando) return;
   llenando = true;
+  pendientes = [];
+  ultimoAviso = null;
   capturarAvisos(true);
-  preguntaPendiente = null;
 
   try {
     publicar('inicio', 'Llenando la captura de Dinamo desde los datos del cliente…');
@@ -371,58 +356,57 @@ async function llenar(expediente) {
 
       publicar('seccion', `— ${seccion.etiqueta} —`, seccion.id);
 
-      // Las referencias 2 y 3 se abren marcando su casilla.
-      if (seccion.activar) document.getElementById(seccion.activar)?.click();
+      // Las referencias 2 y 3 se abren marcando su casilla. Solo si no lo
+      // está: un segundo clic la desmarca y vuelve a esconder la sección.
+      if (seccion.activar) {
+        const casilla = document.getElementById(seccion.activar);
+        if (casilla && !casilla.checked) marcar(casilla);
+      }
 
       // Cliente: primero se busca el RFC; eso es lo que habilita la sección.
       if (seccion.buscarCliente) await buscarCliente(seccion, expediente);
 
-      const problema = await esperarSeccionHabilitada(seccion);
-      if (problema) {
-        publicar(
-          'error',
-          `La sección «${seccion.etiqueta}» no se habilitó: ${problema}. La corrida se detiene ` +
-            'aquí; revisa la pantalla y continúa a mano desde este punto.',
-          seccion.id,
-        );
-        break;
+      await esperarSeccion(seccion);
+
+      // Lo que Dinamo exige primero (el RFC en su campo), luego el resto.
+      for (const campo of [...(seccion.inicio ?? []), ...seccion.campos]) {
+        await llenarCampo(campo, expediente, seccion);
       }
 
-      // Lo que Dinamo exige primero (el RFC en su campo), luego Datos Fiscales,
-      // luego el resto.
-      for (const campo of seccion.inicio ?? []) {
-        await llenarCampo(campo, expediente, seccion.id);
+      // Las validaciones que no dependen de nadie se presionan; las que
+      // necesitan la colonia quedan para el vendedor.
+      if (seccion.colonia) {
+        pendienteDeSeccion(seccion, expediente);
+      } else {
+        if (seccion.validarEmail) await presionar(seccion.validarEmail, 'Validar email', seccion.id);
+        if (seccion.validar) await presionar(seccion.validar, 'Validar datos', seccion.id);
       }
-      if (seccion.datosFiscales) await pasarPorDatosFiscales(seccion);
-
-      for (const campo of seccion.campos) {
-        await llenarCampo(campo, expediente, seccion.id);
-      }
-
-      if (seccion.colonia && !(await esperarColoniaManual(seccion, expediente))) break;
-      if (seccion.validarEmail) await presionar(seccion.validarEmail, 'Validar email', seccion.id);
-      if (seccion.validar) await presionar(seccion.validar, 'Validar datos', seccion.id);
-
-      await pausa(500);
     }
 
+    pendientesFijos();
+    publicar(
+      'resumen',
+      pendientes.length === 1
+        ? 'Queda 1 cosa por hacer a mano.'
+        : `Quedan ${pendientes.length} cosas por hacer a mano.`,
+      null,
+      null,
+      null,
+      { pendientes: [...pendientes] },
+    );
     publicar(
       'fin',
-      'Listo. Revisa la captura en esta pestaña y, si todo está bien, presiona tú mismo ' +
-        'el botón Grabar. La extensión no envía nada.',
+      'Listo. Termina lo pendiente, revisa la captura y presiona tú mismo el botón Grabar. ' +
+        'La extensión no envía nada.',
     );
   } catch (error) {
-    if (error instanceof PreguntaDeDinamo) {
-      publicar(
-        'error',
-        `Dinamo preguntó «${error.message}». La extensión no contesta preguntas: ` +
-          'respóndela tú en la pantalla y sigue a mano desde ahí.',
-      );
-      publicar('fin', 'La corrida se detuvo en una pregunta de Dinamo.');
-    } else {
-      publicar('error', `El llenado se interrumpió: ${error.message}`);
-      publicar('fin', 'La corrida terminó con errores.');
+    publicar('error', `El llenado se interrumpió: ${error.message}`);
+    if (pendientes.length > 0) {
+      publicar('resumen', 'Lo que quedó pendiente hasta donde llegó:', null, null, null, {
+        pendientes: [...pendientes],
+      });
     }
+    publicar('fin', 'La corrida terminó con errores.');
   } finally {
     capturarAvisos(false);
     llenando = false;

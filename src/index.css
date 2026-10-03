@@ -1311,6 +1311,44 @@ button.icono:hover:not(:disabled) {
 .bitacora .seccion-linea .marca { color: var(--cyan); }
 .bitacora .seccion-linea { font-weight: 600; }
 
+.pendientes {
+  margin-bottom: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--naranja);
+  border-left-width: 4px;
+  border-radius: var(--radio);
+  background: var(--fondo);
+}
+
+.pendientes h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--naranja);
+}
+
+.pendientes p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--texto-medio);
+}
+
+.pendientes ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pendientes li + li {
+  margin-top: 4px;
+}
+
+.pendientes-vacio {
+  margin: 0 0 14px;
+  color: var(--verde);
+  font-weight: 600;
+}
+
 /* --- Movimiento ----------------------------------------------------------- */
 
 @keyframes girar {

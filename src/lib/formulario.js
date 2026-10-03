@@ -73,3 +73,85 @@ export function extrasAlManual(manual, lectura) {
 
   return nuevo;
 }
+
+// --- Respaldo: leer las personas directo del texto -------------------------------
+//
+// Gemini lee bien los formularios, pero si deja vacía una referencia o el
+// compañero de trabajo, se buscan aquí en el texto pegado: cada teléfono de 10
+// dígitos del punto, con el nombre que lo acompaña en el mismo renglón o en el
+// de arriba.
+
+// «1)», «4.-», «6 )» al inicio de renglón.
+const MARCA_PUNTO = /(?:^|\n)[ \t]*([1-7])[ \t]*(?:\)|\.-|\.|-)/g;
+// 10 dígitos con espacios, guiones o puntos en medio, y el +52 opcional.
+const TELEFONO = /(?:\+?\s*52[\s.-]*)?\d(?:[\s.-]*\d){9}(?!\d)/g;
+// La pregunta del esqueleto, que no es parte de la respuesta.
+const PREGUNTA = /nombre\s+y\s+tel[eé]fono\s+de\s+alg[uú]n[^\n:]*:?/i;
+// Parentescos y muletillas que no son parte del nombre. Los límites son \p{L}
+// y no \b, porque \b no ve la «á» de «mamá» como letra.
+const PARENTESCO =
+  /(?<!\p{L})(mi|su|referencia|ref|compa[ñn]er[oa]|amig[oa]|herman[oa]|mam[aá]|pap[aá]|madre|padre|t[ií][oa]|prim[oa]|espos[oa]|cu[ñn]ad[oa]|vecin[oa]|abuel[oa]|hij[oa]|suegr[oa]|sobrin[oa]|novi[oa]|conocid[oa]|familiar)(?!\p{L})\s*:?/giu;
+
+/** Los puntos 1) a 7) del texto pegado, por número. Vacío si no viene numerado. */
+export function puntosDelFormulario(textoPegado) {
+  const texto = String(textoPegado ?? '');
+  const marcas = [...texto.matchAll(MARCA_PUNTO)];
+  const puntos = {};
+  marcas.forEach((marca, i) => {
+    const desde = marca.index + marca[0].length;
+    const hasta = i + 1 < marcas.length ? marcas[i + 1].index : texto.length;
+    puntos[marca[1]] = texto.slice(desde, hasta);
+  });
+  return puntos;
+}
+
+function limpiarNombre(crudo) {
+  return String(crudo ?? '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(PARENTESCO, ' ')
+    .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Cada persona (nombre y teléfono) que aparece en el texto de un punto. */
+export function personasEn(bloque) {
+  const texto = String(bloque ?? '').replace(PREGUNTA, ' ');
+  const telefonos = [...texto.matchAll(TELEFONO)];
+  return telefonos.map((telefono, i) => {
+    const inicio = i === 0 ? 0 : telefonos[i - 1].index + telefonos[i - 1][0].length;
+    let nombre = limpiarNombre(texto.slice(inicio, telefono.index));
+    // «844 123 4567 Luis Pérez»: el nombre viene después.
+    if (!nombre) {
+      const fin = i + 1 < telefonos.length ? telefonos[i + 1].index : texto.length;
+      nombre = limpiarNombre(texto.slice(telefono.index + telefono[0].length, fin).split('\n')[0]);
+    }
+    return { nombre, telefono: telefono[0].trim() };
+  });
+}
+
+/**
+ * Llena lo que Gemini dejó vacío de las personas del formulario con lo que se
+ * encuentra en el texto: el compañero (punto 4), la referencia (punto 6) y, si
+ * el punto 6 trae más de una persona, las demás como referencias extra.
+ */
+export function respaldoDelTexto(lectura, textoPegado) {
+  const puntos = puntosDelFormulario(textoPegado);
+  const nueva = { ...(lectura ?? {}) };
+
+  const [companero] = personasEn(puntos['4']);
+  if (companero) {
+    if (!texto(nueva.companero_telefono)) nueva.companero_telefono = companero.telefono;
+    if (!texto(nueva.companero_nombre) && companero.nombre) nueva.companero_nombre = companero.nombre;
+  }
+
+  const [primera, ...demas] = personasEn(puntos['6']);
+  if (primera) {
+    if (!texto(nueva.referencia_telefono)) nueva.referencia_telefono = primera.telefono;
+    if (!texto(nueva.referencia_nombre) && primera.nombre) nueva.referencia_nombre = primera.nombre;
+  }
+  const yaHayExtra = Array.isArray(nueva.referencias_extra) && nueva.referencias_extra.length > 0;
+  if (!yaHayExtra && demas.length > 0) nueva.referencias_extra = demas;
+
+  return nueva;
+}

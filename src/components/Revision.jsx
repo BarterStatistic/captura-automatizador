@@ -208,9 +208,13 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Campo
           etiqueta="Sueldo mensual"
           valor={datos.empleo.sueldo}
-          nota="De los estados de cuenta."
+          nota={
+            datos.empleo.nomina
+              ? `De ${datos.empleo.nomina.depositos} depósitos de nómina; depósito típico $${datos.empleo.nomina.montoTipico.toLocaleString('es-MX')}.`
+              : 'De los estados de cuenta.'
+          }
           mono
-          onCambio={(v) => onLectura('estadoCuenta1', 'sueldo_mensual', v)}
+          onCambio={(v) => onManual('sueldo', v)}
         />
         <Seleccion
           etiqueta="Frecuencia de pago"
@@ -220,7 +224,8 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
             { value: 'QUINCENAL', nombre: 'Quincenal' },
             { value: 'MENSUAL', nombre: 'Mensual' },
           ]}
-          onCambio={(v) => onLectura('estadoCuenta1', 'frecuencia_pago', v)}
+          nota={datos.empleo.diaPago ? `Día de pago: ${datos.empleo.diaPago}.` : undefined}
+          onCambio={(v) => onManual('frecuenciaPago', v)}
         />
         <Derivado
           etiqueta="Antigüedad que se capturará"

@@ -32,9 +32,9 @@
 
   window.confirm = function (mensaje) {
     if (!capturando) return confirmOriginal.call(window, mensaje);
-    // SEPOMEX pregunta «¿Seleccionar la colonia y CP?» justo cuando la
-    // extensión ya eligió la que coincide con el documento. Decir que sí es la
-    // continuación del paso, no una decisión nueva.
+    // SEPOMEX pregunta «¿Seleccionar la colonia y CP?» cuando el vendedor
+    // eligió una colonia mientras la extensión llenaba. Decir que sí es la
+    // continuación de lo que él mismo hizo, no una decisión nueva.
     publicar(mensaje);
     return true;
   };
@@ -47,7 +47,7 @@
   // - Aviso de un solo botón: se anota y se cierra, para que la corrida siga.
   // - Pregunta (trae botón de «NO» o de cancelar): se anota y NO se contesta.
   //   Responderla cambia el trámite (p. ej. facturar con RFC genérico), así que
-  //   la contesta una persona; la extensión detiene la corrida.
+  //   la contesta una persona; la corrida sigue y la deja en el resumen.
   let ultimoSwal = '';
 
   function revisarSwal() {

@@ -122,7 +122,7 @@ test('los campos readonly de SEPOMEX no se intentan escribir', () => {
   }
 });
 
-test('SEPOMEX no se abre: la corrida espera a que el vendedor elija la colonia', () => {
+test('SEPOMEX no se abre: cada sección con colonia sabe qué CP revisar para el resumen', () => {
   const conColonia = Object.fromEntries(
     SECCIONES.filter((seccion) => seccion.colonia).map((seccion) => [seccion.id, seccion.colonia.cp]),
   );
@@ -191,7 +191,6 @@ test('ningún campo de solo lectura se intenta escribir', () => {
 test('cada botón que se presiona existe en la página', () => {
   const funciones = SECCIONES.flatMap((seccion) => [seccion.validar, seccion.validarEmail])
     .concat(SECCIONES.map((seccion) => seccion.buscarCliente?.boton))
-    .concat(SECCIONES.map((seccion) => seccion.datosFiscales?.boton))
     .filter(Boolean);
 
   for (const funcion of funciones) {
@@ -208,7 +207,7 @@ test('el CP que se espera es el campo readonly que llena SEPOMEX', () => {
   }
 });
 
-test('en el cliente: buscar el RFC, escribirlo, Datos Fiscales y luego lo demás', () => {
+test('en el cliente: buscar el RFC, escribirlo y luego lo demás, sin Datos Fiscales', () => {
   const cliente = SECCIONES.find((seccion) => seccion.id === 'cliente');
   const [rfc] = cliente.inicio;
 
@@ -216,14 +215,12 @@ test('en el cliente: buscar el RFC, escribirlo, Datos Fiscales y luego lo demás
   assert.equal(rfc.id, 'txtrfc');
   assert.equal(rfc.de, 'datos.cliente.rfc');
   assert.equal(rfc.blur, true);
-  assert.equal(cliente.datosFiscales.id, 'ButtonDF');
-  assert.equal(cliente.datosFiscales.boton, 'showFiscal');
+  assert.ok(!('datosFiscales' in cliente), 'Datos Fiscales lo hace el vendedor si hace falta');
   assert.ok(!cliente.campos.some((campo) => campo.id === 'txtrfc'));
   assert.equal(cliente.buscarCliente.id, 'txt_buscar_cliente');
   assert.equal(cliente.buscarCliente.de, 'datos.cliente.rfc');
   assert.ok(DINAMO.onclicks.some((onclick) => onclick.includes('buscar_cliente(')));
   assert.equal(DINAMO.controles.txt_buscar_cliente?.tag, 'input');
-  assert.equal(DINAMO.controles.ButtonDF?.tag, 'input');
 });
 
 test('las referencias 2 y 3 solo se llenan si el expediente las trae', () => {
@@ -242,4 +239,29 @@ test('la moto es del vendedor: la extensión empieza en el cliente', () => {
     assert.ok(!ids.includes(deLaMoto), `${deLaMoto} lo captura el vendedor`);
   }
   assert.ok(!ids.some((id) => id.startsWith('canAcce_')), 'el servicio lo marca el vendedor');
+});
+
+test('frecuencia, día de pago y sueldo salen de la nómina; el sueldo va entero', () => {
+  const porId = Object.fromEntries(todosLosCampos().map((campo) => [campo.id, campo]));
+
+  assert.equal(porId.cbofrecuencia_pago.de, 'datos.empleo.frecuenciaPago');
+  assert.equal(porId.diaPago.de, 'datos.empleo.diaPago');
+  assert.equal(porId.diaPago.tipo, 'select');
+  assert.equal(porId.diaPago.opcional, true, 'solo se deduce en pago semanal');
+  assert.equal(porId.txtsueldo.de, 'datos.empleo.sueldo');
+  assert.equal(porId.txtsueldo.entero, true);
+});
+
+test('las validaciones con colonia no se presionan: van al resumen', () => {
+  const motor = readFileSync(fileURLToPath(new URL('../contenido-captura.js', import.meta.url)), 'utf8');
+
+  assert.doesNotMatch(motor, /esperarColoniaManual|pasarPorDatosFiscales|PreguntaDeDinamo/);
+  assert.match(motor, /if \(seccion\.colonia\) \{\s*pendienteDeSeccion/);
+  assert.match(motor, /'resumen'/);
+});
+
+test('la casilla de las referencias 2 y 3 solo se marca si no lo está', () => {
+  const motor = readFileSync(fileURLToPath(new URL('../contenido-captura.js', import.meta.url)), 'utf8');
+
+  assert.match(motor, /if \(casilla && !casilla\.checked\) marcar\(casilla\)/);
 });

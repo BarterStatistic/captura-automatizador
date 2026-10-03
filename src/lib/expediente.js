@@ -8,6 +8,7 @@ import { partirTelefono, partirAntiguedad, razonSocial, partirCalle } from './no
 import { resolverRfc } from './rfc.js';
 import { ESQUEMAS_VENTA, esquemaPorValue, referenciasRequeridas } from './esquemas.js';
 import { opcionPorNombre } from './formulario.js';
+import { analizarNomina } from './nomina.js';
 
 // Sin estos, la corrida no arranca: son la identidad del cliente y el domicilio
 // que se va a capturar. Todo lo demás se puede completar a mano en Dinamo.
@@ -68,19 +69,29 @@ const sueldoDe = (lectura) => {
   const valor = lectura?.sueldo_mensual;
   if (valor === null || valor === undefined || String(valor).trim() === '') return null;
   const numero = Number(String(valor).replace(/[^\d.]/g, ''));
-  return Number.isFinite(numero) && numero > 0 ? numero : null;
+  // Dinamo solo acepta dígitos en txtsueldo: pesos enteros.
+  return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : null;
 };
 
 /**
- * Junta los dos estados de cuenta. Manda el primero; el segundo cubre lo que al
- * primero le falte. Si los dos dan sueldo y difieren mucho, se avisa: suele ser
- * un mes con aguinaldo o un depósito que Gemini confundió con nómina.
+ * Sueldo, frecuencia y día de pago, en este orden de preferencia:
+ *
+ *   1. Lo que el capturista escribió a mano en la revisión (`manual.sueldo`,
+ *      `manual.frecuenciaPago`).
+ *   2. Lo que se calcula de los depósitos de nómina de los dos estados de
+ *      cuenta juntos (analizarNomina).
+ *   3. Lo que Gemini estimó de cada estado de cuenta, si no listó depósitos.
  */
-function combinarEstados(primero, segundo, avisos) {
+function nominaDe(primero, segundo, manual, avisos) {
+  const depositos = [
+    ...(Array.isArray(primero?.depositos_nomina) ? primero.depositos_nomina : []),
+    ...(Array.isArray(segundo?.depositos_nomina) ? segundo.depositos_nomina : []),
+  ];
+  const analisis = analizarNomina(depositos);
+
   const s1 = sueldoDe(primero);
   const s2 = sueldoDe(segundo);
-
-  if (s1 && s2 && Math.abs(s1 - s2) / Math.max(s1, s2) > 0.2) {
+  if (!analisis && s1 && s2 && Math.abs(s1 - s2) / Math.max(s1, s2) > 0.2) {
     avisos.push({
       campo: 'sueldo',
       mensaje:
@@ -89,9 +100,22 @@ function combinarEstados(primero, segundo, avisos) {
     });
   }
 
+  const aMano = sueldoDe({ sueldo_mensual: manual.sueldo });
+  const frecuenciaAMano = texto(manual.frecuenciaPago);
+  const frecuencia =
+    frecuenciaAMano ||
+    analisis?.frecuencia ||
+    texto(primero?.frecuencia_pago) ||
+    texto(segundo?.frecuencia_pago);
+
   return {
-    sueldo_mensual: s1 ?? s2,
-    frecuencia_pago: texto(primero?.frecuencia_pago) || texto(segundo?.frecuencia_pago),
+    sueldo: aMano ?? analisis?.sueldoMensual ?? s1 ?? s2 ?? '',
+    frecuencia,
+    // El día de pago solo se deduce en pago semanal y si nadie cambió la frecuencia.
+    diaPago: frecuencia === 'SEMANAL' && (!frecuenciaAMano || frecuenciaAMano === analisis?.frecuencia)
+      ? analisis?.diaPago ?? ''
+      : '',
+    analisis,
   };
 }
 
@@ -101,10 +125,10 @@ export function armarExpediente(lecturas, manual = {}) {
   const avisos = [];
 
   // Las lecturas guardan cada estado de cuenta en su casilla. `estadosCuenta`
-  // es la forma ya combinada, que aceptan las pruebas y expedientes viejos.
-  const estadosCuenta =
-    lecturas?.estadosCuenta ??
-    combinarEstados(lecturas?.estadoCuenta1, lecturas?.estadoCuenta2, avisos);
+  // es una lectura ya combinada, que aceptan las pruebas y expedientes viejos.
+  const nomina = lecturas?.estadosCuenta
+    ? nominaDe(lecturas.estadosCuenta, null, manual, avisos)
+    : nominaDe(lecturas?.estadoCuenta1, lecturas?.estadoCuenta2, manual, avisos);
 
   // --- Identidad -------------------------------------------------------------
   // La CURP del frente es la principal; la del reverso solo la corrobora.
@@ -219,8 +243,11 @@ export function armarExpediente(lecturas, manual = {}) {
     jefe: texto(formulario.companero_nombre),
     lada: telefonoCompanero?.lada ?? '',
     telefono: telefonoCompanero?.telefono ?? '',
-    sueldo: estadosCuenta.sueldo_mensual ?? '',
-    frecuenciaPago: texto(estadosCuenta.frecuencia_pago),
+    sueldo: nomina.sueldo,
+    frecuenciaPago: nomina.frecuencia,
+    diaPago: nomina.diaPago,
+    // Cómo se llegó al sueldo, para mostrarlo en la revisión.
+    nomina: nomina.analisis,
   };
 
   // --- Referencias -----------------------------------------------------------

@@ -19,6 +19,7 @@
 // Opciones de campo:
 //   opcional      sin dato no se avisa
 //   blur          tras escribir se sale del campo: ahí corre su validación
+//   entero        se escribe como número entero, sin comas ni centavos
 //
 // Cotejado contra el HTML real de dsc_captura_2022.php (2026-10-02).
 //
@@ -113,9 +114,8 @@ function seccionReferencia(indice) {
       { id: `cbotipo_tel_${sufijo}`, tipo: 'select', fijo: '5', etiqueta: 'Tipo de teléfono' },
       { id: `check_${sufijo}_A`, tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
-    // La colonia la elige el vendedor en SEPOMEX; la corrida espera a que el
-    // CP (readonly) se llene antes de validar.
-    // junto con la calle.
+    // La colonia la elige el vendedor en SEPOMEX y, con ella, valida la
+    // sección. La corrida no espera: lo anota en el resumen.
     colonia: { cp: `txtcp_${sufijo}`, que: `de la referencia ${numero}` },
     validar: indice === 0 ? 'valida_referencia' : `valida_referencia_${sufijo.slice(-1)}`,
   };
@@ -128,8 +128,8 @@ const SECCIONES = [
     // El orden lo impone Dinamo:
     //   1. Buscar el RFC en «Buscar cliente»: es lo que habilita la sección.
     //   2. Escribirlo en el campo RFC (`inicio`).
-    //   3. Datos Fiscales.
-    //   4. Lo demás (`campos`).
+    //   3. Lo demás (`campos`).
+    // Datos Fiscales ya no lo toca la extensión: queda en el resumen.
     buscarCliente: { id: 'txt_buscar_cliente', de: 'datos.cliente.rfc', boton: 'buscar_cliente' },
     inicio: [
       // Con 13 caracteres no salen las preguntas de homoclave (esas solo
@@ -138,8 +138,6 @@ const SECCIONES = [
       // valida la edad mínima de 20 y copia el RFC a «RFC a facturar».
       { id: 'txtrfc', tipo: 'texto', de: 'datos.cliente.rfc', etiqueta: 'RFC', blur: true },
     ],
-    // El botón «Datos Fiscales» (id ButtonDF, onclick showFiscal()).
-    datosFiscales: { id: 'ButtonDF', boton: 'showFiscal' },
     campos: [
       { id: 'txtnombre', tipo: 'texto', de: 'datos.cliente.nombres', etiqueta: 'Nombre(s)' },
       {
@@ -220,7 +218,7 @@ const SECCIONES = [
       { id: 'check_cli_A', tipo: 'checkbox', fijo: true, etiqueta: 'Verificación' },
     ],
     // txtcolonia, txtcp, txtmpio y txtciudad son readonly: los llena SEPOMEX, y
-    // SEPOMEX lo hace el vendedor a mano. La corrida espera a ver el CP.
+    // SEPOMEX lo hace el vendedor a mano. La pista va al resumen.
     colonia: {
       cp: 'txtcp',
       que: 'del domicilio del cliente',
@@ -257,13 +255,22 @@ const SECCIONES = [
         texto: 'Electrónica',
         etiqueta: 'Forma de percepción',
       },
+      // Frecuencia, día y sueldo salen de los depósitos de nómina.
       {
         id: 'cbofrecuencia_pago',
         tipo: 'selectTexto',
         de: 'datos.empleo.frecuenciaPago',
         etiqueta: 'Frecuencia de pago',
       },
-      { id: 'txtsueldo', tipo: 'texto', de: 'datos.empleo.sueldo', etiqueta: 'Sueldo mensual' },
+      // Su renglón aparece al elegir la frecuencia; solo se deduce en pago semanal.
+      { id: 'diaPago', tipo: 'select', de: 'datos.empleo.diaPago', etiqueta: 'Día de pago', opcional: true },
+      {
+        id: 'txtsueldo',
+        tipo: 'texto',
+        de: 'datos.empleo.sueldo',
+        etiqueta: 'Sueldo mensual',
+        entero: true,
+      },
       { id: 'txtjefe', tipo: 'texto', de: 'datos.empleo.jefe', etiqueta: 'Jefe o contacto' },
       { id: 'cbooficina', tipo: 'select', fijo: '2', etiqueta: 'Tipo de oficina' },
       { id: 'txtcalle_emp', tipo: 'texto', de: 'datos.empleo.calle', etiqueta: 'Calle del trabajo' },
@@ -316,39 +323,9 @@ const SECCIONES = [
   },
 ];
 
-/** Datos Fiscales vive en su propia ventana; este es su mapeo. */
-const CAMPOS_FISCALES = [
-  { id: 'radioM', tipo: 'radio', etiqueta: 'Captura manual' },
-  { id: 'cboTipoPersona', tipo: 'select', fijo: 'F', etiqueta: 'Tipo de persona' },
-  { id: 'txtRFC', tipo: 'texto', de: 'datos.cliente.rfc', etiqueta: 'RFC' },
-  { id: 'txtRazonSocial', tipo: 'texto', de: 'datos.cliente.razonSocial', etiqueta: 'Razón social' },
-  { id: 'txtIdCIF', tipo: 'texto', de: 'datos.cliente.idCif', etiqueta: 'idCIF', opcional: true },
-  { id: 'cboRegimen_1', tipo: 'select', fijo: '605', etiqueta: 'Régimen' },
-  { id: 'cboUsoCFDI', tipo: 'select', fijo: 'S01', etiqueta: 'Uso CFDI' },
-  { id: 'txtCalle', tipo: 'texto', de: 'datos.domicilio.calle', etiqueta: 'Calle' },
-  {
-    id: 'txtNumExterior',
-    tipo: 'texto',
-    de: 'datos.domicilio.numeroExterior',
-    etiqueta: 'Número exterior',
-  },
-  { id: 'txtCodigoPostal', tipo: 'texto', de: 'datos.domicilio.cp', etiqueta: 'Código postal' },
-];
-
-const FISCALES = {
-  campos: CAMPOS_FISCALES,
-  cpPorDefecto: '25000',
-  direccionPorDefecto: '25000;0001;030;COA',
-  buscarDireccion: 'obtenerDireccionFiscal',
-  // NUNCA por id: `btnGuardarDatos` es el botón de Cancelar cuando el cliente ya
-  // tenía datos fiscales. El que guarda es el que llama a validarDatosAEnviar.
-  guardar: 'validarDatosAEnviar',
-};
-
 Object.assign(globalThis, {
   SECCIONES,
   REFERENCIAS,
-  FISCALES,
   seccionReferencia,
   valorEn,
 });

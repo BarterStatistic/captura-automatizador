@@ -106,26 +106,48 @@ Extrae el DOMICILIO DEL SERVICIO. Reglas:
 
 const PROMPT_ESTADO_CUENTA = `Eres un analista que lee estados de cuenta bancarios mexicanos.
 
-Determina cuánto gana el titular y cada cuándo le pagan. Reglas:
+Tu trabajo es encontrar los INGRESOS DE NÓMINA del titular: los depósitos con
+los que le pagan su sueldo. Reglas:
 
 - ${NO_INVENTES}
-- Fíjate en los DEPÓSITOS o ABONOS que se repiten con un monto parecido: ese es
-  el sueldo. Ignora traspasos entre cuentas propias, devoluciones y depósitos
-  aislados que no forman patrón.
-- "frecuencia_pago" debe ser exactamente SEMANAL, QUINCENAL o MENSUAL, según
-  cada cuánto aparecen esos depósitos. Si no hay patrón claro, null.
-- "sueldo_mensual" es el ingreso mensual en pesos, como número sin símbolos ni
-  comas. Si le pagan quincenal, suma las dos quincenas del mes; si semanal,
-  multiplica el depósito por 4.
-- Si no logras identificar un patrón de sueldo, devuelve ambos campos como null.`;
+- En "depositos_nomina" lista CADA depósito de sueldo que aparezca en el estado
+  de cuenta, uno por uno, con:
+    "fecha": la fecha del movimiento en formato AAAA-MM-DD (usa el año del
+             periodo del estado de cuenta si la línea no lo trae),
+    "monto": el importe depositado, como número sin símbolos ni comas,
+    "concepto": la descripción tal como aparece.
+- Un depósito es de nómina si su concepto lo dice (NOMINA, PAGO DE NOMINA,
+  SUELDO, SALARIO, PAGO QUINCENA, DISPERSION, el nombre de la empresa
+  empleadora) o si se repite con monto parecido en intervalos regulares
+  (cada semana, cada quincena, cada mes).
+- NO son nómina: traspasos entre cuentas propias, depósitos en efectivo
+  aislados, devoluciones, reembolsos, intereses, préstamos, pagos de tarjeta,
+  ni transferencias de personas que no se repiten.
+- "frecuencia_pago" es exactamente SEMANAL, QUINCENAL o MENSUAL según cada
+  cuánto llegan esos depósitos; null si no hay patrón claro.
+- "sueldo_mensual" es el ingreso mensual en pesos, número sin símbolos: si le
+  pagan quincenal, dos depósitos; si semanal, el depósito por 4. null si no hay
+  patrón.
+- Si no encuentras depósitos de nómina, devuelve la lista vacía y lo demás null.`;
 
 const ESQUEMA_ESTADO_CUENTA = {
   type: 'object',
   properties: {
+    depositos_nomina: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          fecha: { type: 'string', nullable: true },
+          monto: { type: 'number', nullable: true },
+          concepto: { type: 'string', nullable: true },
+        },
+      },
+    },
     sueldo_mensual: { type: 'number', nullable: true },
     frecuencia_pago: { type: 'string', nullable: true },
   },
-  required: ['sueldo_mensual', 'frecuencia_pago'],
+  required: ['depositos_nomina', 'sueldo_mensual', 'frecuencia_pago'],
 };
 
 // El formulario ya no es un archivo: el capturista pega el texto que le mandó

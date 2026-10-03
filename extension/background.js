@@ -1,5 +1,4 @@
-// Coordina las tres clases de pestaña: la de la app, la de la captura de
-// Dinamo, y las dos emergentes (SEPOMEX y Datos Fiscales) que la captura abre.
+// Coordina las dos pestañas: la de la app y la de la captura de Dinamo.
 //
 // No hay servidor, ni puerto, ni CORS: todo pasa por mensajes entre pestañas.
 
@@ -9,16 +8,7 @@
 const URL_CAPTURA_DEFECTO =
   'http://dinamo2.intranet/dscn/dscframe/Nwcreditoscj/dsc_captura_2022.php?tipo_captura=CREDINAMO';
 
-// --- Trabajo pendiente por pestaña -------------------------------------------
-
-async function guardar(clave, valor) {
-  await chrome.storage.session.set({ [clave]: valor });
-}
-
-async function tomar(clave) {
-  const guardado = await chrome.storage.session.get(clave);
-  return guardado[clave] ?? null;
-}
+// --- La pestaña de captura ---------------------------------------------------
 
 async function urlCaptura() {
   const { urlCaptura: guardada } = await chrome.storage.local.get('urlCaptura');
@@ -51,8 +41,6 @@ async function abrirCaptura(idPestanaApp, expediente) {
     return nueva.id;
   }
 
-  // Datos Fiscales pide el expediente de su pestaña madre.
-  await guardar(`expediente-${abierta.id}`, expediente);
   await chrome.tabs.update(abierta.id, { active: true });
   await chrome.windows.update(abierta.windowId, { focused: true });
   await chrome.tabs.sendMessage(abierta.id, { tipo: 'iniciar-llenado', expediente, idPestanaApp });
@@ -71,33 +59,6 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
   // --- Desde la pestaña de captura -------------------------------------------
   if (mensaje?.tipo === 'evento-llenado') {
     if (mensaje.idPestanaApp !== undefined) entregarALaApp(mensaje.idPestanaApp, mensaje.evento);
-    return false;
-  }
-
-  // --- Desde una ventana emergente -------------------------------------------
-  // Nacen con `openerTabId` apuntando a la captura, así que saben de quién son
-  // sin que nadie tenga que decírselo.
-  if (mensaje?.tipo === 'listo-emergente') {
-    const idMadre = remitente.tab.openerTabId;
-    if (idMadre === undefined) return responder({});
-    tomar(`expediente-${idMadre}`)
-      .then((expediente) => responder({ expediente, idMadre }))
-      .catch(() => responder({}));
-    return true;
-  }
-
-  if (mensaje?.tipo === 'emergente-terminada') {
-    const idMadre = remitente.tab.openerTabId;
-    if (idMadre !== undefined) {
-      chrome.tabs
-        .sendMessage(idMadre, {
-          tipo: 'emergente-terminada',
-          cual: mensaje.cual,
-          ok: mensaje.ok,
-          detalle: mensaje.detalle,
-        })
-        .catch(() => {});
-    }
     return false;
   }
 
@@ -144,8 +105,3 @@ async function intentarEntrega(idPestanaApp, evento, intentos = 4) {
     }
   }
 }
-
-// Sin esto, storage.session junta basura de pestañas muertas.
-chrome.tabs.onRemoved.addListener((idPestana) => {
-  chrome.storage.session.remove(`expediente-${idPestana}`);
-});

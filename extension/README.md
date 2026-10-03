@@ -8,6 +8,12 @@ la cabeza.
 botón `valida()` lo presiona una persona después de revisar: una captura de
 crédito no se deshace.
 
+**No espera a nadie (desde 1.8.0).** Una vez que empieza, llena de corrido y al
+final manda un resumen «Pendiente a mano» que la app muestra arriba de la
+bitácora: colonias de SEPOMEX con su pista (CP, colonia), los «Validar Datos»
+que dependen de ellas, las preguntas de Dinamo, los datos que no venían, estado
+y municipio de nacimiento, y Datos Fiscales si el trámite los pide.
+
 La extensión no habla con Gemini, no tiene API key y no hace ninguna petición de
 red. Escribe directo en el DOM, así que no hay CORS, ni contenido mixto, ni
 Private Network Access, aunque la app esté en HTTPS y Dinamo en HTTP.
@@ -37,10 +43,10 @@ puente-captura.js ──sendMessage──► background.js
                                      │ abre o reusa la pestaña
                                      ▼
                                   (la página carga) ──►  contenido-captura.js
-                                                           │ sección por sección
-                                  background.js ◄──────────┘   │
-  ▲                                  │                          │
-  └──── postMessage(evento) ◄────────┘                          └─► Datos Fiscales
+                                                           │ de corrido
+                                  background.js ◄──────────┘
+  ▲                                  │
+  └──── postMessage(evento) ◄────────┘   (al final: evento «resumen»)
 ```
 
 | Archivo | Qué hace |
@@ -51,7 +57,6 @@ puente-captura.js ──sendMessage──► background.js
 | `dom.js` | Escritura sobre el DOM: esperas, setter nativo, selects |
 | `campos.js` | El mapeo: secciones, ids, tipos y valores fijos |
 | `contenido-captura.js` | El motor de llenado |
-| `contenido-fiscales.js` | La ventana de Datos Fiscales |
 | `hook-avisos.js` | Captura `alert`, `confirm` y SweetAlert2 durante el llenado |
 
 ## Qué llena y qué no (desde 1.7.0)
@@ -71,34 +76,44 @@ cliente» y llega hasta las referencias.
 
 **Datos del cliente:** primero se busca el RFC en «Buscar cliente» (eso
 habilita la sección), luego se escribe en `txtrfc` (al salir del campo Dinamo
-calcula la fecha de nacimiento y valida la edad), luego **Datos Fiscales** con
-el botón `ButtonDF`, y después el resto.
+calcula la fecha de nacimiento y valida la edad), y después el resto. Al final
+se presionan «Validar email» y «Validar Datos» del cliente, que no dependen de
+nadie. **Datos Fiscales ya no lo toca la extensión** (desde 1.8.0).
 
 **SEPOMEX lo hace el vendedor.** La extensión llena domicilio, empleo y
-referencias, avisa en la bitácora con qué buscar (CP o colonia) y espera hasta
-10 minutos a que el CP de esa sección aparezca; entonces valida y sigue sola.
+referencias sin esperar la colonia. Sus «Validar Datos» no se presionan (sin
+colonia, Dinamo los rechaza): quedan en el resumen con la pista de qué buscar.
 
-## Tres cosas que no son obvias
+**Empleo:** frecuencia de pago, día de pago (solo semanal) y sueldo mensual
+salen de los depósitos de nómina que la app analizó. El sueldo va entero, sin
+comas: `txtsueldo` solo acepta dígitos.
 
-**Los campos nacen `disabled`.** Cada «Validar Datos» habilita la sección
-siguiente, así que presionarlos no es opcional: son el motor del flujo. Si una
-sección no se habilita, la corrida se detiene ahí en vez de seguir escribiendo
-en campos que nadie lee.
+## Cosas que no son obvias
 
-**Los botones se buscan por su `onclick`, nunca por id ni XPath.** En Datos
-Fiscales esto es crítico: `btnGuardarDatos` es el botón de **Cancelar** cuando el
-cliente ya tenía datos capturados, y el que guarda es `btnModificarDatos`. Se
-localiza el que llama a `validarDatosAEnviar`.
+**Los campos bloqueados se escriben igual.** Dinamo deshabilita cada sección
+hasta que se valida la anterior. Un campo `disabled` guarda el valor que se le
+asigna, así que la extensión le da a cada sección 2 s para habilitarse y luego
+escribe como esté; cuando el vendedor valida, los campos ya están llenos. Las
+casillas y radios deshabilitados se marcan por `checked`, porque ahí el clic no
+hace nada.
 
-**Las preguntas de Dinamo no se contestan solas.** Los avisos de un botón
-(SweetAlert) se anotan y se cierran; los que preguntan algo («¿El cliente cuenta
-con homoclave?») detienen la corrida para que los conteste una persona.
+**Los botones se buscan por su `onclick`, nunca por id ni XPath.** Un XPath
+absoluto se rompe en cuanto alguien inserta un `<tr>`; el nombre de la función
+no.
+
+**Las preguntas de Dinamo no se contestan solas, pero no detienen la corrida.**
+Los avisos de un botón (SweetAlert) se anotan y se cierran; los que preguntan
+algo («¿El cliente cuenta con homoclave?») se quedan en pantalla y pasan al
+resumen.
+
+**Las casillas de las referencias 2 y 3 se marcan solo si no lo están.** Un
+segundo clic las desmarca y vuelve a esconder la sección.
 
 ## Probar sin tocar Dinamo
 
 > La prueba que manda es `pruebas/campos.test.mjs` contra `ids-dinamo.json`
 > (los ids del HTML real). La página simulada es anterior a la 1.4.0: no tiene
-> `txtrfc`, `ButtonDF` ni la espera de colonia.
+> `txtrfc` ni el resumen de pendientes.
 
 `pruebas/captura-simulada.html` replica los ids, el `disabled` progresivo, los
 `onclick` reales, una objeción vía `Swal.fire`, y la lista de accesorios con sus
@@ -138,7 +153,8 @@ npm test
 Comprueban lo que no se puede ver a ojo en `campos.js`: que los valores fijos son
 los del catálogo real, que ninguna sección invoca `valida()`, que los campos
 `readonly` de SEPOMEX no se intentan escribir, y que cada campo dice de dónde
-sale su valor.
+sale su valor. También que Datos Fiscales y las esperas de colonia no volvieron
+al motor.
 
 ## Si la app cambia de dominio
 
