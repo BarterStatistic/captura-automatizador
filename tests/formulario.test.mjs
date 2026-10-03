@@ -10,6 +10,8 @@ import {
   personasEn,
   puntosDelFormulario,
   respaldoDelTexto,
+  respuestaDe,
+  textoParaGemini,
 } from '../src/lib/formulario.js';
 import { ESQUEMAS_VENTA, SUBESQUEMAS } from '../src/lib/esquemas.js';
 
@@ -139,7 +141,69 @@ test('lo que Gemini dejó vacío se completa con el texto; lo que leyó se respe
 });
 
 test('un texto sin numerar no inventa personas', () => {
-  const lectura = { referencia_nombre: 'Sofía Gómez', referencia_telefono: '8449990011' };
+  const lectura = {
+    correo: 'pedro@gmail.com',
+    referencia_nombre: 'Sofía Gómez',
+    referencia_telefono: '8449990011',
+  };
 
   assert.deepEqual(respaldoDelTexto(lectura, 'pedro@gmail.com / Sofía 8449990011'), lectura);
+});
+
+// --- Formatos de WhatsApp y respaldo de los demás puntos ----------------------------
+
+const WHATSAPP = `*1️⃣ Correo electrónico:* Pedro.Ruiz @Gmail.com
+*2️⃣ Nombre y dirección*
+_Tornillos del Norte, Blvd. Fundadores 500_
+3️⃣ Antigüedad laboral
+3-4 años
+4️⃣ Nombre y teléfono de algún compañero de su trabajo
+Jorge Ramírez 844 222 3344
+5️⃣ Tiempo viviendo en su casa actual: toda la vida
+6️⃣ Nombre y teléfono de algún amigo, conocido o familiar
+Luis Pérez 844-123-4567
+7️⃣ Número de seguro social (Opcional)
+123 4567 8901
+Cel del cliente: 844 555 6677`;
+
+test('los emojis de número y las negritas de WhatsApp también marcan los puntos', () => {
+  const puntos = puntosDelFormulario(WHATSAPP);
+
+  assert.deepEqual(Object.keys(puntos), ['1', '2', '3', '4', '5', '6', '7']);
+  assert.equal(respuestaDe(puntos, 2), 'Tornillos del Norte, Blvd. Fundadores 500');
+});
+
+test('«3-4 años» al inicio de renglón no abre otro punto 3', () => {
+  const puntos = puntosDelFormulario(WHATSAPP);
+
+  assert.equal(respuestaDe(puntos, 3), '3-4 años');
+  assert.equal(respuestaDe(puntos, 5), 'toda la vida');
+});
+
+test('a Gemini le llegan las respuestas ya separadas por punto', () => {
+  const texto = textoParaGemini(WHATSAPP);
+
+  assert.match(texto, /RESPUESTAS SEPARADAS POR PUNTO/);
+  assert.match(texto, /Punto 4 \(compañero de trabajo\): Jorge Ramírez 844 222 3344/);
+  assert.equal(textoParaGemini('solo un renglón'), 'solo un renglón');
+});
+
+test('lo que Gemini dejó vacío de los demás puntos sale del texto', () => {
+  const nueva = respaldoDelTexto({}, WHATSAPP);
+
+  assert.equal(nueva.correo, 'pedro.ruiz@gmail.com');
+  assert.equal(nueva.empleo, 'Tornillos del Norte');
+  assert.equal(nueva.antiguedad_laboral, '3-4 años');
+  assert.equal(nueva.antiguedad_domicilio, 'toda la vida');
+  assert.equal(nueva.nss, '12345678901');
+  assert.equal(nueva.celular, '844 555 6677');
+  assert.equal(nueva.companero_nombre, 'Jorge Ramírez');
+  assert.equal(nueva.referencia_telefono, '844-123-4567');
+});
+
+test('el respaldo no pisa lo que Gemini sí leyó', () => {
+  const nueva = respaldoDelTexto({ correo: 'otro@hotmail.com', empleo: 'Walmart' }, WHATSAPP);
+
+  assert.equal(nueva.correo, 'otro@hotmail.com');
+  assert.equal(nueva.empleo, 'Walmart');
 });

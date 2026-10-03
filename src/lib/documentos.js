@@ -196,10 +196,19 @@ Si el texto además trae estos datos, extráelos; si no aparecen, null:
 - "referencias_extra": si el texto trae MÁS referencias personales además de la
   del punto 6, una lista con { nombre, telefono } de cada una
 
+Cuando el texto viene numerado, al final se agrega una sección «RESPUESTAS
+SEPARADAS POR PUNTO» con la respuesta de cada punto ya aislada de su pregunta.
+Úsala para saber a qué punto pertenece cada respuesta; si choca con el texto
+original, manda el texto original.
+
+El texto puede venir con formato de WhatsApp (*negritas*, _cursivas_, emojis
+de número como 1️⃣) o con renglones cortados: ignora el formato.
+
 Reglas:
 
 - ${NO_INVENTES}
 - Los teléfonos devuélvelos con todos sus dígitos, tal como aparecen.
+- El correo devuélvelo en minúsculas y sin espacios.
 - En los nombres NO incluyas el parentesco entre paréntesis: de
   "Luis Perez (Hermano)" el nombre es "Luis Perez".
 - La dirección de trabajo suele venir incompleta y sin número. Extrae lo que

@@ -1,37 +1,43 @@
 /* Captura Automatizador
-   Identidad de ProspecTeam (fondo casi negro, dorado de acción, cyan secundario),
-   usada con sobriedad: el dorado marca la acción y la selección, nada más. */
+   Identidad de Dinamo: blanco de fondo, naranja del logo para la acción y la
+   selección, gris del logo para el texto y lo secundario. El naranja se usa con
+   sobriedad: marca qué se presiona y en qué paso se va, nada más. */
 
 :root {
-  /* Neutros con un dejo azul, del mismo tono que el fondo del dashboard. */
-  --fondo: oklch(0.15 0.008 255);
-  --panel: oklch(0.185 0.009 255);
-  --superficie: oklch(0.205 0.01 255);
-  --superficie-alta: oklch(0.245 0.012 255);
-  --superficie-hover: oklch(0.275 0.013 255);
-  --borde: oklch(0.32 0.013 255);
-  --borde-suave: oklch(0.265 0.011 255);
-  --texto: oklch(0.95 0.004 255);
-  --texto-medio: oklch(0.8 0.01 255);
-  --texto-tenue: oklch(0.7 0.012 255);
+  /* Neutros: blancos y grises fríos, del gris del logo (#474C55). */
+  --fondo: #f4f5f7;
+  --panel: #f8f9fa;
+  --superficie: #ffffff;
+  --superficie-alta: #f3f4f6;
+  --superficie-hover: #e9ebee;
+  --borde: #d3d6db;
+  --borde-suave: #e4e6ea;
+  --texto: #2a2e35;
+  --texto-medio: #474c55;
+  --texto-tenue: #6b717b;
 
-  /* Marca y estados. */
-  --dorado: oklch(0.76 0.12 78);
-  --dorado-fuerte: oklch(0.82 0.13 80);
-  --dorado-tinta: oklch(0.2 0.04 75);
-  --dorado-suave: oklch(0.76 0.12 78 / 0.12);
-  --cyan: oklch(0.8 0.11 228);
-  --cyan-suave: oklch(0.8 0.11 228 / 0.12);
-  --verde: oklch(0.78 0.15 155);
-  --verde-suave: oklch(0.78 0.15 155 / 0.12);
-  --rojo: oklch(0.7 0.18 25);
-  --rojo-suave: oklch(0.7 0.18 25 / 0.12);
-  --naranja: oklch(0.78 0.14 58);
-  --naranja-suave: oklch(0.78 0.14 58 / 0.12);
+  /* Marca: el naranja del logo (#C46A30). Los nombres «dorado» se quedan por
+     compatibilidad con el resto de la hoja: son el color de acción. */
+  --dorado: #c4692f;
+  --dorado-fuerte: #a85520;
+  --dorado-tinta: #ffffff;
+  --dorado-suave: rgb(196 105 47 / 0.09);
+  /* Secundario: el gris del logo. */
+  --cyan: #474c55;
+  --cyan-suave: rgb(71 76 85 / 0.08);
+  --verde: #1e8449;
+  --verde-suave: rgb(30 132 73 / 0.1);
+  --rojo: #c0392b;
+  --rojo-suave: rgb(192 57 43 / 0.08);
+  /* Advertencias: ámbar, distinto del naranja de la marca. */
+  --naranja: #a16207;
+  --naranja-suave: rgb(202 138 4 / 0.12);
+
+  --sombra: 0 1px 2px rgb(42 46 53 / 0.05), 0 2px 8px rgb(42 46 53 / 0.04);
 
   --radio: 10px;
   --radio-chico: 7px;
-  --foco: 0 0 0 2px var(--fondo), 0 0 0 4px var(--cyan);
+  --foco: 0 0 0 2px var(--superficie), 0 0 0 4px var(--dorado);
 
   --z-pegajoso: 10;
   --z-barra: 20;
@@ -43,7 +49,7 @@
   --letra-titulo: 'League Spartan', 'Segoe UI', system-ui, sans-serif;
   --letra-mono: 'Cascadia Mono', ui-monospace, Consolas, monospace;
 
-  color-scheme: dark;
+  color-scheme: light;
   font-family: var(--letra);
 }
 
@@ -96,8 +102,9 @@ kbd {
   position: sticky;
   top: 0;
   z-index: var(--z-barra);
-  background: var(--fondo);
-  border-bottom: 1px solid var(--borde-suave);
+  background: var(--superficie);
+  border-bottom: 3px solid var(--dorado);
+  box-shadow: var(--sombra);
 }
 
 .barra-superior-interior,
@@ -120,8 +127,22 @@ kbd {
 
 .identidad {
   display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.identidad-logo {
+  display: block;
+  height: 48px;
+  width: auto;
+}
+
+.identidad-textos {
+  display: flex;
   flex-direction: column;
   line-height: 1.15;
+  padding-left: 14px;
+  border-left: 1px solid var(--borde);
 }
 
 .identidad-nombre {
@@ -129,6 +150,7 @@ kbd {
   font-weight: 700;
   font-size: 20px;
   letter-spacing: -0.01em;
+  color: var(--texto-medio);
 }
 
 .identidad-nombre span {
@@ -222,7 +244,7 @@ kbd {
 }
 
 .progreso li.listo:not(:last-child)::after {
-  background: oklch(0.78 0.15 155 / 0.45);
+  background: rgb(30 132 73 / 0.45);
 }
 
 .progreso a {
@@ -305,13 +327,13 @@ kbd {
 .marca-paso.listo {
   background: var(--verde);
   border-color: var(--verde);
-  color: oklch(0.2 0.05 155);
+  color: #ffffff;
 }
 
 .marca-paso.atencion {
   background: var(--naranja);
   border-color: var(--naranja);
-  color: oklch(0.22 0.05 58);
+  color: #ffffff;
 }
 
 .marca-paso.bloqueado {
@@ -325,6 +347,7 @@ kbd {
   background: var(--superficie);
   border: 1px solid var(--borde-suave);
   border-radius: 14px;
+  box-shadow: var(--sombra);
   padding: 20px 22px 22px;
   transition: border-color 200ms var(--facil), opacity 200ms var(--facil);
 }
@@ -437,7 +460,7 @@ kbd {
 .opcion-variante {
   font-size: 12px;
   font-weight: 600;
-  color: var(--cyan);
+  color: var(--dorado-fuerte);
 }
 
 .opcion-credito.activa {
@@ -465,7 +488,7 @@ kbd {
   width: 100%;
   padding: 20px;
   text-align: left;
-  border: 1.5px dashed oklch(0.76 0.12 78 / 0.55);
+  border: 1.5px dashed rgb(196 105 47 / 0.55);
   border-radius: 12px;
   background: var(--dorado-suave);
   color: var(--texto);
@@ -474,7 +497,7 @@ kbd {
 
 .soltar-todo:hover:not(:disabled) {
   border-color: var(--dorado);
-  background: oklch(0.76 0.12 78 / 0.18);
+  background: rgb(196 105 47 / 0.15);
   filter: none;
 }
 
@@ -518,7 +541,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: oklch(0.15 0.008 255 / 0.72);
+  background: rgb(255 255 255 / 0.82);
   border: 3px dashed var(--dorado);
   animation: aparecer 160ms var(--facil);
 }
@@ -563,7 +586,7 @@ kbd {
 }
 
 .bandeja-item.sin-identificar {
-  border-color: oklch(0.78 0.14 58 / 0.55);
+  border-color: rgb(161 98 7 / 0.5);
   background: var(--naranja-suave);
 }
 
@@ -615,19 +638,19 @@ kbd {
 
 .casilla.encima {
   border-color: var(--dorado);
-  background: oklch(0.76 0.12 78 / 0.1);
+  background: rgb(196 105 47 / 0.08);
 }
 
 .casilla.listo {
-  border-color: oklch(0.78 0.15 155 / 0.5);
+  border-color: rgb(30 132 73 / 0.5);
 }
 
 .casilla.leyendo {
-  border-color: oklch(0.8 0.11 228 / 0.5);
+  border-color: rgb(71 76 85 / 0.45);
 }
 
 .casilla.error {
-  border-color: oklch(0.7 0.18 25 / 0.6);
+  border-color: rgb(192 57 43 / 0.55);
 }
 
 .casilla-vista {
@@ -675,7 +698,7 @@ button.casilla-vista.vacia:hover:not(:disabled) {
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 700;
-  background: oklch(0.15 0.008 255 / 0.88);
+  background: rgb(255 255 255 / 0.92);
   border: 1px solid currentColor;
 }
 
@@ -799,7 +822,7 @@ button.casilla-vista.vacia:hover:not(:disabled) {
   width: 100%;
   resize: vertical;
   min-height: 170px;
-  background: var(--fondo);
+  background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   color: var(--texto);
@@ -815,7 +838,8 @@ button.casilla-vista.vacia:hover:not(:disabled) {
 
 .pegar-formulario:focus {
   outline: none;
-  border-color: var(--cyan);
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 3px var(--dorado-suave);
 }
 
 .formulario-pie {
@@ -915,7 +939,7 @@ button.casilla-vista.vacia:hover:not(:disabled) {
 }
 
 .grupo.con-faltantes {
-  border-color: oklch(0.7 0.18 25 / 0.45);
+  border-color: rgb(192 57 43 / 0.4);
 }
 
 .grupo legend {
@@ -995,7 +1019,7 @@ button.casilla-vista.vacia:hover:not(:disabled) {
 .campo input,
 .campo select {
   width: 100%;
-  background: var(--fondo);
+  background: var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
   color: var(--texto);
@@ -1013,18 +1037,18 @@ button.casilla-vista.vacia:hover:not(:disabled) {
 
 .campo input:hover,
 .campo select:hover {
-  border-color: oklch(0.4 0.014 255);
+  border-color: #a9adb4;
 }
 
 .campo input:focus,
 .campo select:focus {
   outline: none;
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px var(--cyan-suave);
+  border-color: var(--dorado);
+  box-shadow: 0 0 0 3px var(--dorado-suave);
 }
 
 .campo input::placeholder {
-  color: oklch(0.7 0.18 25 / 0.8);
+  color: rgb(192 57 43 / 0.7);
 }
 
 .campo.falta input,
@@ -1046,7 +1070,7 @@ button.casilla-vista.vacia:hover:not(:disabled) {
 .campo.ficticio input,
 .campo.ficticio select {
   border-style: dashed;
-  border-color: oklch(0.78 0.14 58 / 0.6);
+  border-color: rgb(161 98 7 / 0.55);
 }
 
 .campo.ficticio .nota {
@@ -1105,7 +1129,7 @@ button.primario:hover:not(:disabled) {
 
 button.secundario {
   background: transparent;
-  border-color: oklch(0.8 0.11 228 / 0.5);
+  border-color: rgb(71 76 85 / 0.4);
   color: var(--cyan);
 }
 
@@ -1171,19 +1195,19 @@ button.icono:hover:not(:disabled) {
 
 .aviso.ambar {
   color: var(--naranja);
-  border-color: oklch(0.78 0.14 58 / 0.4);
+  border-color: rgb(161 98 7 / 0.4);
   background: var(--naranja-suave);
 }
 
 .aviso.rojo {
-  color: oklch(0.8 0.13 25);
-  border-color: oklch(0.7 0.18 25 / 0.45);
+  color: #a93226;
+  border-color: rgb(192 57 43 / 0.4);
   background: var(--rojo-suave);
 }
 
 .aviso.verde {
   color: var(--verde);
-  border-color: oklch(0.78 0.15 155 / 0.4);
+  border-color: rgb(30 132 73 / 0.4);
   background: var(--verde-suave);
 }
 
@@ -1201,8 +1225,9 @@ button.icono:hover:not(:disabled) {
   right: 0;
   bottom: 0;
   z-index: var(--z-barra);
-  background: var(--panel);
+  background: var(--superficie);
   border-top: 1px solid var(--borde);
+  box-shadow: 0 -2px 10px rgb(42 46 53 / 0.06);
 }
 
 .barra-accion-interior {
@@ -1244,13 +1269,13 @@ button.icono:hover:not(:disabled) {
   font-size: 12.5px;
   font-weight: 600;
   border-radius: 999px;
-  border-color: oklch(0.7 0.18 25 / 0.5);
+  border-color: rgb(192 57 43 / 0.45);
   background: var(--rojo-suave);
-  color: oklch(0.82 0.12 25);
+  color: #a93226;
 }
 
 .chip-falta:hover:not(:disabled) {
-  background: oklch(0.7 0.18 25 / 0.22);
+  background: rgb(192 57 43 / 0.16);
 }
 
 .accion-botones {
@@ -1457,4 +1482,234 @@ button.icono:hover:not(:disabled) {
   .accion-botones button {
     flex: 1;
   }
+}
+
+/* --- Así se entendió el formulario ---------------------------------------- */
+
+.entendido {
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  background: var(--panel);
+  padding: 14px 16px;
+}
+
+.entendido-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.entendido h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-medio);
+}
+
+.entendido-ok,
+.entendido-falta {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.entendido-ok { color: var(--verde); }
+.entendido-falta { color: var(--rojo); }
+
+.entendido-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.entendido-lista li {
+  display: grid;
+  grid-template-columns: 24px minmax(130px, 190px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--borde-suave);
+  font-size: 13.5px;
+}
+
+.entendido-lista li:last-child {
+  border-bottom: none;
+}
+
+.entendido-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--dorado-suave);
+  color: var(--dorado-fuerte);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.entendido-nombre {
+  font-weight: 600;
+  color: var(--texto-medio);
+}
+
+.entendido-valor {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.entendido-valor small {
+  display: block;
+  color: var(--texto-tenue);
+  font-size: 12.5px;
+}
+
+.entendido-lista li.vacio-punto .entendido-valor {
+  color: var(--rojo);
+  font-weight: 600;
+}
+
+.entendido-lista li.vacio-punto .entendido-numero {
+  background: var(--rojo-suave);
+  color: var(--rojo);
+}
+
+.entendido-lista li.opcional .entendido-valor {
+  color: var(--texto-tenue);
+}
+
+/* --- Captura en Dinamo: moto primero, luego llenar ------------------------- */
+
+.captura-dinamo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pasos-dinamo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.pasos-dinamo li {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--borde-suave);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.pasos-dinamo li.actual {
+  border-color: var(--dorado);
+  background: var(--dorado-suave);
+}
+
+.pasos-dinamo li.hecho {
+  border-color: rgb(30 132 73 / 0.4);
+}
+
+.pasos-dinamo li.espera {
+  opacity: 0.7;
+}
+
+.pasos-dinamo-numero {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--dorado);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pasos-dinamo li.hecho .pasos-dinamo-numero {
+  background: var(--verde);
+}
+
+.pasos-dinamo li.espera .pasos-dinamo-numero {
+  background: var(--texto-tenue);
+}
+
+.pasos-dinamo-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pasos-dinamo-texto h3 {
+  margin: 3px 0 0;
+  font-size: 16px;
+  font-family: var(--letra-titulo);
+}
+
+.pasos-dinamo-texto p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--texto-medio);
+}
+
+.pasos-dinamo-acciones {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.pasos-dinamo-motivo {
+  font-size: 12.5px;
+  color: var(--texto-tenue);
+}
+
+.confirmar-moto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmar-moto input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--dorado);
+}
+
+/* Un enlace con forma de botón (abre Dinamo en otra pestaña). */
+a.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radio-chico);
+  border: 1px solid rgb(71 76 85 / 0.4);
+  color: var(--cyan);
+  text-decoration: none;
+  transition: background 150ms var(--facil);
+}
+
+a.boton:hover {
+  background: var(--cyan-suave);
+}
+
+button.grande {
+  padding: 12px 22px;
+  font-size: 15.5px;
 }

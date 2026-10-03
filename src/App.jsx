@@ -9,6 +9,7 @@ import BarraAccion from './components/BarraAccion.jsx';
 import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
+import CapturaDinamo from './components/CapturaDinamo.jsx';
 
 import {
   CLASIFICADOR,
@@ -22,7 +23,7 @@ import {
 import { clasificarArchivo, leerDocumento, leerTexto, URL_API } from './lib/gemini.js';
 import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
-import { extrasAlManual, respaldoDelTexto } from './lib/formulario.js';
+import { extrasAlManual, respaldoDelTexto, textoParaGemini } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
 import { esquemaPorValue, referenciasRequeridas } from './lib/esquemas.js';
 
@@ -76,6 +77,8 @@ export default function App() {
   const [prueba, setPrueba] = useState(null);
   const [arrastrando, setArrastrando] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  // El capturista confirma que ya capturó la moto en Dinamo; sin eso no se llena.
+  const [motoLista, setMotoLista] = useState(false);
 
   // La extensión se detecta al montar y no cambia mientras la pestaña vive.
   const [hayExtension] = useState(() => extensionDisponible());
@@ -194,7 +197,7 @@ export default function App() {
     setFormEstado('leyendo');
     setFormMensaje('');
 
-    leerTexto(FORMULARIO, texto)
+    leerTexto(FORMULARIO, textoParaGemini(texto))
       .then((leida) => {
         if (token !== formToken.current) return;
         // Lo que Gemini dejó vacío de las personas se busca directo en el texto.
@@ -337,6 +340,7 @@ export default function App() {
     setErrores([]);
     setEventos([]);
     setPrueba(null);
+    setMotoLista(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -369,6 +373,20 @@ export default function App() {
   else if (hayLecturas && faltanDatos > 0) estadoRevision = 'atencion';
   else if (hayLecturas && !leyendoAlgo) estadoRevision = 'listo';
 
+  const terminado = !llenando && eventos.some((evento) => evento.tipo === 'resumen');
+  let estadoDinamo = 'pendiente';
+  if (!tipoDefinido) estadoDinamo = 'bloqueado';
+  else if (llenando) estadoDinamo = 'en-curso';
+  else if (terminado) estadoDinamo = 'listo';
+
+  // Por qué todavía no se puede llenar, en el orden en que se resuelve.
+  let motivoLlenar = '';
+  if (!hayExtension) motivoLlenar = 'Este navegador no tiene la extensión instalada.';
+  else if (!hayLecturas) motivoLlenar = 'Primero pega el formulario y carga los documentos.';
+  else if (leyendoAlgo) motivoLlenar = 'Gemini sigue leyendo…';
+  else if (expediente.faltantes.length > 0) motivoLlenar = 'Faltan datos obligatorios: están marcados abajo.';
+  else if (!motoLista) motivoLlenar = 'Primero captura la moto en Dinamo y marca la casilla de arriba.';
+
   const tipoElegido = esquemaPorValue(manual.esquemaVenta);
   const numReferencias = referenciasRequeridas(manual.esquemaVenta).length;
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? '' : 's'}`;
@@ -385,8 +403,20 @@ export default function App() {
       resumenCorto: tipoElegido?.nombre ?? 'Elegir',
     },
     {
-      id: 'paso-documentos',
+      id: 'paso-formulario',
       numero: 2,
+      titulo: 'Formulario del vendedor',
+      estado: estadoForm,
+      resumen:
+        formEstado === 'listo'
+          ? 'Leído. Lo que trajo ya está en la revisión.'
+          : 'Pega el mensaje que mandó el vendedor por WhatsApp.',
+      resumenCorto:
+        formEstado === 'listo' ? 'Leído' : formEstado === 'leyendo' ? 'Leyendo' : 'Pegar mensaje',
+    },
+    {
+      id: 'paso-documentos',
+      numero: 3,
       titulo: 'Documentos',
       estado: estadoDocs,
       resumen: [
@@ -400,18 +430,6 @@ export default function App() {
         .filter(Boolean)
         .join(' '),
       resumenCorto: docsConProblema ? 'Revisar archivos' : `${leidos} de ${obligatorios.length} leídos`,
-    },
-    {
-      id: 'paso-formulario',
-      numero: 3,
-      titulo: 'Formulario del vendedor',
-      estado: estadoForm,
-      resumen:
-        formEstado === 'listo'
-          ? 'Leído. Lo que trajo ya está en la revisión.'
-          : 'Pega el mensaje que mandó el vendedor por WhatsApp.',
-      resumenCorto:
-        formEstado === 'listo' ? 'Leído' : formEstado === 'leyendo' ? 'Leyendo' : 'Pegar mensaje',
     },
     {
       id: 'paso-revision',
@@ -428,6 +446,18 @@ export default function App() {
         : faltanDatos > 0
           ? `Falta${faltanDatos === 1 ? '' : 'n'} ${faltanDatos}`
           : 'Completa',
+    },
+    {
+      id: 'paso-dinamo',
+      numero: 5,
+      titulo: 'Captura en Dinamo',
+      estado: estadoDinamo,
+      resumen: llenando
+        ? 'La extensión está llenando Dinamo…'
+        : terminado
+          ? 'Llenado. Termina lo pendiente a mano y presiona Grabar en Dinamo.'
+          : 'Primero la moto en Dinamo, a mano; después «Llenar en Dinamo».',
+      resumenCorto: llenando ? 'Llenando' : terminado ? 'Llenado' : motoLista ? 'Llenar' : 'Moto primero',
     },
   ];
   const paso = Object.fromEntries(pasos.map((p) => [p.id, p]));
@@ -448,10 +478,13 @@ export default function App() {
       <header className="barra-superior">
         <div className="barra-superior-interior">
           <div className="identidad">
-            <span className="identidad-nombre">
-              Captura <span>Automatizador</span>
-            </span>
-            <span className="identidad-detalle">Crédito Dinamo · no presiona Grabar</span>
+            <img className="identidad-logo" src="/logo-dinamo.webp" alt="Dinamo" width="73" height="48" />
+            <div className="identidad-textos">
+              <span className="identidad-nombre">
+                Captura <span>Automatizador</span>
+              </span>
+              <span className="identidad-detalle">Solicitud de crédito · Agencia Dinamo Saltillo</span>
+            </div>
           </div>
           <div className="barra-herramientas">
             <span className={`indicador ${hayExtension ? 'ok' : 'falla'}`}>
@@ -520,6 +553,17 @@ export default function App() {
             />
           </Paso>
 
+          <Paso {...paso['paso-formulario']} motivoBloqueo={BLOQUEO}>
+            <Formulario
+              texto={formTexto}
+              estado={formEstado}
+              mensaje={formMensaje}
+              lectura={lecturas.formulario}
+              onTexto={setFormTexto}
+              onLeer={leerFormulario}
+            />
+          </Paso>
+
           <Paso {...paso['paso-documentos']} motivoBloqueo={BLOQUEO}>
             <ZonaDocumentos
               ranuras={ranuras}
@@ -530,16 +574,6 @@ export default function App() {
               onQuitar={quitar}
               onDescartar={(id) => setBandeja((previa) => previa.filter((item) => item.id !== id))}
               onReintentar={reintentar}
-            />
-          </Paso>
-
-          <Paso {...paso['paso-formulario']} motivoBloqueo={BLOQUEO}>
-            <Formulario
-              texto={formTexto}
-              estado={formEstado}
-              mensaje={formMensaje}
-              onTexto={setFormTexto}
-              onLeer={leerFormulario}
             />
           </Paso>
 
@@ -560,7 +594,18 @@ export default function App() {
             )}
           </Paso>
 
-          <Bitacora eventos={eventos} />
+          <Paso {...paso['paso-dinamo']} motivoBloqueo={BLOQUEO}>
+            <CapturaDinamo
+              motoLista={motoLista}
+              onMotoLista={setMotoLista}
+              puedeLlenar={!motivoLlenar}
+              motivo={motivoLlenar}
+              llenando={llenando}
+              onLlenar={llenar}
+            >
+              <Bitacora eventos={eventos} />
+            </CapturaDinamo>
+          </Paso>
         </main>
       </div>
 
@@ -569,6 +614,7 @@ export default function App() {
         leyendo={leyendoAlgo}
         faltantes={expediente.faltantes}
         hayExtension={hayExtension}
+        motoLista={motoLista}
         llenando={llenando}
         copiado={copiado}
         onLlenar={llenar}

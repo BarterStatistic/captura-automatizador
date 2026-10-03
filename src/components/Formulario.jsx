@@ -1,5 +1,68 @@
 import { IconoReintentar } from './Iconos.jsx';
 
+const unir = (...partes) => partes.map((parte) => String(parte ?? '').trim()).filter(Boolean).join(' · ');
+
+/**
+ * Lo que se entendió de cada punto, en el orden del esqueleto. Sirve para ver
+ * de un vistazo si una respuesta cayó en el punto equivocado o no se encontró,
+ * antes de bajar a la revisión.
+ */
+function puntosLeidos(lectura) {
+  const extra = Array.isArray(lectura.referencias_extra) ? lectura.referencias_extra : [];
+  return [
+    { numero: '1', nombre: 'Correo', valor: unir(lectura.correo) },
+    {
+      numero: '2',
+      nombre: 'Trabajo',
+      valor: unir(lectura.empleo, lectura.direccion_empleo, lectura.colonia_empleo),
+    },
+    { numero: '3', nombre: 'Antigüedad laboral', valor: unir(lectura.antiguedad_laboral) },
+    {
+      numero: '4',
+      nombre: 'Compañero de trabajo',
+      valor: unir(lectura.companero_nombre, lectura.companero_telefono),
+    },
+    { numero: '5', nombre: 'Tiempo en su casa', valor: unir(lectura.antiguedad_domicilio) },
+    {
+      numero: '6',
+      nombre: 'Referencia',
+      valor: unir(lectura.referencia_nombre, lectura.referencia_telefono),
+      detalle: extra.length
+        ? `Además: ${extra.map((persona) => unir(persona.nombre, persona.telefono)).join('; ')}`
+        : '',
+    },
+    { numero: '7', nombre: 'NSS', valor: unir(lectura.nss), opcional: true },
+    { numero: '+', nombre: 'Celular del cliente', valor: unir(lectura.celular), opcional: true },
+  ];
+}
+
+function LoQueSeEntendio({ lectura }) {
+  const puntos = puntosLeidos(lectura);
+  const faltan = puntos.filter((punto) => !punto.valor && !punto.opcional).length;
+  return (
+    <div className="entendido">
+      <div className="entendido-cabeza">
+        <h3>Así se entendió</h3>
+        <span className={faltan ? 'entendido-falta' : 'entendido-ok'}>
+          {faltan ? `${faltan} punto${faltan === 1 ? '' : 's'} sin respuesta` : 'Los 6 puntos tienen respuesta'}
+        </span>
+      </div>
+      <ol className="entendido-lista">
+        {puntos.map((punto) => (
+          <li key={punto.nombre} className={punto.valor ? '' : punto.opcional ? 'opcional' : 'vacio-punto'}>
+            <span className="entendido-numero">{punto.numero}</span>
+            <span className="entendido-nombre">{punto.nombre}</span>
+            <span className="entendido-valor">
+              {punto.valor || (punto.opcional ? 'No viene' : 'No se encontró: complétalo en la revisión')}
+              {punto.detalle && <small>{punto.detalle}</small>}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 /**
  * El formulario que manda el vendedor, pegado tal cual.
  *
@@ -7,7 +70,7 @@ import { IconoReintentar } from './Iconos.jsx';
  * con el botón. Lo que se extrae aparece en la revisión, igual que lo de los
  * documentos.
  */
-export default function Formulario({ texto, estado, mensaje, onTexto, onLeer }) {
+export default function Formulario({ texto, estado, mensaje, lectura, onTexto, onLeer }) {
   return (
     <div className="formulario">
       <label className="formulario-etiqueta" htmlFor="texto-formulario">
@@ -40,8 +103,13 @@ export default function Formulario({ texto, estado, mensaje, onTexto, onLeer }) 
         </div>
       )}
 
+      {estado === 'listo' && lectura && <LoQueSeEntendio lectura={lectura} />}
+
       <div className="formulario-pie">
-        <span className="nota-suave">Se lee al pegar. Si lo editas a mano, vuelve a leerlo.</span>
+        <span className="nota-suave">
+          Se lee solo al pegarlo. Acepta el formato de WhatsApp (negritas, emojis de número). Si lo
+          editas a mano, vuelve a leerlo.
+        </span>
         <button
           type="button"
           className="secundario"

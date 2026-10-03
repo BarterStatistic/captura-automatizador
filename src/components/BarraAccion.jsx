@@ -18,6 +18,10 @@ export function idDeFaltante(clave) {
   return clave === 'tipoCredito' ? 'paso-tipo' : `campo-${clave.replace('.', '-')}`;
 }
 
+function irAlPaso(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function irA(clave) {
   const destino = document.getElementById(idDeFaltante(clave));
   if (!destino) return;
@@ -38,6 +42,7 @@ export default function BarraAccion({
   leyendo,
   faltantes,
   hayExtension,
+  motoLista,
   llenando,
   copiado,
   onLlenar,
@@ -61,14 +66,25 @@ export default function BarraAccion({
         ))}
       </div>
     );
+  } else if (!motoLista) {
+    estado = (
+      <span className="accion-nota lista">
+        <IconoCheck tamano={15} />
+        Expediente completo. Ahora captura la moto en Dinamo (paso 5).
+      </span>
+    );
   } else {
     estado = (
       <span className="accion-nota lista">
         <IconoCheck tamano={15} />
-        Expediente completo. Captura la moto en Dinamo y luego llena.
+        Expediente completo y moto capturada: ya puedes llenar.
       </span>
     );
   }
+
+  // Con el expediente completo pero sin moto, el botón lleva al paso 5 en vez
+  // de llenar: así nadie llena Dinamo antes de capturar la moto.
+  const irPorLaMoto = listo && !motoLista;
 
   return (
     <footer className="barra-accion">
@@ -81,16 +97,23 @@ export default function BarraAccion({
             <IconoCopiar tamano={15} />
             {copiado ? 'Copiado' : 'Copiar expediente'}
           </button>
-          <button
-            type="button"
-            className="primario"
-            disabled={!listo || !hayExtension || llenando}
-            title={hayExtension ? undefined : 'Instala la extensión en este navegador para llenar Dinamo.'}
-            onClick={onLlenar}
-          >
-            {llenando ? 'Llenando en Dinamo…' : 'Llenar en Dinamo'}
-            {!llenando && <IconoFlecha tamano={15} />}
-          </button>
+          {irPorLaMoto ? (
+            <button type="button" className="primario" onClick={() => irAlPaso('paso-dinamo')}>
+              Ir a capturar la moto
+              <IconoFlecha tamano={15} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primario"
+              disabled={!listo || !hayExtension || llenando}
+              title={hayExtension ? undefined : 'Instala la extensión en este navegador para llenar Dinamo.'}
+              onClick={onLlenar}
+            >
+              {llenando ? 'Llenando en Dinamo…' : 'Llenar en Dinamo'}
+              {!llenando && <IconoFlecha tamano={15} />}
+            </button>
+          )}
         </div>
       </div>
     </footer>
