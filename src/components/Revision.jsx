@@ -1,7 +1,13 @@
 import { useId, useState } from 'react';
 
 import { pideIngresos, referenciasRequeridas } from '../lib/esquemas.js';
-import { CIUDADES, generarDomicilio } from '../lib/calles.js';
+import {
+  CIUDADES,
+  anotarCalles,
+  callesRecientes,
+  generarDomicilio,
+  generarDomicilios,
+} from '../lib/calles.js';
 import { idDeFaltante } from './BarraAccion.jsx';
 import { IconoAlerta } from './Iconos.jsx';
 
@@ -49,6 +55,23 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
   const falta = (nombre) => faltantes.includes(nombre);
   const cuantas = (grupo) => FALTANTES_POR_GRUPO[grupo].filter(falta).length;
   const referencias = referenciasRequeridas(manual.esquemaVenta);
+  const ciudad = manual.ciudadReferencias ?? 'SALTILLO';
+
+  /** Un domicilio distinto para cada referencia, evitando las calles recientes. */
+  function generarTodos() {
+    const nuevos = generarDomicilios(ciudad, referencias.length, { evitar: callesRecientes(ciudad) });
+    const actualizadas = { ...manual.referencias };
+    referencias.forEach((sufijo, indice) => {
+      actualizadas[sufijo] = {
+        ...(actualizadas[sufijo] ?? {}),
+        calle: nuevos[indice].calle,
+        numeroExterior: nuevos[indice].numeroExterior,
+      };
+    });
+    anotarCalles(ciudad, nuevos.map((domicilio) => domicilio.calle));
+    onManual('referencias', actualizadas);
+  }
+
   return (
     <div className={`revision${soloFaltantes ? ' solo-faltantes' : ''}`}>
       <div className="revision-barra">
@@ -266,16 +289,28 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
       >
         <Seleccion
           etiqueta="Ciudad de los domicilios generados"
-          valor={manual.ciudadReferencias ?? 'SALTILLO'}
-          opciones={CIUDADES.map((ciudad) => ({ value: ciudad, nombre: ciudad }))}
+          valor={ciudad}
+          opciones={CIUDADES.map((nombre) => ({ value: nombre, nombre }))}
           onCambio={(v) => onManual('ciudadReferencias', v)}
         />
+        <div className="generar-todos">
+          <button type="button" className="secundario" onClick={generarTodos}>
+            Generar {referencias.length > 1 ? 'los domicilios' : 'el domicilio'}
+          </button>
+          <span className="nota-suave">
+            Al azar, cada referencia en una calle distinta y sin repetir las usadas hace poco.
+          </span>
+        </div>
         {referencias.map((sufijo, indice) => (
           <BloqueReferencia
             key={sufijo}
             sufijo={sufijo}
             numero={indice + 1}
             esPrimera={sufijo === 'ref'}
+            otrasCalles={referencias
+              .filter((otro) => otro !== sufijo)
+              .map((otro) => manual.referencias?.[otro]?.calle)
+              .filter(Boolean)}
             falta={falta}
             lecturas={lecturas}
             manual={manual}
@@ -305,15 +340,17 @@ function Grupo({ titulo, detalle, faltan, children }) {
   );
 }
 
-/** Semilla estable por cliente y referencia: al reabrir el expediente sale igual. */
-function semillaDe(curp, numero) {
-  const base = String(curp ?? 'SIN-CURP');
-  let suma = numero * 7919;
-  for (let i = 0; i < base.length; i += 1) suma = (suma * 31 + base.charCodeAt(i)) >>> 0;
-  return suma || 1;
-}
-
-function BloqueReferencia({ sufijo, numero, esPrimera, falta, lecturas, manual, onLectura, onManual }) {
+function BloqueReferencia({
+  sufijo,
+  numero,
+  esPrimera,
+  otrasCalles,
+  falta,
+  lecturas,
+  manual,
+  onLectura,
+  onManual,
+}) {
   const capturada = manual.referencias?.[sufijo] ?? {};
   const cambiar = (campo, valor) =>
     onManual('referencias', {
@@ -321,11 +358,14 @@ function BloqueReferencia({ sufijo, numero, esPrimera, falta, lecturas, manual, 
       [sufijo]: { ...capturada, [campo]: valor },
     });
 
+  // Otro domicilio al azar en cada clic: nunca en la calle de otra referencia
+  // de este cliente, ni en la que ya tenía, ni en una usada hace poco.
   function generar() {
-    const generado = generarDomicilio(
-      manual.ciudadReferencias ?? 'SALTILLO',
-      semillaDe(lecturas.ineFrente?.curp, numero),
-    );
+    const ciudad = manual.ciudadReferencias ?? 'SALTILLO';
+    const generado = generarDomicilio(ciudad, {
+      evitar: [...otrasCalles, capturada.calle, ...callesRecientes(ciudad)].filter(Boolean),
+    });
+    anotarCalles(ciudad, [generado.calle]);
     onManual('referencias', {
       ...manual.referencias,
       [sufijo]: { ...capturada, calle: generado.calle, numeroExterior: generado.numeroExterior },

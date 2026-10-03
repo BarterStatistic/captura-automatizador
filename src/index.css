@@ -1713,3 +1713,12 @@ button.grande {
   padding: 12px 22px;
   font-size: 15.5px;
 }
+
+/* Botón para generar de una vez el domicilio de todas las referencias. */
+.generar-todos {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
