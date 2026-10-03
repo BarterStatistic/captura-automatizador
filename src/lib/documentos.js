@@ -286,7 +286,8 @@ export const DOCUMENTOS = [
     id: 'ingresos',
     etiqueta: 'Comprobante de ingresos',
     sub: 'Estado de cuenta o recibo de nómina',
-    // Obligatorio solo en los tipos de crédito que lo piden (pideIngresos).
+    // Solo existe en los tipos de crédito que lo piden (pideIngresos): en
+    // MOTOXPRESS la casilla ni se muestra.
     obligatorio: true,
     soloSiPideIngresos: true,
     prompt: PROMPT_INGRESOS,
@@ -398,8 +399,7 @@ export function ranurasPara(tipo) {
   }
 }
 
-/** ¿El documento es obligatorio para este tipo de crédito? */
-export function esObligatorio(documento, valueEsquema) {
-  if (!documento?.obligatorio) return false;
-  return !documento.soloSiPideIngresos || pideIngresos(valueEsquema);
+/** Las casillas de este tipo de crédito: MOTOXPRESS no tiene la de ingresos. */
+export function documentosDe(valueEsquema) {
+  return DOCUMENTOS.filter((doc) => !doc.soloSiPideIngresos || pideIngresos(valueEsquema));
 }

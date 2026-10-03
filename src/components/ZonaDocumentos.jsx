@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { DOCUMENTOS, esObligatorio } from '../lib/documentos.js';
+import { documentosDe } from '../lib/documentos.js';
 import {
   IconoAlerta,
   IconoCerrar,
@@ -30,6 +30,8 @@ export default function ZonaDocumentos({
   onReintentar,
 }) {
   const selector = useRef(null);
+  // Las casillas de este tipo de crédito: MOTOXPRESS no tiene la de ingresos.
+  const documentos = documentosDe(esquema);
 
   return (
     <div className="documentos">
@@ -83,7 +85,7 @@ export default function ZonaDocumentos({
                     onChange={(evento) => onColocar(evento.target.value, item.archivo, item.id)}
                   >
                     <option value="">¿Qué documento es?</option>
-                    {DOCUMENTOS.map((doc) => (
+                    {documentos.map((doc) => (
                       <option key={doc.id} value={doc.id}>
                         {doc.etiqueta}
                       </option>
@@ -105,11 +107,11 @@ export default function ZonaDocumentos({
       )}
 
       <ul className="rejilla-documentos">
-        {DOCUMENTOS.map((doc) => (
+        {documentos.map((doc) => (
           <Casilla
             key={doc.id}
             documento={doc}
-            obligatorio={esObligatorio(doc, esquema)}
+            documentos={documentos}
             ranura={ranuras[doc.id]}
             onColocar={onColocar}
             onMover={onMover}
@@ -128,7 +130,7 @@ const ESTADO = {
   error: { texto: 'Error', Icono: IconoAlerta },
 };
 
-function Casilla({ documento, obligatorio, ranura, onColocar, onMover, onQuitar, onReintentar }) {
+function Casilla({ documento, documentos, ranura, onColocar, onMover, onQuitar, onReintentar }) {
   const [encima, setEncima] = useState(false);
   const selector = useRef(null);
 
@@ -184,7 +186,7 @@ function Casilla({ documento, obligatorio, ranura, onColocar, onMover, onQuitar,
         <span className="casilla-sub">
           {ranura
             ? ranura.archivo.name || 'Imagen pegada'
-            : [obligatorio ? 'Obligatorio' : 'Opcional en este crédito', documento.sub]
+            : [documento.obligatorio ? 'Obligatorio' : 'Opcional', documento.sub]
                 .filter(Boolean)
                 .join(' · ')}
         </span>
@@ -200,7 +202,7 @@ function Casilla({ documento, obligatorio, ranura, onColocar, onMover, onQuitar,
             onChange={(evento) => onMover(documento.id, evento.target.value)}
           >
             <option value="">Mover a…</option>
-            {DOCUMENTOS.filter((doc) => doc.id !== documento.id).map((doc) => (
+            {documentos.filter((doc) => doc.id !== documento.id).map((doc) => (
               <option key={doc.id} value={doc.id}>
                 {doc.etiqueta}
               </option>

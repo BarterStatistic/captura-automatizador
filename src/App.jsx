@@ -13,10 +13,9 @@ import CapturaDinamo from './components/CapturaDinamo.jsx';
 
 import {
   CLASIFICADOR,
-  DOCUMENTOS,
   FORMULARIO,
   documentoPorId,
-  esObligatorio,
+  documentosDe,
   normalizarArchivo,
   ranurasPara,
   tipoAceptado,
@@ -178,6 +177,12 @@ export default function App() {
           const destinos = ranurasPara(tipo);
           if (destinos.length === 0) {
             dejarEnBandeja('No parece INE, comprobante ni estado de cuenta. Elige a dónde va.');
+            return;
+          }
+          // MOTOXPRESS no lleva comprobante de ingresos: se deja en la bandeja.
+          const visibles = new Set(documentosDe(manual.esquemaVenta).map((doc) => doc.id));
+          if (!destinos.every((destino) => visibles.has(destino))) {
+            dejarEnBandeja('Es un comprobante de ingresos y este tipo de crédito no lo pide. Descártalo.');
             return;
           }
           setBandeja((previa) => previa.filter((item) => item.id !== id));
@@ -348,7 +353,7 @@ export default function App() {
   // --- Estado de cada paso, para el mapa y los encabezados ------------------------
 
   // Qué documentos pide depende del tipo de crédito (MOTOXPRESS no pide ingresos).
-  const obligatorios = DOCUMENTOS.filter((doc) => esObligatorio(doc, manual.esquemaVenta));
+  const obligatorios = documentosDe(manual.esquemaVenta).filter((doc) => doc.obligatorio);
   const leidos = obligatorios.filter((doc) => ranuras[doc.id]?.estado === 'listo').length;
   const docsLeyendo =
     Object.values(ranuras).some((ranura) => ranura.estado === 'leyendo') ||

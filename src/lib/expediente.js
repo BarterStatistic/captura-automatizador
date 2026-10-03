@@ -144,10 +144,13 @@ export function armarExpediente(lecturas, manual = {}) {
 
   const avisos = [];
 
-  // Un solo comprobante de ingresos. `estadosCuenta` y `estadoCuenta1` son los
-  // nombres de antes; se aceptan para expedientes copiados con la versión vieja.
+  // Un solo comprobante de ingresos, y solo en los tipos que lo piden: en
+  // MOTOXPRESS se ignora aunque haya quedado uno leído de antes. `estadosCuenta`
+  // y `estadoCuenta1` son los nombres de antes, para expedientes copiados.
   const nomina = nominaDe(
-    lecturas?.ingresos ?? lecturas?.estadosCuenta ?? lecturas?.estadoCuenta1,
+    pideIngresos(manual.esquemaVenta)
+      ? lecturas?.ingresos ?? lecturas?.estadosCuenta ?? lecturas?.estadoCuenta1
+      : null,
     manual,
   );
 

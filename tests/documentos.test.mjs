@@ -11,7 +11,7 @@ import {
   TIPOS_ACEPTADOS,
   TIPOS_CLASIFICACION,
   documentoPorId,
-  esObligatorio,
+  documentosDe,
   normalizarArchivo,
   ranurasPara,
   tipoAceptado,
@@ -24,13 +24,21 @@ test('son cuatro casillas de archivo, con un solo comprobante de ingresos', () =
   );
 });
 
-test('el comprobante de ingresos solo es obligatorio si el tipo de crédito lo pide', () => {
-  const ingresos = documentoPorId('ingresos');
+test('MOTOXPRESS no tiene casilla de comprobante de ingresos; los demás sí', () => {
+  const ids = (tipo) => documentosDe(tipo).map((doc) => doc.id);
 
-  for (const tipo of ['2', '52', '1', '53']) assert.equal(esObligatorio(ingresos, tipo), true, tipo);
-  for (const tipo of ['15', '51']) assert.equal(esObligatorio(ingresos, tipo), false, tipo);
-  assert.equal(esObligatorio(documentoPorId('comprobante'), '15'), true);
+  for (const tipo of ['2', '52', '1', '53']) {
+    assert.deepEqual(ids(tipo), ['ineFrente', 'ineAtras', 'comprobante', 'ingresos'], tipo);
+  }
+  for (const tipo of ['15', '51']) {
+    assert.deepEqual(ids(tipo), ['ineFrente', 'ineAtras', 'comprobante'], tipo);
+  }
+  assert.ok(documentosDe(tipoSinElegir()).some((doc) => doc.id === 'ingresos'));
 });
+
+function tipoSinElegir() {
+  return '';
+}
 
 test('el formulario ya no es un archivo: se lee del texto que pega el capturista', () => {
   assert.equal(documentoPorId('formulario'), null);

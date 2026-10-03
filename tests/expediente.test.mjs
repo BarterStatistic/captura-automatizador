@@ -408,3 +408,14 @@ test('la referencia personal de CREDINAMO es obligatoria', () => {
   assert.ok(faltantes.includes('referencias.ref.nombres'));
   assert.ok(faltantes.includes('referencias.ref.telefono'));
 });
+
+test('en MOTOXPRESS un comprobante de ingresos leído de antes se ignora', () => {
+  const lecturas = {
+    ...SIN_COMBINAR,
+    ingresos: { tipo_comprobante: 'RECIBO_NOMINA', monto_recibo: 5000, frecuencia_pago: 'SEMANAL' },
+  };
+  const { datos } = armarExpediente(lecturas, MOTOXPRESS);
+
+  assert.equal(datos.empleo.sueldo, '');
+  assert.equal(datos.empleo.frecuenciaPago, '');
+});
