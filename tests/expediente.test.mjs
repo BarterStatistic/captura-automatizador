@@ -137,16 +137,16 @@ test('el domicilio de la referencia se marca como generado', () => {
   assert.equal(datos.referencias.ref.domicilioFicticio, true);
 });
 
-// --- Estados de cuenta --------------------------------------------------------
-// La app guarda cada estado de cuenta en su casilla (estadoCuenta1 y 2). Antes
-// el expediente solo leía `estadosCuenta`, así que el sueldo nunca llegaba.
+// --- Comprobante de ingresos ---------------------------------------------------
+// Una sola casilla, `ingresos`: estado de cuenta o recibo de nómina. Los
+// nombres viejos (`estadosCuenta`, `estadoCuenta1`) se siguen aceptando.
 
 const { estadosCuenta: _combinado, ...SIN_COMBINAR } = LECTURAS;
 
-test('el sueldo sale del estado de cuenta de la casilla 1', () => {
+test('el sueldo sale del comprobante de ingresos', () => {
   const lecturas = {
     ...SIN_COMBINAR,
-    estadoCuenta1: { sueldo_mensual: 15000, frecuencia_pago: 'QUINCENAL' },
+    ingresos: { tipo_comprobante: 'ESTADO_CUENTA', sueldo_mensual: 15000, frecuencia_pago: 'QUINCENAL' },
   };
   const { datos } = armarExpediente(lecturas, MANUAL);
 
@@ -154,28 +154,34 @@ test('el sueldo sale del estado de cuenta de la casilla 1', () => {
   assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
 });
 
-test('si el primer estado no trae sueldo, se usa el segundo', () => {
+test('con recibo de nómina el monto se toma tal cual, sin convertirlo a mensual', () => {
   const lecturas = {
     ...SIN_COMBINAR,
-    estadoCuenta1: { sueldo_mensual: null, frecuencia_pago: null },
-    estadoCuenta2: { sueldo_mensual: 12000, frecuencia_pago: 'SEMANAL' },
+    ingresos: {
+      tipo_comprobante: 'RECIBO_NOMINA',
+      monto_recibo: 6250.5,
+      frecuencia_pago: 'QUINCENAL',
+      // Aunque Gemini se equivoque y estime un mensual, no se usa.
+      sueldo_mensual: 12501,
+      depositos_nomina: [],
+    },
   };
   const { datos } = armarExpediente(lecturas, MANUAL);
 
-  assert.equal(datos.empleo.sueldo, 12000);
-  assert.equal(datos.empleo.frecuenciaPago, 'SEMANAL');
+  assert.equal(datos.empleo.sueldo, 6251);
+  assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
+  assert.equal(datos.empleo.origenSueldo, 'recibo');
+  assert.equal(datos.empleo.nomina, null, 'con recibo no hay cálculo de depósitos');
 });
 
-test('dos sueldos muy distintos se avisan y manda el primero', () => {
+test('un recibo catorcenal se captura como quincenal', () => {
   const lecturas = {
     ...SIN_COMBINAR,
-    estadoCuenta1: { sueldo_mensual: 15000, frecuencia_pago: 'QUINCENAL' },
-    estadoCuenta2: { sueldo_mensual: 30000, frecuencia_pago: 'QUINCENAL' },
+    ingresos: { tipo_comprobante: 'RECIBO_NOMINA', monto_recibo: 5000, frecuencia_pago: 'CATORCENAL' },
   };
-  const { datos, avisos } = armarExpediente(lecturas, MANUAL);
+  const { datos } = armarExpediente(lecturas, MANUAL);
 
-  assert.equal(datos.empleo.sueldo, 15000);
-  assert.ok(avisos.some((aviso) => aviso.campo === 'sueldo'));
+  assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
 });
 
 test('un sueldo corregido a mano con signo y comas se entiende', () => {
@@ -309,8 +315,12 @@ test('la frecuencia, el sueldo y el día de pago salen de los depósitos de nóm
   const lecturas = {
     ...SIN_COMBINAR,
     // Lo que Gemini estimó por su cuenta pierde ante el cálculo con los depósitos.
-    estadoCuenta1: { depositos_nomina: DEPOSITOS.slice(0, 2), sueldo_mensual: 99999, frecuencia_pago: 'MENSUAL' },
-    estadoCuenta2: { depositos_nomina: DEPOSITOS.slice(2) },
+    ingresos: {
+      tipo_comprobante: 'ESTADO_CUENTA',
+      depositos_nomina: DEPOSITOS,
+      sueldo_mensual: 99999,
+      frecuencia_pago: 'MENSUAL',
+    },
   };
   const { datos } = armarExpediente(lecturas, MANUAL);
 
@@ -335,4 +345,66 @@ test('sin depósitos listados se usa lo que estimó Gemini', () => {
 
   assert.equal(datos.empleo.sueldo, 16000);
   assert.equal(datos.empleo.frecuenciaPago, 'QUINCENAL');
+});
+
+// --- Requisitos por tipo de crédito ---------------------------------------------------
+// MOTONOMINA y CREDINAMO (y sus Flex): comprobante de ingresos, 1 referencia
+// laboral y 1 personal. MOTOXPRESS (y Flex): sin ingresos, 1 laboral y 3
+// personales.
+
+const MOTOXPRESS = {
+  ...MANUAL,
+  esquemaVenta: '15',
+  referencias: {
+    ref: {},
+    ref_b: { nombreCompleto: 'Ana Torres', telefono: '8441231234' },
+    ref_c: { nombreCompleto: 'Jose Luna', telefono: '8443213213' },
+  },
+};
+
+test('CREDINAMO sin comprobante de ingresos no arranca: falta el sueldo', () => {
+  const { faltantes } = armarExpediente(SIN_COMBINAR, MANUAL);
+
+  assert.ok(faltantes.includes('empleo.sueldo'));
+});
+
+test('MOTOXPRESS no pide comprobante de ingresos', () => {
+  const { faltantes } = armarExpediente(SIN_COMBINAR, MOTOXPRESS);
+
+  assert.ok(!faltantes.includes('empleo.sueldo'));
+  assert.deepEqual(faltantes, []);
+});
+
+test('MOTOXPRESS pide las tres referencias personales completas', () => {
+  const sinTercera = {
+    ...MOTOXPRESS,
+    referencias: { ...MOTOXPRESS.referencias, ref_c: { nombreCompleto: 'Jose Luna' } },
+  };
+  const { faltantes } = armarExpediente(SIN_COMBINAR, sinTercera);
+
+  assert.deepEqual(faltantes, ['referencias.ref_c.telefono']);
+});
+
+test('la referencia laboral (el compañero) es obligatoria en todos los tipos', () => {
+  const sinCompanero = {
+    ...LECTURAS,
+    formulario: { ...LECTURAS.formulario, companero_nombre: null, companero_telefono: null },
+  };
+
+  for (const manual of [MANUAL, MOTOXPRESS]) {
+    const { faltantes } = armarExpediente(sinCompanero, manual);
+    assert.ok(faltantes.includes('empleo.jefe'), manual.esquemaVenta);
+    assert.ok(faltantes.includes('empleo.telefono'), manual.esquemaVenta);
+  }
+});
+
+test('la referencia personal de CREDINAMO es obligatoria', () => {
+  const sinReferencia = {
+    ...LECTURAS,
+    formulario: { ...LECTURAS.formulario, referencia_nombre: null, referencia_telefono: null },
+  };
+  const { faltantes } = armarExpediente(sinReferencia, MANUAL);
+
+  assert.ok(faltantes.includes('referencias.ref.nombres'));
+  assert.ok(faltantes.includes('referencias.ref.telefono'));
 });

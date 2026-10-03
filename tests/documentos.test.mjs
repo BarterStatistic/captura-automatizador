@@ -11,16 +11,25 @@ import {
   TIPOS_ACEPTADOS,
   TIPOS_CLASIFICACION,
   documentoPorId,
+  esObligatorio,
   normalizarArchivo,
   ranurasPara,
   tipoAceptado,
 } from '../src/lib/documentos.js';
 
-test('son cinco casillas de archivo, en el orden en que se muestran', () => {
+test('son cuatro casillas de archivo, con un solo comprobante de ingresos', () => {
   assert.deepEqual(
     DOCUMENTOS.map((doc) => doc.id),
-    ['ineFrente', 'ineAtras', 'comprobante', 'estadoCuenta1', 'estadoCuenta2'],
+    ['ineFrente', 'ineAtras', 'comprobante', 'ingresos'],
   );
+});
+
+test('el comprobante de ingresos solo es obligatorio si el tipo de crédito lo pide', () => {
+  const ingresos = documentoPorId('ingresos');
+
+  for (const tipo of ['2', '52', '1', '53']) assert.equal(esObligatorio(ingresos, tipo), true, tipo);
+  for (const tipo of ['15', '51']) assert.equal(esObligatorio(ingresos, tipo), false, tipo);
+  assert.equal(esObligatorio(documentoPorId('comprobante'), '15'), true);
 });
 
 test('el formulario ya no es un archivo: se lee del texto que pega el capturista', () => {
@@ -66,19 +75,15 @@ test('el prompt del reverso pide el OCR de 13 dígitos', () => {
   assert.ok('ocr' in ineAtras.esquema.properties, 'el esquema debe traer el campo ocr');
 });
 
-test('los estados de cuenta piden sueldo y frecuencia', () => {
-  const estado = documentoPorId('estadoCuenta1');
+test('el comprobante de ingresos distingue estado de cuenta y recibo de nómina', () => {
+  const ingresos = documentoPorId('ingresos');
+  const campos = ingresos.esquema.properties;
 
-  assert.ok('sueldo_mensual' in estado.esquema.properties);
-  assert.ok('frecuencia_pago' in estado.esquema.properties);
-});
-
-test('los dos estados de cuenta comparten prompt y esquema', () => {
-  const uno = documentoPorId('estadoCuenta1');
-  const dos = documentoPorId('estadoCuenta2');
-
-  assert.equal(uno.prompt, dos.prompt);
-  assert.deepEqual(uno.esquema, dos.esquema);
+  assert.deepEqual(campos.tipo_comprobante.enum, ['ESTADO_CUENTA', 'RECIBO_NOMINA']);
+  for (const campo of ['depositos_nomina', 'frecuencia_pago', 'monto_recibo']) {
+    assert.ok(campo in campos, `falta ${campo}`);
+  }
+  assert.match(ingresos.prompt, /no lo conviertas a mensual/i);
 });
 
 test('se aceptan PDF, porque los estados de cuenta llegan así', () => {
@@ -123,14 +128,10 @@ test('cada lado de la INE va a su casilla, y una foto con ambos lados a las dos'
   assert.deepEqual(ranurasPara('COMPROBANTE'), ['comprobante']);
 });
 
-test('los estados de cuenta llenan primero la casilla 1 y luego la 2', () => {
-  assert.deepEqual(ranurasPara('ESTADO_CUENTA', new Set()), ['estadoCuenta1']);
-  assert.deepEqual(ranurasPara('ESTADO_CUENTA', new Set(['estadoCuenta1'])), ['estadoCuenta2']);
-});
-
-test('un tercer estado de cuenta reemplaza al segundo, nunca al principal', () => {
-  const llenas = new Set(['estadoCuenta1', 'estadoCuenta2']);
-  assert.deepEqual(ranurasPara('ESTADO_CUENTA', llenas), ['estadoCuenta2']);
+test('estados de cuenta y recibos de nómina van a la única casilla de ingresos', () => {
+  assert.deepEqual(ranurasPara('ESTADO_CUENTA'), ['ingresos']);
+  assert.deepEqual(ranurasPara('RECIBO_NOMINA'), ['ingresos']);
+  assert.ok(TIPOS_CLASIFICACION.includes('RECIBO_NOMINA'));
 });
 
 test('lo que no se reconoce no se mete en ninguna casilla', () => {

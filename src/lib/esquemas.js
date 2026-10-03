@@ -44,9 +44,16 @@ export const SUBESQUEMAS = [
   { value: '31', nombre: 'BURÓCRATAS MUNICIPAL' },
 ];
 
-// Los dos esquemas de MOTOXPRESS exigen tres referencias; el resto se conforma
-// con una. Es regla de negocio de Dinamo, no algo que se lea del formulario.
-const TRES_REFERENCIAS = new Set(['15', '51']);
+// Lo que pide cada tipo de crédito (regla de Dinamo, decidida con Braulio el
+// 2026-10-03):
+//
+//   MOTONOMINA, MOTONOMINA FLEX, CREDINAMO y CREDINAMO FLEX:
+//     INE, comprobante de domicilio, un comprobante de ingresos y el formulario
+//     con una referencia laboral (el compañero) y una personal.
+//   MOTOXPRESS y MOTOXPRESS FLEX:
+//     INE, comprobante de domicilio y el formulario con una referencia laboral
+//     y tres personales. No piden comprobante de ingresos.
+const MOTOXPRESS = new Set(['15', '51']);
 
 const SUFIJOS = ['ref', 'ref_b', 'ref_c'];
 
@@ -54,12 +61,30 @@ export function esquemaPorValue(value) {
   return ESQUEMAS_VENTA.find((esquema) => esquema.value === String(value)) ?? null;
 }
 
+/** ¿Este tipo de crédito pide comprobante de ingresos? Sin tipo elegido, sí. */
+export function pideIngresos(valueEsquema) {
+  return !MOTOXPRESS.has(String(valueEsquema));
+}
+
 /**
- * Sufijos de las secciones de referencia que hay que capturar y llenar.
+ * Sufijos de las secciones de referencia personal que hay que capturar y
+ * llenar: tres en MOTOXPRESS, una en los demás.
  *
  * Un esquema desconocido cae en una sola referencia: es el mínimo que el
  * formulario exige siempre, así que equivocarse por ahí no inventa trabajo.
  */
 export function referenciasRequeridas(valueEsquema) {
-  return TRES_REFERENCIAS.has(String(valueEsquema)) ? [...SUFIJOS] : [SUFIJOS[0]];
+  return MOTOXPRESS.has(String(valueEsquema)) ? [...SUFIJOS] : [SUFIJOS[0]];
+}
+
+/** Lo que pide el tipo de crédito, en una frase para el capturista. */
+export function requisitosEnTexto(valueEsquema) {
+  const personales = referenciasRequeridas(valueEsquema).length;
+  const documentos = pideIngresos(valueEsquema)
+    ? 'INE, comprobante de domicilio y comprobante de ingresos'
+    : 'INE y comprobante de domicilio';
+  return (
+    `Pide ${documentos}, y el formulario con 1 referencia laboral y ` +
+    `${personales} referencia${personales === 1 ? '' : 's'} personal${personales === 1 ? '' : 'es'}.`
+  );
 }

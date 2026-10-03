@@ -7,6 +7,8 @@
 // persona, el RFC genérico de los recibos, y la dirección de trabajo que llega
 // sin número.
 
+import { pideIngresos } from './esquemas.js';
+
 const NO_INVENTES =
   'Transcribe EXACTAMENTE lo que ves. No corrijas, no completes y no inventes. ' +
   'Si un dato no se alcanza a leer con certeza, devuélvelo como null.';
@@ -104,35 +106,61 @@ Extrae el DOMICILIO DEL SERVICIO. Reglas:
   },
 };
 
-const PROMPT_ESTADO_CUENTA = `Eres un analista que lee estados de cuenta bancarios mexicanos.
+// Un solo comprobante de ingresos: estado de cuenta o recibo de nómina. Los
+// dos se leen con el mismo prompt y Gemini dice cuál es, porque el sueldo sale
+// distinto de cada uno: del estado de cuenta se calcula con los depósitos; del
+// recibo se toma tal cual, sin convertirlo a mensual (decisión de Braulio,
+// 2026-10-03).
+const PROMPT_INGRESOS = `Eres un analista que lee comprobantes de ingresos mexicanos.
 
-Tu trabajo es encontrar los INGRESOS DE NÓMINA del titular: los depósitos con
-los que le pagan su sueldo. Reglas:
+El documento es uno de estos dos:
+
+- ESTADO_CUENTA: un estado de cuenta bancario, con movimientos (depósitos y
+  retiros) y saldos.
+- RECIBO_NOMINA: un recibo de nómina (CFDI de nómina, talón o comprobante de
+  pago que da el patrón), con percepciones, deducciones y neto a pagar.
+
+Pon en "tipo_comprobante" exactamente ESTADO_CUENTA o RECIBO_NOMINA. Reglas:
 
 - ${NO_INVENTES}
-- En "depositos_nomina" lista CADA depósito de sueldo que aparezca en el estado
-  de cuenta, uno por uno, con:
+
+Si es ESTADO_CUENTA, busca los INGRESOS DE NÓMINA del titular:
+- En "depositos_nomina" lista CADA depósito de sueldo que aparezca, uno por
+  uno, con:
     "fecha": la fecha del movimiento en formato AAAA-MM-DD (usa el año del
              periodo del estado de cuenta si la línea no lo trae),
     "monto": el importe depositado, como número sin símbolos ni comas,
     "concepto": la descripción tal como aparece.
 - Un depósito es de nómina si su concepto lo dice (NOMINA, PAGO DE NOMINA,
   SUELDO, SALARIO, PAGO QUINCENA, DISPERSION, el nombre de la empresa
-  empleadora) o si se repite con monto parecido en intervalos regulares
-  (cada semana, cada quincena, cada mes).
+  empleadora) o si se repite con monto parecido en intervalos regulares.
 - NO son nómina: traspasos entre cuentas propias, depósitos en efectivo
   aislados, devoluciones, reembolsos, intereses, préstamos, pagos de tarjeta,
   ni transferencias de personas que no se repiten.
-- "frecuencia_pago" es exactamente SEMANAL, QUINCENAL o MENSUAL según cada
-  cuánto llegan esos depósitos; null si no hay patrón claro.
-- "sueldo_mensual" es el ingreso mensual en pesos, número sin símbolos: si le
-  pagan quincenal, dos depósitos; si semanal, el depósito por 4. null si no hay
-  patrón.
-- Si no encuentras depósitos de nómina, devuelve la lista vacía y lo demás null.`;
+- "frecuencia_pago" es SEMANAL, QUINCENAL o MENSUAL según cada cuánto llegan
+  esos depósitos; null si no hay patrón claro.
+- "sueldo_mensual": el ingreso mensual estimado, número sin símbolos; null si
+  no hay patrón.
+- Deja "monto_recibo" en null.
 
-const ESQUEMA_ESTADO_CUENTA = {
+Si es RECIBO_NOMINA:
+- "monto_recibo": el NETO A PAGAR del recibo, número sin símbolos ni comas.
+  Si no hay neto, el total de percepciones.
+- "frecuencia_pago": la periodicidad del pago que diga el recibo (SEMANAL,
+  QUINCENAL o MENSUAL; catorcenal cuenta como QUINCENAL). null si no la dice.
+- "fecha_pago": la fecha de pago en formato AAAA-MM-DD, o null.
+- "empleador": el nombre del patrón o empresa, o null.
+- Deja "depositos_nomina" vacía y "sueldo_mensual" en null: el monto del
+  recibo se usa tal cual, no lo conviertas a mensual.`;
+
+const ESQUEMA_INGRESOS = {
   type: 'object',
   properties: {
+    tipo_comprobante: {
+      type: 'string',
+      format: 'enum',
+      enum: ['ESTADO_CUENTA', 'RECIBO_NOMINA'],
+    },
     depositos_nomina: {
       type: 'array',
       items: {
@@ -146,8 +174,11 @@ const ESQUEMA_ESTADO_CUENTA = {
     },
     sueldo_mensual: { type: 'number', nullable: true },
     frecuencia_pago: { type: 'string', nullable: true },
+    monto_recibo: { type: 'number', nullable: true },
+    fecha_pago: { type: 'string', nullable: true },
+    empleador: { type: 'string', nullable: true },
   },
-  required: ['depositos_nomina', 'sueldo_mensual', 'frecuencia_pago'],
+  required: ['tipo_comprobante', 'depositos_nomina', 'frecuencia_pago'],
 };
 
 // El formulario ya no es un archivo: el capturista pega el texto que le mandó
@@ -252,18 +283,14 @@ export const DOCUMENTOS = [
   INE_ATRAS,
   COMPROBANTE,
   {
-    id: 'estadoCuenta1',
-    etiqueta: 'Estado de cuenta 1',
+    id: 'ingresos',
+    etiqueta: 'Comprobante de ingresos',
+    sub: 'Estado de cuenta o recibo de nómina',
+    // Obligatorio solo en los tipos de crédito que lo piden (pideIngresos).
     obligatorio: true,
-    prompt: PROMPT_ESTADO_CUENTA,
-    esquema: ESQUEMA_ESTADO_CUENTA,
-  },
-  {
-    id: 'estadoCuenta2',
-    etiqueta: 'Estado de cuenta 2',
-    obligatorio: false,
-    prompt: PROMPT_ESTADO_CUENTA,
-    esquema: ESQUEMA_ESTADO_CUENTA,
+    soloSiPideIngresos: true,
+    prompt: PROMPT_INGRESOS,
+    esquema: ESQUEMA_INGRESOS,
   },
 ];
 
@@ -318,6 +345,7 @@ export const TIPOS_CLASIFICACION = [
   'INE_AMBOS',
   'COMPROBANTE',
   'ESTADO_CUENTA',
+  'RECIBO_NOMINA',
   'OTRO',
 ];
 
@@ -332,6 +360,8 @@ Responde en "tipo" exactamente uno de estos valores:
 - INE_AMBOS: una sola imagen o PDF donde aparecen el frente Y el reverso de la INE.
 - COMPROBANTE: recibo de luz (CFE), agua, gas, teléfono, internet o predial.
 - ESTADO_CUENTA: estado de cuenta bancario o de nómina, con movimientos y saldos.
+- RECIBO_NOMINA: recibo de nómina o CFDI de nómina (percepciones, deducciones,
+  neto a pagar).
 - OTRO: cualquier otra cosa (selfie, captura de chat, foto de la moto, etc.).`,
   esquema: {
     type: 'object',
@@ -342,17 +372,15 @@ Responde en "tipo" exactamente uno de estos valores:
   },
 };
 
-const ESTADOS_CUENTA = ['estadoCuenta1', 'estadoCuenta2'];
-
 /**
- * A qué casillas va un archivo según su tipo. `ocupadas` es un Set con las
- * casillas que ya tienen archivo.
+ * A qué casillas va un archivo según su tipo. Hay una sola casilla de
+ * ingresos: un comprobante nuevo reemplaza al anterior.
  *
  * Devuelve [] cuando no se sabe (OTRO o un tipo raro): ese archivo se queda en
  * la bandeja para que el capturista lo acomode a mano, porque meter una selfie
  * en la casilla de la INE sería peor que no meterla.
  */
-export function ranurasPara(tipo, ocupadas = new Set()) {
+export function ranurasPara(tipo) {
   switch (tipo) {
     case 'INE_FRENTE':
       return ['ineFrente'];
@@ -363,10 +391,15 @@ export function ranurasPara(tipo, ocupadas = new Set()) {
     case 'COMPROBANTE':
       return ['comprobante'];
     case 'ESTADO_CUENTA':
-      // El primero libre; con los dos llenos, el nuevo reemplaza al segundo
-      // para no perder nunca el principal.
-      return [ESTADOS_CUENTA.find((id) => !ocupadas.has(id)) ?? 'estadoCuenta2'];
+    case 'RECIBO_NOMINA':
+      return ['ingresos'];
     default:
       return [];
   }
+}
+
+/** ¿El documento es obligatorio para este tipo de crédito? */
+export function esObligatorio(documento, valueEsquema) {
+  if (!documento?.obligatorio) return false;
+  return !documento.soloSiPideIngresos || pideIngresos(valueEsquema);
 }

@@ -1,3 +1,4 @@
+import { referenciasRequeridas } from '../lib/esquemas.js';
 import { IconoReintentar } from './Iconos.jsx';
 
 const unir = (...partes) => partes.map((parte) => String(parte ?? '').trim()).filter(Boolean).join(' · ');
@@ -7,8 +8,10 @@ const unir = (...partes) => partes.map((parte) => String(parte ?? '').trim()).fi
  * de un vistazo si una respuesta cayó en el punto equivocado o no se encontró,
  * antes de bajar a la revisión.
  */
-function puntosLeidos(lectura) {
+function puntosLeidos(lectura, personales) {
   const extra = Array.isArray(lectura.referencias_extra) ? lectura.referencias_extra : [];
+  const encontradas = (lectura.referencia_nombre || lectura.referencia_telefono ? 1 : 0) + extra.length;
+  const faltanPersonales = Math.max(0, personales - encontradas);
   return [
     { numero: '1', nombre: 'Correo', valor: unir(lectura.correo) },
     {
@@ -19,25 +22,32 @@ function puntosLeidos(lectura) {
     { numero: '3', nombre: 'Antigüedad laboral', valor: unir(lectura.antiguedad_laboral) },
     {
       numero: '4',
-      nombre: 'Compañero de trabajo',
+      nombre: 'Referencia laboral',
       valor: unir(lectura.companero_nombre, lectura.companero_telefono),
     },
     { numero: '5', nombre: 'Tiempo en su casa', valor: unir(lectura.antiguedad_domicilio) },
     {
       numero: '6',
-      nombre: 'Referencia',
+      nombre: personales > 1 ? `Referencias personales (${personales})` : 'Referencia personal',
       valor: unir(lectura.referencia_nombre, lectura.referencia_telefono),
-      detalle: extra.length
-        ? `Además: ${extra.map((persona) => unir(persona.nombre, persona.telefono)).join('; ')}`
-        : '',
+      detalle: [
+        extra.length
+          ? `Además: ${extra.map((persona) => unir(persona.nombre, persona.telefono)).join('; ')}`
+          : '',
+        faltanPersonales > 0 && encontradas > 0
+          ? `Este crédito pide ${personales}: falta${faltanPersonales === 1 ? '' : 'n'} ${faltanPersonales}; agrégala${faltanPersonales === 1 ? '' : 's'} en la revisión.`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
     },
     { numero: '7', nombre: 'NSS', valor: unir(lectura.nss), opcional: true },
     { numero: '+', nombre: 'Celular del cliente', valor: unir(lectura.celular), opcional: true },
   ];
 }
 
-function LoQueSeEntendio({ lectura }) {
-  const puntos = puntosLeidos(lectura);
+function LoQueSeEntendio({ lectura, personales }) {
+  const puntos = puntosLeidos(lectura, personales);
   const faltan = puntos.filter((punto) => !punto.valor && !punto.opcional).length;
   return (
     <div className="entendido">
@@ -70,7 +80,8 @@ function LoQueSeEntendio({ lectura }) {
  * con el botón. Lo que se extrae aparece en la revisión, igual que lo de los
  * documentos.
  */
-export default function Formulario({ texto, estado, mensaje, lectura, onTexto, onLeer }) {
+export default function Formulario({ texto, estado, mensaje, lectura, manual, onTexto, onLeer }) {
+  const personales = referenciasRequeridas(manual?.esquemaVenta).length;
   return (
     <div className="formulario">
       <label className="formulario-etiqueta" htmlFor="texto-formulario">
@@ -103,7 +114,7 @@ export default function Formulario({ texto, estado, mensaje, lectura, onTexto, o
         </div>
       )}
 
-      {estado === 'listo' && lectura && <LoQueSeEntendio lectura={lectura} />}
+      {estado === 'listo' && lectura && <LoQueSeEntendio lectura={lectura} personales={personales} />}
 
       <div className="formulario-pie">
         <span className="nota-suave">

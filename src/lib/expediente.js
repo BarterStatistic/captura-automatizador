@@ -6,12 +6,13 @@
 
 import { partirTelefono, partirAntiguedad, razonSocial, partirCalle } from './normaliza.js';
 import { resolverRfc } from './rfc.js';
-import { ESQUEMAS_VENTA, esquemaPorValue, referenciasRequeridas } from './esquemas.js';
+import { ESQUEMAS_VENTA, esquemaPorValue, pideIngresos, referenciasRequeridas } from './esquemas.js';
 import { opcionPorNombre } from './formulario.js';
 import { analizarNomina } from './nomina.js';
 
-// Sin estos, la corrida no arranca: son la identidad del cliente y el domicilio
-// que se va a capturar. Todo lo demás se puede completar a mano en Dinamo.
+// Sin estos, la corrida no arranca: son la identidad del cliente, el domicilio
+// y el trabajo. Lo que depende del tipo de crédito (comprobante de ingresos y
+// referencias) se agrega en `obligatoriosDe`.
 const OBLIGATORIOS = [
   ['curp', (d) => d.cliente.curp],
   ['nombres', (d) => d.cliente.nombres],
@@ -21,7 +22,21 @@ const OBLIGATORIOS = [
   ['correo', (d) => d.cliente.correo],
   ['empleo.nombre', (d) => d.empleo.nombre],
   ['celular', (d) => d.cliente.celular],
+  // La referencia laboral: el compañero de trabajo del punto 4.
+  ['empleo.jefe', (d) => d.empleo.jefe],
+  ['empleo.telefono', (d) => d.empleo.telefono],
 ];
+
+/** Los obligatorios del tipo de crédito elegido (ver esquemas.js). */
+function obligatoriosDe(valueEsquema) {
+  const lista = [...OBLIGATORIOS];
+  if (pideIngresos(valueEsquema)) lista.push(['empleo.sueldo', (d) => d.empleo.sueldo]);
+  for (const sufijo of referenciasRequeridas(valueEsquema)) {
+    lista.push([`referencias.${sufijo}.nombres`, (d) => d.referencias[sufijo]?.nombres]);
+    lista.push([`referencias.${sufijo}.telefono`, (d) => d.referencias[sufijo]?.telefono]);
+  }
+  return lista;
+}
 
 const texto = (valor) => String(valor ?? '').trim();
 
@@ -65,57 +80,62 @@ function partirNombre(completo) {
   };
 }
 
-const sueldoDe = (lectura) => {
-  const valor = lectura?.sueldo_mensual;
+/** Pesos enteros, o null. Dinamo solo acepta dígitos en txtsueldo. */
+function pesos(valor) {
   if (valor === null || valor === undefined || String(valor).trim() === '') return null;
   const numero = Number(String(valor).replace(/[^\d.]/g, ''));
-  // Dinamo solo acepta dígitos en txtsueldo: pesos enteros.
   return Number.isFinite(numero) && numero > 0 ? Math.round(numero) : null;
-};
+}
+
+const FRECUENCIAS = new Set(['SEMANAL', 'QUINCENAL', 'MENSUAL']);
+
+function frecuenciaDe(valor) {
+  const limpia = texto(valor).toUpperCase();
+  if (limpia === 'CATORCENAL') return 'QUINCENAL';
+  return FRECUENCIAS.has(limpia) ? limpia : '';
+}
 
 /**
- * Sueldo, frecuencia y día de pago, en este orden de preferencia:
+ * Sueldo, frecuencia y día de pago del comprobante de ingresos, en este orden
+ * de preferencia:
  *
  *   1. Lo que el capturista escribió a mano en la revisión (`manual.sueldo`,
  *      `manual.frecuenciaPago`).
- *   2. Lo que se calcula de los depósitos de nómina de los dos estados de
- *      cuenta juntos (analizarNomina).
- *   3. Lo que Gemini estimó de cada estado de cuenta, si no listó depósitos.
+ *   2. Recibo de nómina: el monto del recibo TAL CUAL, sin convertirlo a
+ *      mensual, y la periodicidad que diga (decisión de Braulio, 2026-10-03).
+ *      Estado de cuenta: el cálculo con los depósitos de nómina
+ *      (analizarNomina).
+ *   3. Lo que Gemini estimó, si no listó depósitos.
  */
-function nominaDe(primero, segundo, manual, avisos) {
-  const depositos = [
-    ...(Array.isArray(primero?.depositos_nomina) ? primero.depositos_nomina : []),
-    ...(Array.isArray(segundo?.depositos_nomina) ? segundo.depositos_nomina : []),
-  ];
-  const analisis = analizarNomina(depositos);
+function nominaDe(ingresos, manual) {
+  const lectura = ingresos ?? {};
+  const esRecibo = texto(lectura.tipo_comprobante).toUpperCase() === 'RECIBO_NOMINA';
+  const analisis = esRecibo
+    ? null
+    : analizarNomina(Array.isArray(lectura.depositos_nomina) ? lectura.depositos_nomina : []);
 
-  const s1 = sueldoDe(primero);
-  const s2 = sueldoDe(segundo);
-  if (!analisis && s1 && s2 && Math.abs(s1 - s2) / Math.max(s1, s2) > 0.2) {
-    avisos.push({
-      campo: 'sueldo',
-      mensaje:
-        `Los estados de cuenta dan sueldos distintos ($${s1.toLocaleString('es-MX')} y ` +
-        `$${s2.toLocaleString('es-MX')} al mes). Se usará el primero; corrígelo si no es el bueno.`,
-    });
-  }
+  const aMano = pesos(manual.sueldo);
+  const frecuenciaAMano = frecuenciaDe(manual.frecuenciaPago);
+  const leida = frecuenciaDe(lectura.frecuencia_pago);
+  const frecuencia = frecuenciaAMano || analisis?.frecuencia || leida;
 
-  const aMano = sueldoDe({ sueldo_mensual: manual.sueldo });
-  const frecuenciaAMano = texto(manual.frecuenciaPago);
-  const frecuencia =
-    frecuenciaAMano ||
-    analisis?.frecuencia ||
-    texto(primero?.frecuencia_pago) ||
-    texto(segundo?.frecuencia_pago);
+  const delDocumento = esRecibo
+    ? pesos(lectura.monto_recibo) ?? pesos(lectura.sueldo_mensual)
+    : analisis?.sueldoMensual ?? pesos(lectura.sueldo_mensual);
 
   return {
-    sueldo: aMano ?? analisis?.sueldoMensual ?? s1 ?? s2 ?? '',
+    sueldo: aMano ?? delDocumento ?? '',
     frecuencia,
-    // El día de pago solo se deduce en pago semanal y si nadie cambió la frecuencia.
-    diaPago: frecuencia === 'SEMANAL' && (!frecuenciaAMano || frecuenciaAMano === analisis?.frecuencia)
-      ? analisis?.diaPago ?? ''
-      : '',
+    // El día de pago solo se deduce de los depósitos semanales, y solo si
+    // nadie cambió la frecuencia.
+    diaPago:
+      frecuencia === 'SEMANAL' && (!frecuenciaAMano || frecuenciaAMano === analisis?.frecuencia)
+        ? analisis?.diaPago ?? ''
+        : '',
     analisis,
+    // Cómo se llegó al sueldo, para explicarlo en la revisión.
+    origen: aMano ? 'manual' : esRecibo ? 'recibo' : analisis ? 'depositos' : delDocumento ? 'estimado' : '',
+    montoRecibo: esRecibo ? pesos(lectura.monto_recibo) : null,
   };
 }
 
@@ -124,11 +144,12 @@ export function armarExpediente(lecturas, manual = {}) {
 
   const avisos = [];
 
-  // Las lecturas guardan cada estado de cuenta en su casilla. `estadosCuenta`
-  // es una lectura ya combinada, que aceptan las pruebas y expedientes viejos.
-  const nomina = lecturas?.estadosCuenta
-    ? nominaDe(lecturas.estadosCuenta, null, manual, avisos)
-    : nominaDe(lecturas?.estadoCuenta1, lecturas?.estadoCuenta2, manual, avisos);
+  // Un solo comprobante de ingresos. `estadosCuenta` y `estadoCuenta1` son los
+  // nombres de antes; se aceptan para expedientes copiados con la versión vieja.
+  const nomina = nominaDe(
+    lecturas?.ingresos ?? lecturas?.estadosCuenta ?? lecturas?.estadoCuenta1,
+    manual,
+  );
 
   // --- Identidad -------------------------------------------------------------
   // La CURP del frente es la principal; la del reverso solo la corrobora.
@@ -248,6 +269,8 @@ export function armarExpediente(lecturas, manual = {}) {
     diaPago: nomina.diaPago,
     // Cómo se llegó al sueldo, para mostrarlo en la revisión.
     nomina: nomina.analisis,
+    origenSueldo: nomina.origen,
+    montoRecibo: nomina.montoRecibo,
   };
 
   // --- Referencias -----------------------------------------------------------
@@ -276,7 +299,9 @@ export function armarExpediente(lecturas, manual = {}) {
 
   const datos = { cliente, domicilio, empleo, referencias };
 
-  const faltantes = OBLIGATORIOS.filter(([, leer]) => !texto(leer(datos))).map(([nombre]) => nombre);
+  const faltantes = obligatoriosDe(manual.esquemaVenta)
+    .filter(([, leer]) => !texto(leer(datos)))
+    .map(([nombre]) => nombre);
 
   // El tipo de crédito se elige al empezar la captura, no sale de ningún
   // documento. Sin él no se sabe cuántas referencias llenar.

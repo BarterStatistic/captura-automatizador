@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 
-import { referenciasRequeridas } from '../lib/esquemas.js';
+import { pideIngresos, referenciasRequeridas } from '../lib/esquemas.js';
 import { CIUDADES, generarDomicilio } from '../lib/calles.js';
 import { idDeFaltante } from './BarraAccion.jsx';
 import { IconoAlerta } from './Iconos.jsx';
@@ -9,8 +9,28 @@ import { IconoAlerta } from './Iconos.jsx';
 const FALTANTES_POR_GRUPO = {
   cliente: ['nombres', 'apellidoPaterno', 'curp', 'correo', 'celular'],
   domicilio: ['domicilio.calle', 'domicilio.numeroExterior'],
-  empleo: ['empleo.nombre'],
+  empleo: ['empleo.nombre', 'empleo.jefe', 'empleo.telefono', 'empleo.sueldo'],
+  referencias: ['ref', 'ref_b', 'ref_c'].flatMap((sufijo) => [
+    `referencias.${sufijo}.nombres`,
+    `referencias.${sufijo}.telefono`,
+  ]),
 };
+
+/** De dónde salió el sueldo, para la nota bajo el campo. */
+function notaSueldo(empleo, pideIngresos) {
+  if (empleo.origenSueldo === 'recibo') {
+    return 'Del recibo de nómina, tal cual (sin convertir a mensual).';
+  }
+  if (empleo.origenSueldo === 'depositos' && empleo.nomina) {
+    return (
+      `Del estado de cuenta: ${empleo.nomina.depositos} depósitos de nómina; depósito típico ` +
+      `$${empleo.nomina.montoTipico.toLocaleString('es-MX')}.`
+    );
+  }
+  if (empleo.origenSueldo === 'estimado') return 'Estimado por Gemini del estado de cuenta.';
+  if (empleo.origenSueldo === 'manual') return 'Escrito a mano.';
+  return pideIngresos ? 'Sale del comprobante de ingresos.' : 'Este crédito no pide comprobante de ingresos.';
+}
 
 /**
  * Todo lo que se revisa antes de llenar: lo que leyó Gemini (editable, porque
@@ -188,13 +208,17 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('formulario', 'antiguedad_laboral', v)}
         />
         <Campo
-          etiqueta="Compañero de trabajo"
+          clave="empleo.jefe"
+          etiqueta="Referencia laboral (compañero)"
           valor={lecturas.formulario?.companero_nombre}
+          falta={falta('empleo.jefe')}
           onCambio={(v) => onLectura('formulario', 'companero_nombre', v)}
         />
         <Campo
-          etiqueta="Teléfono del compañero"
+          clave="empleo.telefono"
+          etiqueta="Teléfono de la referencia laboral"
           valor={lecturas.formulario?.companero_telefono}
+          falta={falta('empleo.telefono')}
           mono
           onCambio={(v) => onLectura('formulario', 'companero_telefono', v)}
         />
@@ -206,13 +230,11 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('formulario', 'nss', v)}
         />
         <Campo
-          etiqueta="Sueldo mensual"
+          clave="empleo.sueldo"
+          etiqueta="Sueldo"
           valor={datos.empleo.sueldo}
-          nota={
-            datos.empleo.nomina
-              ? `De ${datos.empleo.nomina.depositos} depósitos de nómina; depósito típico $${datos.empleo.nomina.montoTipico.toLocaleString('es-MX')}.`
-              : 'De los estados de cuenta.'
-          }
+          falta={falta('empleo.sueldo')}
+          nota={notaSueldo(datos.empleo, pideIngresos(manual.esquemaVenta))}
           mono
           onCambio={(v) => onManual('sueldo', v)}
         />
@@ -234,9 +256,13 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
       </Grupo>
 
       <Grupo
-        titulo="Referencias"
-        detalle={referencias.length > 1 ? 'Este tipo de crédito pide tres' : 'Este tipo de crédito pide una'}
-        faltan={0}
+        titulo="Referencias personales"
+        detalle={
+          referencias.length > 1
+            ? 'Este tipo de crédito pide tres'
+            : 'Este tipo de crédito pide una'
+        }
+        faltan={cuantas('referencias')}
       >
         <Seleccion
           etiqueta="Ciudad de los domicilios generados"
@@ -250,6 +276,7 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
             sufijo={sufijo}
             numero={indice + 1}
             esPrimera={sufijo === 'ref'}
+            falta={falta}
             lecturas={lecturas}
             manual={manual}
             onLectura={onLectura}
@@ -286,7 +313,7 @@ function semillaDe(curp, numero) {
   return suma || 1;
 }
 
-function BloqueReferencia({ sufijo, numero, esPrimera, lecturas, manual, onLectura, onManual }) {
+function BloqueReferencia({ sufijo, numero, esPrimera, falta, lecturas, manual, onLectura, onManual }) {
   const capturada = manual.referencias?.[sufijo] ?? {};
   const cambiar = (campo, valor) =>
     onManual('referencias', {
@@ -317,13 +344,17 @@ function BloqueReferencia({ sufijo, numero, esPrimera, lecturas, manual, onLectu
         {esPrimera ? (
           <>
             <Campo
+              clave={`referencias.${sufijo}.nombres`}
               etiqueta="Nombre"
               valor={lecturas.formulario?.referencia_nombre}
+              falta={falta(`referencias.${sufijo}.nombres`)}
               onCambio={(v) => onLectura('formulario', 'referencia_nombre', v)}
             />
             <Campo
+              clave={`referencias.${sufijo}.telefono`}
               etiqueta="Teléfono"
               valor={lecturas.formulario?.referencia_telefono}
+              falta={falta(`referencias.${sufijo}.telefono`)}
               mono
               onCambio={(v) => onLectura('formulario', 'referencia_telefono', v)}
             />
@@ -331,13 +362,17 @@ function BloqueReferencia({ sufijo, numero, esPrimera, lecturas, manual, onLectu
         ) : (
           <>
             <Campo
+              clave={`referencias.${sufijo}.nombres`}
               etiqueta="Nombre"
               valor={capturada.nombreCompleto}
+              falta={falta(`referencias.${sufijo}.nombres`)}
               onCambio={(v) => cambiar('nombreCompleto', v)}
             />
             <Campo
+              clave={`referencias.${sufijo}.telefono`}
               etiqueta="Teléfono"
               valor={capturada.telefono}
+              falta={falta(`referencias.${sufijo}.telefono`)}
               mono
               onCambio={(v) => cambiar('telefono', v)}
             />

@@ -11,11 +11,20 @@ export const ETIQUETAS_FALTANTE = {
   correo: 'Correo',
   'empleo.nombre': 'Trabajo',
   celular: 'Celular',
+  'empleo.jefe': 'Referencia laboral: nombre',
+  'empleo.telefono': 'Referencia laboral: teléfono',
+  'empleo.sueldo': 'Comprobante de ingresos',
+  'referencias.ref.nombres': 'Referencia 1: nombre',
+  'referencias.ref.telefono': 'Referencia 1: teléfono',
+  'referencias.ref_b.nombres': 'Referencia 2: nombre',
+  'referencias.ref_b.telefono': 'Referencia 2: teléfono',
+  'referencias.ref_c.nombres': 'Referencia 3: nombre',
+  'referencias.ref_c.telefono': 'Referencia 3: teléfono',
 };
 
 /** El id del campo en la revisión, o de la sección para el tipo de crédito. */
 export function idDeFaltante(clave) {
-  return clave === 'tipoCredito' ? 'paso-tipo' : `campo-${clave.replace('.', '-')}`;
+  return clave === 'tipoCredito' ? 'paso-tipo' : `campo-${clave.replaceAll('.', '-')}`;
 }
 
 function irAlPaso(id) {

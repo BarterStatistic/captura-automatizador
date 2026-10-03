@@ -16,6 +16,7 @@ import {
   DOCUMENTOS,
   FORMULARIO,
   documentoPorId,
+  esObligatorio,
   normalizarArchivo,
   ranurasPara,
   tipoAceptado,
@@ -25,7 +26,7 @@ import { probarConexion } from './lib/diagnostico.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual, respaldoDelTexto, textoParaGemini } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
-import { esquemaPorValue, referenciasRequeridas } from './lib/esquemas.js';
+import { esquemaPorValue, requisitosEnTexto } from './lib/esquemas.js';
 
 // La moto (tipo de venta, modelo, color, plazo) la captura el vendedor en
 // Dinamo; aquí solo queda lo que la extensión usa del cliente en adelante.
@@ -51,7 +52,7 @@ const sin = (objeto, clave) => {
 
 export default function App() {
   // Cada casilla: { token, archivo, estado: 'leyendo' | 'listo' | 'error', mensaje }.
-  // El ref es la copia síncrona: al acomodar dos estados de cuenta que llegan
+  // El ref es la copia síncrona: al acomodar dos archivos que llegan
   // casi juntos, el segundo tiene que ver que el primero ya ocupó su casilla.
   const [ranuras, setRanuras] = useState({});
   const ranurasRef = useRef({});
@@ -174,7 +175,7 @@ export default function App() {
 
       clasificarArchivo(CLASIFICADOR, archivo)
         .then((tipo) => {
-          const destinos = ranurasPara(tipo, new Set(Object.keys(ranurasRef.current)));
+          const destinos = ranurasPara(tipo);
           if (destinos.length === 0) {
             dejarEnBandeja('No parece INE, comprobante ni estado de cuenta. Elige a dónde va.');
             return;
@@ -346,7 +347,8 @@ export default function App() {
 
   // --- Estado de cada paso, para el mapa y los encabezados ------------------------
 
-  const obligatorios = DOCUMENTOS.filter((doc) => doc.obligatorio);
+  // Qué documentos pide depende del tipo de crédito (MOTOXPRESS no pide ingresos).
+  const obligatorios = DOCUMENTOS.filter((doc) => esObligatorio(doc, manual.esquemaVenta));
   const leidos = obligatorios.filter((doc) => ranuras[doc.id]?.estado === 'listo').length;
   const docsLeyendo =
     Object.values(ranuras).some((ranura) => ranura.estado === 'leyendo') ||
@@ -388,7 +390,6 @@ export default function App() {
   else if (!motoLista) motivoLlenar = 'Primero captura la moto en Dinamo y marca la casilla de arriba.';
 
   const tipoElegido = esquemaPorValue(manual.esquemaVenta);
-  const numReferencias = referenciasRequeridas(manual.esquemaVenta).length;
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? '' : 's'}`;
 
   const pasos = [
@@ -398,7 +399,7 @@ export default function App() {
       titulo: 'Tipo de crédito',
       estado: tipoDefinido ? 'listo' : 'pendiente',
       resumen: tipoElegido
-        ? `${tipoElegido.nombre}. Pide ${numReferencias === 3 ? 'tres referencias' : 'una referencia'}.`
+        ? `${tipoElegido.nombre}. ${requisitosEnTexto(manual.esquemaVenta)}`
         : 'Elige el tipo de crédito de este cliente para empezar.',
       resumenCorto: tipoElegido?.nombre ?? 'Elegir',
     },
@@ -408,9 +409,7 @@ export default function App() {
       titulo: 'Documentos',
       estado: estadoDocs,
       resumen: [
-        `${leidos} de ${obligatorios.length} obligatorios leídos${
-          ranuras.estadoCuenta2 ? ', más el estado de cuenta opcional' : ''
-        }.`,
+        `${leidos} de ${obligatorios.length} obligatorios leídos.`,
         conError > 0 && `${plural(conError, 'archivo')} con error.`,
         sinAcomodar > 0 &&
           `${plural(sinAcomodar, 'archivo')} sin reconocer: elige a dónde va${sinAcomodar > 1 ? 'n' : ''}.`,
@@ -555,6 +554,7 @@ export default function App() {
 
           <Paso {...paso['paso-documentos']} motivoBloqueo={BLOQUEO}>
             <ZonaDocumentos
+              esquema={manual.esquemaVenta}
               ranuras={ranuras}
               bandeja={bandeja}
               onArchivos={agregarArchivos}
@@ -572,6 +572,7 @@ export default function App() {
               estado={formEstado}
               mensaje={formMensaje}
               lectura={lecturas.formulario}
+              manual={manual}
               onTexto={setFormTexto}
               onLeer={leerFormulario}
             />
