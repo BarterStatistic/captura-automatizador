@@ -382,7 +382,7 @@ export default function App() {
   // Por qué todavía no se puede llenar, en el orden en que se resuelve.
   let motivoLlenar = '';
   if (!hayExtension) motivoLlenar = 'Este navegador no tiene la extensión instalada.';
-  else if (!hayLecturas) motivoLlenar = 'Primero pega el formulario y carga los documentos.';
+  else if (!hayLecturas) motivoLlenar = 'Primero carga los documentos y pega el formulario.';
   else if (leyendoAlgo) motivoLlenar = 'Gemini sigue leyendo…';
   else if (expediente.faltantes.length > 0) motivoLlenar = 'Faltan datos obligatorios: están marcados abajo.';
   else if (!motoLista) motivoLlenar = 'Primero captura la moto en Dinamo y marca la casilla de arriba.';
@@ -403,20 +403,8 @@ export default function App() {
       resumenCorto: tipoElegido?.nombre ?? 'Elegir',
     },
     {
-      id: 'paso-formulario',
-      numero: 2,
-      titulo: 'Formulario del vendedor',
-      estado: estadoForm,
-      resumen:
-        formEstado === 'listo'
-          ? 'Leído. Lo que trajo ya está en la revisión.'
-          : 'Pega el mensaje que mandó el vendedor por WhatsApp.',
-      resumenCorto:
-        formEstado === 'listo' ? 'Leído' : formEstado === 'leyendo' ? 'Leyendo' : 'Pegar mensaje',
-    },
-    {
       id: 'paso-documentos',
-      numero: 3,
+      numero: 2,
       titulo: 'Documentos',
       estado: estadoDocs,
       resumen: [
@@ -430,6 +418,18 @@ export default function App() {
         .filter(Boolean)
         .join(' '),
       resumenCorto: docsConProblema ? 'Revisar archivos' : `${leidos} de ${obligatorios.length} leídos`,
+    },
+    {
+      id: 'paso-formulario',
+      numero: 3,
+      titulo: 'Formulario del vendedor',
+      estado: estadoForm,
+      resumen:
+        formEstado === 'listo'
+          ? 'Leído. Lo que trajo ya está en la revisión.'
+          : 'Pega el mensaje que mandó el vendedor por WhatsApp.',
+      resumenCorto:
+        formEstado === 'listo' ? 'Leído' : formEstado === 'leyendo' ? 'Leyendo' : 'Pegar mensaje',
     },
     {
       id: 'paso-revision',
@@ -553,17 +553,6 @@ export default function App() {
             />
           </Paso>
 
-          <Paso {...paso['paso-formulario']} motivoBloqueo={BLOQUEO}>
-            <Formulario
-              texto={formTexto}
-              estado={formEstado}
-              mensaje={formMensaje}
-              lectura={lecturas.formulario}
-              onTexto={setFormTexto}
-              onLeer={leerFormulario}
-            />
-          </Paso>
-
           <Paso {...paso['paso-documentos']} motivoBloqueo={BLOQUEO}>
             <ZonaDocumentos
               ranuras={ranuras}
@@ -574,6 +563,17 @@ export default function App() {
               onQuitar={quitar}
               onDescartar={(id) => setBandeja((previa) => previa.filter((item) => item.id !== id))}
               onReintentar={reintentar}
+            />
+          </Paso>
+
+          <Paso {...paso['paso-formulario']} motivoBloqueo={BLOQUEO}>
+            <Formulario
+              texto={formTexto}
+              estado={formEstado}
+              mensaje={formMensaje}
+              lectura={lecturas.formulario}
+              onTexto={setFormTexto}
+              onLeer={leerFormulario}
             />
           </Paso>
 
