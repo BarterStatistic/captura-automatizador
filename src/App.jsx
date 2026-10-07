@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import ZonaDocumentos from './components/ZonaDocumentos.jsx';
 import Formulario from './components/Formulario.jsx';
@@ -10,6 +10,7 @@ import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
 import CapturaDinamo from './components/CapturaDinamo.jsx';
+import SolicitudImpresa, { VentanaSolicitud } from './components/SolicitudImpresa.jsx';
 
 import {
   CLASIFICADOR,
@@ -26,6 +27,7 @@ import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual, respaldoDelTexto, textoParaGemini } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
 import { esquemaPorValue, requisitosEnTexto } from './lib/esquemas.js';
+import { IMPRESION_INICIAL, datosSolicitud } from './lib/solicitud.js';
 
 // La moto (tipo de venta, modelo, color, plazo) la captura el vendedor en
 // Dinamo; aquí solo queda lo que la extensión usa del cliente en adelante.
@@ -49,7 +51,7 @@ const sin = (objeto, clave) => {
   return resto;
 };
 
-export default function App() {
+export default function App({ usuario, onSalir }) {
   // Cada casilla: { token, archivo, estado: 'leyendo' | 'listo' | 'error', mensaje }.
   // El ref es la copia síncrona: al acomodar dos archivos que llegan
   // casi juntos, el segundo tiene que ver que el primero ya ocupó su casilla.
@@ -79,6 +81,10 @@ export default function App() {
   const [copiado, setCopiado] = useState(false);
   // El capturista confirma que ya capturó la moto en Dinamo; sin eso no se llena.
   const [motoLista, setMotoLista] = useState(false);
+  // Lo que solo va en la solicitud de papel (la moto, el dinero, el promotor).
+  const [impresion, setImpresion] = useState(IMPRESION_INICIAL);
+  const [solicitudAbierta, setSolicitudAbierta] = useState(false);
+  const [impresa, setImpresa] = useState(false);
 
   // La extensión se detecta al montar y no cambia mientras la pestaña vive.
   const [hayExtension] = useState(() => extensionDisponible());
@@ -317,6 +323,9 @@ export default function App() {
     setLlenando(false);
   }
 
+  // Estable: la ventana lo usa en un efecto para cerrar con Escape.
+  const cerrarSolicitud = useCallback(() => setSolicitudAbierta(false), []);
+
   async function copiarExpediente() {
     await navigator.clipboard.writeText(
       JSON.stringify({ datos: expediente.datos, manual }, null, 2),
@@ -328,6 +337,12 @@ export default function App() {
   async function comprobarConexion() {
     setPrueba({ ok: null, mensaje: 'Probando…' });
     setPrueba(await probarConexion(URL_API));
+  }
+
+  function salirDeLaSesion() {
+    const hayAlgo = hayLecturas || bandeja.length > 0 || Object.keys(ranuras).length > 0 || formTexto;
+    if (hayAlgo && !window.confirm('¿Salir? Se pierde lo capturado de este cliente.')) return;
+    onSalir();
   }
 
   function nuevoExpediente() {
@@ -347,6 +362,9 @@ export default function App() {
     setEventos([]);
     setPrueba(null);
     setMotoLista(false);
+    setImpresion(IMPRESION_INICIAL);
+    setSolicitudAbierta(false);
+    setImpresa(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -393,6 +411,19 @@ export default function App() {
   else if (leyendoAlgo) motivoLlenar = 'Gemini sigue leyendo…';
   else if (expediente.faltantes.length > 0) motivoLlenar = 'Faltan datos obligatorios: están marcados abajo.';
   else if (!motoLista) motivoLlenar = 'Primero captura la moto en Dinamo y marca la casilla de arriba.';
+
+  // La solicitud de papel lleva lo mismo que Dinamo: se imprime con el
+  // expediente completo.
+  let motivoImprimir = '';
+  if (!hayLecturas) motivoImprimir = 'Primero carga los documentos y pega el formulario.';
+  else if (leyendoAlgo) motivoImprimir = 'Gemini sigue leyendo…';
+  else if (expediente.faltantes.length > 0) motivoImprimir = 'Faltan datos obligatorios en la revisión.';
+  else if (!terminado) motivoImprimir = 'Normalmente se imprime después de llenar y grabar en Dinamo.';
+  const puedeImprimir = hayLecturas && !leyendoAlgo && expediente.faltantes.length === 0;
+
+  let estadoSolicitud = 'pendiente';
+  if (!tipoDefinido) estadoSolicitud = 'bloqueado';
+  else if (impresa) estadoSolicitud = 'listo';
 
   const tipoElegido = esquemaPorValue(manual.esquemaVenta);
   const plural = (n, palabra) => `${n} ${palabra}${n === 1 ? '' : 's'}`;
@@ -463,6 +494,16 @@ export default function App() {
           : 'Primero la moto en Dinamo, a mano; después «Llenar en Dinamo».',
       resumenCorto: llenando ? 'Llenando' : terminado ? 'Llenado' : motoLista ? 'Llenar' : 'Moto primero',
     },
+    {
+      id: 'paso-solicitud',
+      numero: 6,
+      titulo: 'Solicitud impresa',
+      estado: estadoSolicitud,
+      resumen: impresa
+        ? 'Impresa. Si cambias algo, vuelve a imprimirla.'
+        : 'La solicitud de crédito de la agencia, en hoja oficio y llenada en tinta azul.',
+      resumenCorto: impresa ? 'Impresa' : puedeImprimir ? 'Imprimir' : 'Después de Dinamo',
+    },
   ];
   const paso = Object.fromEntries(pasos.map((p) => [p.id, p]));
   const BLOQUEO = 'Primero elige el tipo de crédito.';
@@ -500,6 +541,12 @@ export default function App() {
             </button>
             <button type="button" onClick={nuevoExpediente}>
               Nuevo expediente
+            </button>
+            <span className="sesion-usuario" title="Sesión abierta">
+              {usuario}
+            </span>
+            <button type="button" className="fantasma" onClick={salirDeLaSesion}>
+              Salir
             </button>
           </div>
         </div>
@@ -612,6 +659,15 @@ export default function App() {
               <Bitacora eventos={eventos} />
             </CapturaDinamo>
           </Paso>
+
+          <Paso {...paso['paso-solicitud']} motivoBloqueo={BLOQUEO}>
+            <SolicitudImpresa
+              puede={puedeImprimir}
+              motivo={motivoImprimir}
+              impresa={impresa}
+              onAbrir={() => setSolicitudAbierta(true)}
+            />
+          </Paso>
         </main>
       </div>
 
@@ -625,7 +681,19 @@ export default function App() {
         copiado={copiado}
         onLlenar={llenar}
         onCopiar={copiarExpediente}
+        terminado={terminado}
+        onImprimir={() => setSolicitudAbierta(true)}
       />
+
+      {solicitudAbierta && (
+        <VentanaSolicitud
+          datos={datosSolicitud({ datos: expediente.datos, lecturas, manual, impresion })}
+          impresion={impresion}
+          onImpresion={setImpresion}
+          onCerrar={cerrarSolicitud}
+          onImpresa={() => setImpresa(true)}
+        />
+      )}
     </div>
   );
 }

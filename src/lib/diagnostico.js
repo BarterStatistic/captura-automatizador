@@ -36,7 +36,7 @@ export function explicarRespuesta(estado, cuerpo) {
   const { mensaje, codigo } = errorDelCuerpo(cuerpo);
 
   // Los errores propios del servidor ya vienen redactados para el usuario.
-  if (codigo === 'SIN_CLAVE') return mensaje;
+  if (codigo === 'SIN_CLAVE' || codigo === 'SIN_SESION' || codigo === 'SIN_SECRETO') return mensaje;
 
   const cola = mensaje ? ` Google dice: «${mensaje}».` : '';
 

@@ -29,6 +29,13 @@ deshace.
 
    La página llama a `/api/gemini` (función en `api/gemini.js`) y esa función le
    pone la clave. Nunca viaja al navegador.
+
+   **Hay que iniciar sesión** (un solo usuario por ahora, `api/_sesion.js`). La
+   sesión es una cookie HttpOnly firmada que dura 12 horas; sin ella no se ve la
+   página ni responde `/api/gemini`, así que la URL pública ya no gasta cuota.
+   La contraseña no está en el código (el repo es público): solo su hash scrypt.
+   La firma usa `SESION_SECRETO` si existe; si no, una derivada de
+   `GEMINI_API_KEY`, así que no hace falta otra variable en Vercel.
 2. Instala la extensión: `edge://extensions` → «Modo de desarrollador» →
    «Cargar desempaquetada» → elige la carpeta `extension`. Desde la 1.1.0
    reconoce el dominio de Vercel; si cambia el dominio, cambia `manifest.json`.
@@ -89,7 +96,10 @@ público.
 | `lib/expediente.js` | fusiona las lecturas y valida | rfc, normaliza, esquemas |
 | `lib/gemini.js` | arma la petición y la manda a `/api/gemini` | diagnostico |
 | `api/_proxy.js` | servidor: agrega la clave y reenvía a Gemini | nada |
+| `api/_sesion.js` | servidor: usuario, cookie de sesión firmada | nada |
 | `lib/extension.js` | protocolo con la extensión | nada |
+| `lib/solicitud.js` | expediente → renglones de la solicitud de crédito impresa | nada |
+| `lib/formatoSolicitud.js` | geometría medida del formato de papel (generada) | nada |
 
 `lib/extension.js` no tiene pruebas de nodo a propósito: todo lo que hace es
 `postMessage` entre contextos del navegador, y jsdom no implementa
@@ -113,6 +123,15 @@ Decisiones tomadas con el usuario el 2026-08-31, todas con prueba:
   para poder cotejarlo después) y la pantalla lo marca como generado.
 - Los datos del cliente **no se inventan nunca**: lo que falta sale en rojo y
   mantiene apagado el botón de llenado.
+- La **solicitud de crédito de papel** (paso 6) se dibuja en
+  `components/HojaSolicitud.jsx` como un SVG sobre la geometría medida del
+  formato original (`lib/formatoSolicitud.js`, generada con
+  `herramientas/solicitud/`), en hoja oficio (216 × 340 mm). El formato va en
+  blanco y negro; solo lo escrito es azul. **Lo que no se sabe va vacío** para
+  llenarlo a mano (ciudad, teléfono de la empresa, domicilio de las referencias,
+  domicilio alterno…) y el tipo de persona no se marca nunca. El jefe inmediato
+  es siempre la referencia laboral. La H de la INE es la M (masculino) del
+  formato y la M de la INE es la F.
 
 ## La otra pieza
 

@@ -1,11 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import App from './App.jsx';
+import Acceso from './components/Acceso.jsx';
 import './index.css';
 
 createRoot(document.getElementById('raiz')).render(
   <StrictMode>
-    <App />
+    <Acceso />
   </StrictMode>,
 );

@@ -1,0 +1,34 @@
+/* La solicitud de crédito impresa: hoja oficio de México, 216 × 340 mm. El
+   formato es un SVG que ocupa la hoja entera (márgenes incluidos, como el
+   original). */
+
+@page solicitud-oficio {
+  size: 216mm 340mm;
+  margin: 0;
+}
+
+.hoja {
+  page: solicitud-oficio;
+  display: block;
+  width: 216mm;
+  height: 340mm;
+  background: #fff;
+  overflow: hidden;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.hoja-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hoja .impreso {
+  font-family: 'Source Sans 3', 'Myriad Pro', 'Segoe UI', Arial, sans-serif;
+}
+
+.hoja .tinta {
+  font-family: 'Kalam', 'Segoe Print', 'Comic Sans MS', cursive;
+  font-weight: 400;
+}

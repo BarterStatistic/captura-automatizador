@@ -9,6 +9,7 @@
 // <canvas>, así que se manda tal cual.
 
 import { explicarFalloDeRed, explicarRespuesta } from './diagnostico.js';
+import { avisarSesionVencida } from './sesion.js';
 
 export const URL_API = '/api/gemini';
 
@@ -161,6 +162,8 @@ async function pedir(cuerpo) {
   }
 
   const texto = await respuesta.text();
+  // Sin sesión (venció a media captura): la pantalla de acceso se vuelve a abrir.
+  if (respuesta.status === 401) avisarSesionVencida();
   if (!respuesta.ok) throw new ErrorGemini(explicarRespuesta(respuesta.status, texto));
 
   return interpretarRespuesta(texto);

@@ -81,3 +81,11 @@ export const IconoCandado = (p) => (
     <path d="M8 11V8a4 4 0 018 0v3" />
   </Icono>
 );
+
+export const IconoImpresora = (p) => (
+  <Icono {...p}>
+    <path d="M7 9V4h10v5" />
+    <rect x="3" y="9" width="18" height="8" rx="2" />
+    <path d="M7 14h10v6H7z" />
+  </Icono>
+);

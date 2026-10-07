@@ -1,4 +1,4 @@
-import { IconoCheck, IconoCopiar, IconoFlecha } from './Iconos.jsx';
+import { IconoCheck, IconoCopiar, IconoFlecha, IconoImpresora } from './Iconos.jsx';
 
 // Nombres legibles de lo que `armarExpediente` reporta en `faltantes`.
 export const ETIQUETAS_FALTANTE = {
@@ -56,6 +56,8 @@ export default function BarraAccion({
   copiado,
   onLlenar,
   onCopiar,
+  terminado,
+  onImprimir,
 }) {
   const listo = hayLecturas && !leyendo && faltantes.length === 0;
 
@@ -74,6 +76,13 @@ export default function BarraAccion({
           </button>
         ))}
       </div>
+    );
+  } else if (terminado) {
+    estado = (
+      <span className="accion-nota lista">
+        <IconoCheck tamano={15} />
+        Dinamo llenado. Graba en Dinamo y después imprime la solicitud (paso 6).
+      </span>
     );
   } else if (!motoLista) {
     estado = (
@@ -106,7 +115,12 @@ export default function BarraAccion({
             <IconoCopiar tamano={15} />
             {copiado ? 'Copiado' : 'Copiar expediente'}
           </button>
-          {irPorLaMoto ? (
+          {listo && terminado ? (
+            <button type="button" className="primario" onClick={onImprimir}>
+              <IconoImpresora tamano={15} />
+              Imprimir solicitud
+            </button>
+          ) : irPorLaMoto ? (
             <button type="button" className="primario" onClick={() => irAlPaso('paso-dinamo')}>
               Ir a capturar la moto
               <IconoFlecha tamano={15} />

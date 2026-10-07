@@ -1722,3 +1722,241 @@ button.grande {
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* --- Solicitud de crédito impresa ------------------------------------------ */
+
+.solicitud-paso p {
+  margin: 0 0 14px;
+  color: var(--texto-medio);
+  max-width: 68ch;
+}
+
+.ventana-solicitud {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-capa);
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  background: rgb(42 46 53 / 0.55);
+}
+
+.solicitud-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--superficie);
+  padding: 20px 20px 18px;
+  overflow-y: auto;
+  border-right: 3px solid var(--dorado);
+}
+
+.solicitud-panel-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.solicitud-panel-cabeza h2 {
+  margin: 0;
+  font-family: var(--letra-titulo);
+  font-size: 22px;
+  color: var(--texto-medio);
+}
+
+.solicitud-nota {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--texto-tenue);
+}
+
+.solicitud-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.solicitud-campos h3 {
+  margin: 6px 0 -2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.solicitud-par {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.solicitud-imprimir {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde-suave);
+}
+
+.solicitud-imprimir button {
+  width: 100%;
+}
+
+.solicitud-imprimir p {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-tenue);
+}
+
+.solicitud-vista {
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.hoja-escala {
+  flex: none;
+}
+
+.hoja-marco {
+  transform-origin: top left;
+  width: max-content;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.35);
+}
+
+@media (max-width: 860px) {
+  .ventana-solicitud {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .solicitud-panel {
+    max-height: 55vh;
+    border-right: 0;
+    border-bottom: 3px solid var(--dorado);
+  }
+}
+
+/* Al imprimir con la ventana abierta, sale solo la hoja, a tamaño real. */
+@media print {
+  html.con-solicitud #raiz,
+  html.con-solicitud .solicitud-panel {
+    display: none !important;
+  }
+
+  html.con-solicitud,
+  html.con-solicitud body {
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  .ventana-solicitud {
+    position: static;
+    display: block;
+    background: none;
+  }
+
+  .solicitud-vista {
+    display: block;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .hoja-escala {
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .hoja-marco {
+    transform: none !important;
+    box-shadow: none;
+  }
+}
+
+/* --- Acceso ------------------------------------------------------------------ */
+
+.acceso {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--fondo);
+}
+
+.acceso.encima {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-capa) + 10);
+  background: rgb(42 46 53 / 0.55);
+}
+
+.acceso-cargando {
+  color: var(--texto-tenue);
+}
+
+.acceso-tarjeta {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 26px 24px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-suave);
+  border-top: 3px solid var(--dorado);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.acceso-logo {
+  align-self: flex-start;
+  height: 48px;
+  width: auto;
+}
+
+.acceso-titulo {
+  margin: 4px 0 0;
+  font-family: var(--letra-titulo);
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--texto-medio);
+}
+
+.acceso-titulo span {
+  color: var(--dorado);
+}
+
+.acceso-detalle {
+  margin: -6px 0 4px;
+  font-size: 13.5px;
+  color: var(--texto-tenue);
+}
+
+.acceso-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: var(--radio-chico);
+  background: var(--rojo-suave);
+  color: #a93226;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.acceso-tarjeta button[type='submit'] {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.sesion-usuario {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-medio);
+  padding-left: 10px;
+  border-left: 1px solid var(--borde);
+}
