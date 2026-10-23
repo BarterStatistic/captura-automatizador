@@ -9,6 +9,7 @@
 // <canvas>, así que se manda tal cual.
 
 import { explicarFalloDeRed, explicarRespuesta } from './diagnostico.js';
+import { anotarCosto, capturaActual } from './gasto.js';
 import { avisarSesionVencida } from './sesion.js';
 
 export const URL_API = '/api/gemini';
@@ -153,7 +154,7 @@ async function pedir(cuerpo) {
   try {
     respuesta = await fetch(URL_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Captura': capturaActual() },
       body: JSON.stringify(cuerpo),
     });
   } catch (exc) {
@@ -162,6 +163,7 @@ async function pedir(cuerpo) {
   }
 
   const texto = await respuesta.text();
+  anotarCosto(respuesta.headers.get('X-Costo-USD'));
   // Sin sesión (venció a media captura): la pantalla de acceso se vuelve a abrir.
   if (respuesta.status === 401) avisarSesionVencida();
   if (!respuesta.ok) throw new ErrorGemini(explicarRespuesta(respuesta.status, texto));

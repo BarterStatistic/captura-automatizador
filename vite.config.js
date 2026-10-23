@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+import { registrarGasto, resumenDelMes } from './api/_gasto.js';
 import { entornoDesde, reenviarAGemini } from './api/_proxy.js';
 import {
   RESPUESTA_SIN_SESION,
@@ -8,6 +9,9 @@ import {
   atenderSesion,
   cookieBorrada,
   haySesion,
+  leerSesion,
+  secretoDe,
+  tokenDeCookies,
 } from './api/_sesion.js';
 
 async function leerJson(req) {
@@ -46,6 +50,15 @@ function apiGeminiLocal(variables) {
         responderJson(res, estado, cuerpo);
       });
 
+      server.middlewares.use('/api/gasto', async (req, res) => {
+        if (!haySesion(req.headers.cookie, variables)) {
+          responderJson(res, 401, RESPUESTA_SIN_SESION);
+          return;
+        }
+        const { estado, cuerpo } = await resumenDelMes(variables);
+        responderJson(res, estado, cuerpo);
+      });
+
       server.middlewares.use('/api/gemini', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
@@ -60,7 +73,16 @@ function apiGeminiLocal(variables) {
         // reenviarAGemini responde 400 a un cuerpo nulo.
         const cuerpo = await leerJson(req);
 
-        const { estado, texto } = await reenviarAGemini(cuerpo, entornoDesde(variables));
+        const entorno = entornoDesde(variables);
+        const respuesta = await reenviarAGemini(cuerpo, entorno);
+        const { estado, texto } = respuesta;
+        const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(variables));
+        const costo = await registrarGasto(
+          respuesta,
+          { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
+          variables,
+        );
+        res.setHeader('X-Costo-USD', String(costo));
         res.statusCode = estado;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.end(texto);

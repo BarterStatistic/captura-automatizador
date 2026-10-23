@@ -9,6 +9,7 @@ import BarraAccion from './components/BarraAccion.jsx';
 import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
+import Gasto from './components/Gasto.jsx';
 import CapturaDinamo from './components/CapturaDinamo.jsx';
 import SolicitudImpresa, { VentanaSolicitud } from './components/SolicitudImpresa.jsx';
 
@@ -23,6 +24,7 @@ import {
 } from './lib/documentos.js';
 import { clasificarArchivo, leerDocumento, leerTexto, URL_API } from './lib/gemini.js';
 import { probarConexion } from './lib/diagnostico.js';
+import { reiniciarGasto } from './lib/gasto.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual, respaldoDelTexto, textoParaGemini } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
@@ -350,6 +352,7 @@ export default function App({ usuario, onSalir }) {
     if (hayAlgo && !window.confirm('¿Empezar un expediente nuevo? Se borra todo lo de este cliente.')) {
       return;
     }
+    reiniciarGasto();
     cambiarRanuras(() => ({}));
     setBandeja([]);
     setLecturas({});
@@ -542,6 +545,7 @@ export default function App({ usuario, onSalir }) {
             <button type="button" onClick={nuevoExpediente}>
               Nuevo expediente
             </button>
+            <Gasto />
             <span className="sesion-usuario" title="Sesión abierta">
               {usuario}
             </span>

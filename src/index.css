@@ -1960,3 +1960,88 @@ button.grande {
   padding-left: 10px;
   border-left: 1px solid var(--borde);
 }
+
+/* Gasto de Gemini: contador en la barra y panel con el balance del mes. */
+.gasto {
+  position: relative;
+}
+.gasto-boton {
+  font-variant-numeric: tabular-nums;
+}
+.gasto-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: var(--z-capa);
+  width: min(340px, 90vw);
+  padding: 14px 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  font-size: 13px;
+  color: var(--texto-medio);
+}
+.gasto-panel h3 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-tenue);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gasto-panel h3:not(:first-child) {
+  margin-top: 14px;
+}
+.gasto-cifra {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.gasto-cifra span {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--texto-tenue);
+}
+.gasto-datos {
+  margin: 8px 0 0;
+}
+.gasto-datos div {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+.gasto-datos dt {
+  color: var(--texto-tenue);
+}
+.gasto-datos dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.gasto-tabla {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.gasto-tabla th,
+.gasto-tabla td {
+  padding: 4px 0;
+  text-align: right;
+  border-top: 1px solid var(--borde-suave);
+}
+.gasto-tabla th:first-child,
+.gasto-tabla td:first-child {
+  text-align: left;
+}
+.gasto-error {
+  margin: 0;
+  color: var(--rojo);
+}
+.gasto-nota {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: var(--texto-tenue);
+}

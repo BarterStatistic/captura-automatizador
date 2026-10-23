@@ -5,7 +5,8 @@
 // (_sesion.js): así la URL pública no gasta la cuota de nadie.
 
 import { entornoDesde, reenviarAGemini } from './_proxy.js';
-import { RESPUESTA_SIN_SESION, haySesion } from './_sesion.js';
+import { registrarGasto } from './_gasto.js';
+import { RESPUESTA_SIN_SESION, haySesion, leerSesion, secretoDe, tokenDeCookies } from './_sesion.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -22,7 +23,18 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { estado, texto } = await reenviarAGemini(req.body, entornoDesde(process.env));
+  const entorno = entornoDesde(process.env);
+  const respuesta = await reenviarAGemini(req.body, entorno);
+  const { estado, texto } = respuesta;
+
+  // Se espera el registro: Vercel congela la función en cuanto responde.
+  const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(process.env));
+  const costo = await registrarGasto(
+    respuesta,
+    { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
+    process.env,
+  );
+  res.setHeader('X-Costo-USD', String(costo));
 
   res.status(estado);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
