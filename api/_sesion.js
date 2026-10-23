@@ -13,7 +13,7 @@
 
 import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
 
-// Un solo usuario por ahora (pedido de Braulio, 2026-10-06). El repositorio es
+// Usuarios con acceso (Braulio, 2026-10-06; Bryan Barboza, 2026-10-23). El repositorio es
 // público, así que la contraseña no está escrita: solo su hash scrypt con sal.
 // Para cambiarla, generar otro con:
 //   node -e "const c=require('crypto');const s=c.randomBytes(16);console.log('scrypt:16384:8:1:'+s.toString('base64url')+':'+c.scryptSync('NUEVA',s,32,{N:16384,r:8,p:1}).toString('base64url'))"
@@ -21,6 +21,10 @@ export const USUARIOS = [
   {
     nombre: 'Braulio Acosta',
     hash: 'scrypt:16384:8:1:YTTxj54n8lToBaHTVyuEMg:2Npkh56GC1IOU5NQ5FkxEWb0XB5IWY8W8lpPmZCKKZg',
+  },
+  {
+    nombre: 'Bryan Barboza',
+    hash: 'scrypt:16384:8:1:G5J3O_0Xzi6K8unwqcrDFw:GkPJVrzgIuz20-LiVj4SZrFIveS3ggNRK8uaqJuPLA8',
   },
 ];
 
