@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-import { registrarGasto, resumenDelMes } from './api/_gasto.js';
+import { atenderGasto, registrarGasto } from './api/_gasto.js';
 import { entornoDesde, reenviarAGemini } from './api/_proxy.js';
 import {
   RESPUESTA_SIN_SESION,
@@ -10,6 +10,7 @@ import {
   cookieBorrada,
   haySesion,
   leerSesion,
+  rolDe,
   secretoDe,
   tokenDeCookies,
 } from './api/_sesion.js';
@@ -51,11 +52,7 @@ function apiGeminiLocal(variables) {
       });
 
       server.middlewares.use('/api/gasto', async (req, res) => {
-        if (!haySesion(req.headers.cookie, variables)) {
-          responderJson(res, 401, RESPUESTA_SIN_SESION);
-          return;
-        }
-        const { estado, cuerpo } = await resumenDelMes(variables);
+        const { estado, cuerpo } = await atenderGasto(req.headers.cookie, req.url, variables);
         responderJson(res, estado, cuerpo);
       });
 
@@ -82,7 +79,7 @@ function apiGeminiLocal(variables) {
           { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
           variables,
         );
-        res.setHeader('X-Costo-USD', String(costo));
+        if (rolDe(usuario) === 'admin') res.setHeader('X-Costo-USD', String(costo));
         res.statusCode = estado;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.end(texto);

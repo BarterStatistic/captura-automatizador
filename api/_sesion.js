@@ -20,15 +20,22 @@ import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
 export const USUARIOS = [
   {
     nombre: 'Braulio Acosta',
+    rol: 'admin',
     hash: 'scrypt:16384:8:1:YTTxj54n8lToBaHTVyuEMg:2Npkh56GC1IOU5NQ5FkxEWb0XB5IWY8W8lpPmZCKKZg',
   },
   {
     nombre: 'Bryan Barboza',
+    rol: 'vendedor',
     hash: 'scrypt:16384:8:1:G5J3O_0Xzi6K8unwqcrDFw:GkPJVrzgIuz20-LiVj4SZrFIveS3ggNRK8uaqJuPLA8',
   },
 ];
 
 export const COOKIE = 'captura_sesion';
+
+/** `admin` ve el consumo de la API; `vendedor` (cualquier otro) no ve nada de costos. */
+export const rolDe = (nombre, usuarios = USUARIOS) =>
+  usuarios.find((u) => u.nombre === nombre)?.rol === 'admin' ? 'admin' : 'vendedor';
+
 // Una jornada de la agencia; después hay que volver a entrar.
 export const DURACION_MS = 12 * 60 * 60 * 1000;
 
@@ -159,7 +166,7 @@ export function atenderLogin(cuerpo, variables, { segura = false, ahora = Date.n
   }
   return {
     estado: 200,
-    cuerpo: { usuario: nombre },
+    cuerpo: { usuario: nombre, rol: rolDe(nombre) },
     cookie: cookieDeSesion(crearSesion(nombre, secreto, ahora), segura),
   };
 }
@@ -168,7 +175,7 @@ export function atenderLogin(cuerpo, variables, { segura = false, ahora = Date.n
 export function atenderSesion(cabeceraCookie, variables, ahora = Date.now()) {
   const nombre = leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables), ahora);
   return nombre
-    ? { estado: 200, cuerpo: { usuario: nombre } }
+    ? { estado: 200, cuerpo: { usuario: nombre, rol: rolDe(nombre) } }
     : { estado: 401, cuerpo: { error: { message: 'No hay sesión.', codigo: 'SIN_SESION' } } };
 }
 

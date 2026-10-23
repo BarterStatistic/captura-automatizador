@@ -40,3 +40,32 @@ as $$
 $$;
 revoke all on function public.gemini_resumen(timestamptz) from public, anon, authenticated;
 grant execute on function public.gemini_resumen(timestamptz) to service_role;
+
+-- Serie para la gráfica: un renglón por hora, día o semana (hora de México),
+-- con ceros donde no hubo consumo. `paso` es 'hour', 'day' o 'week'.
+create or replace function public.gemini_serie(desde timestamptz, hasta timestamptz, paso text)
+returns json
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select coalesce(json_agg(json_build_object(
+    't', b.t, 'usd', coalesce(s.usd, 0), 'llamadas', coalesce(s.n, 0), 'capturas', coalesce(s.c, 0)
+  ) order by b.t), '[]'::json)
+  from generate_series(
+    date_trunc(paso, desde at time zone 'America/Mexico_City'),
+    date_trunc(paso, hasta at time zone 'America/Mexico_City'),
+    ('1 ' || paso)::interval
+  ) as b(t)
+  left join (
+    select date_trunc(paso, creado at time zone 'America/Mexico_City') as t,
+           sum(costo_usd) as usd, count(*) as n, count(distinct captura_id) as c
+    from gemini_uso
+    where creado >= desde and creado <= hasta
+    group by 1
+  ) s on s.t = b.t
+  where paso in ('hour', 'day', 'week');
+$$;
+revoke all on function public.gemini_serie(timestamptz, timestamptz, text) from public, anon, authenticated;
+grant execute on function public.gemini_serie(timestamptz, timestamptz, text) to service_role;

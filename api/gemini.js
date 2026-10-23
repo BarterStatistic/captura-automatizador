@@ -6,7 +6,7 @@
 
 import { entornoDesde, reenviarAGemini } from './_proxy.js';
 import { registrarGasto } from './_gasto.js';
-import { RESPUESTA_SIN_SESION, haySesion, leerSesion, secretoDe, tokenDeCookies } from './_sesion.js';
+import { RESPUESTA_SIN_SESION, haySesion, leerSesion, rolDe, secretoDe, tokenDeCookies } from './_sesion.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -34,7 +34,8 @@ export default async function handler(req, res) {
     { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
     process.env,
   );
-  res.setHeader('X-Costo-USD', String(costo));
+  // Los vendedores no ven costos: ni en pantalla ni en las cabeceras de red.
+  if (rolDe(usuario) === 'admin') res.setHeader('X-Costo-USD', String(costo));
 
   res.status(estado);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');

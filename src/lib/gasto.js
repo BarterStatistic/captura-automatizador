@@ -43,9 +43,19 @@ export function reiniciarGasto() {
 export const formatoUsd = (usd) => `$${Number(usd || 0).toFixed(usd < 1 ? 4 : 2)}`;
 export const formatoMxn = (usd) => `$${(Number(usd || 0) * TIPO_CAMBIO_MXN).toFixed(2)}`;
 
-/** Balance del mes desde el servidor; lanza Error con el motivo si falla. */
-export async function balanceDelMes() {
-  const respuesta = await fetch('/api/gasto', { credentials: 'same-origin', cache: 'no-store' });
+export const PERIODOS = [
+  { id: 'dia', nombre: 'Día', detalle: 'hoy, por hora' },
+  { id: 'semana', nombre: 'Semana', detalle: 'desde el lunes, por día' },
+  { id: 'mes', nombre: 'Mes', detalle: 'este mes, por día' },
+  { id: 'trimestre', nombre: 'Trimestre', detalle: 'este trimestre, por semana' },
+];
+
+/** Balance de un periodo (solo admin); lanza Error con el motivo si falla. */
+export async function balanceDe(periodo) {
+  const respuesta = await fetch(`/api/gasto?periodo=${encodeURIComponent(periodo)}`, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
   const cuerpo = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) throw new Error(cuerpo?.error?.message ?? `Error ${respuesta.status}.`);
   return cuerpo;

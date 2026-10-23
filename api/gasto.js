@@ -1,17 +1,10 @@
-// Función de Vercel: GET /api/gasto. Balance del mes del gasto en Gemini.
-// Pide sesión, igual que /api/gemini.
+// Función de Vercel: GET /api/gasto?periodo=dia|semana|mes|trimestre. Gasto en Gemini.
+// Solo para administradores (ver atenderGasto en _gasto.js).
 
-import { resumenDelMes } from './_gasto.js';
-import { RESPUESTA_SIN_SESION, haySesion } from './_sesion.js';
+import { atenderGasto } from './_gasto.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (!haySesion(req.headers.cookie, process.env)) {
-    res.status(401);
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.send(RESPUESTA_SIN_SESION);
-    return;
-  }
-  const { estado, cuerpo } = await resumenDelMes(process.env);
+  const { estado, cuerpo } = await atenderGasto(req.headers.cookie, req.url, process.env);
   res.status(estado).json(cuerpo);
 }

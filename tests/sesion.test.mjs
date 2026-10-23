@@ -88,7 +88,7 @@ test('login correcto devuelve la cookie HttpOnly; incorrecto, 401 sin cookie', (
     ahora: AHORA,
   });
   assert.equal(bien.estado, 200);
-  assert.deepEqual(bien.cuerpo, { usuario: 'Braulio Acosta' });
+  assert.deepEqual(bien.cuerpo, { usuario: 'Braulio Acosta', rol: 'admin' });
   assert.match(bien.cookie, new RegExp(`^${COOKIE}=`));
   assert.match(bien.cookie, /HttpOnly/);
   assert.match(bien.cookie, /Secure/);
@@ -112,7 +112,7 @@ test('la cookie del login abre la sesión y la de logout la cierra', () => {
 
   assert.equal(tokenDeCookies(cabecera).length > 0, true);
   assert.equal(haySesion(cabecera, ENTORNO), true);
-  assert.deepEqual(atenderSesion(cabecera, ENTORNO).cuerpo, { usuario: 'Braulio Acosta' });
+  assert.deepEqual(atenderSesion(cabecera, ENTORNO).cuerpo, { usuario: 'Braulio Acosta', rol: 'admin' });
 
   assert.equal(haySesion('', ENTORNO), false);
   assert.equal(atenderSesion(undefined, ENTORNO).estado, 401);

@@ -8,6 +8,7 @@
 // El archivo empieza con guion bajo para que Vercel no lo publique como ruta.
 
 import { MODELO_POR_DEFECTO } from './_proxy.js';
+import { RESPUESTA_SIN_SESION, leerSesion, rolDe, secretoDe, tokenDeCookies } from './_sesion.js';
 
 // USD por millón de tokens (precio estándar de pago de Google, 2026-10-23).
 // La salida incluye los tokens de razonamiento. Si cambia el modelo o el
@@ -88,32 +89,81 @@ export async function registrarGasto({ estado, texto }, { usuario, captura, mode
   return uso.costo_usd;
 }
 
-/** Primer instante del mes en hora de México (UTC-6 todo el año desde 2022). */
-export function inicioDeMes(ahora = new Date()) {
+export const PERIODOS = ['dia', 'semana', 'mes', 'trimestre'];
+
+/**
+ * Desde cuándo y con qué paso se grafica cada periodo, en hora de México
+ * (UTC-6 todo el año desde 2022). Es el periodo EN CURSO: hoy, esta semana
+ * (desde el lunes), este mes o este trimestre natural.
+ */
+export function rangoDe(periodo, ahora = new Date()) {
   const local = new Date(ahora.getTime() - 6 * 3600_000);
   const anio = local.getUTCFullYear();
-  const mes = String(local.getUTCMonth() + 1).padStart(2, '0');
-  return `${anio}-${mes}-01T00:00:00-06:00`;
+  const mes = local.getUTCMonth();
+  const dia = local.getUTCDate();
+
+  let inicio;
+  let paso;
+  if (periodo === 'dia') {
+    inicio = Date.UTC(anio, mes, dia);
+    paso = 'hour';
+  } else if (periodo === 'semana') {
+    inicio = Date.UTC(anio, mes, dia - ((local.getUTCDay() + 6) % 7));
+    paso = 'day';
+  } else if (periodo === 'trimestre') {
+    inicio = Date.UTC(anio, Math.floor(mes / 3) * 3, 1);
+    paso = 'week';
+  } else {
+    inicio = Date.UTC(anio, mes, 1);
+    paso = 'day';
+  }
+  return { desde: `${new Date(inicio).toISOString().slice(0, 19)}-06:00`, hasta: ahora.toISOString(), paso };
 }
 
-/** Balance del mes: llamadas, capturas, USD total y desglose por usuario. */
-export async function resumenDelMes(variables = {}, ahora = new Date(), traer = fetch) {
+async function rpc(acceso, funcion, argumentos, traer) {
+  const respuesta = await traer(`${acceso.base}/rest/v1/rpc/${funcion}`, {
+    method: 'POST',
+    headers: acceso.cabeceras,
+    body: JSON.stringify(argumentos),
+  });
+  if (!respuesta.ok) throw new Error(`Supabase respondió ${respuesta.status} en ${funcion}.`);
+  return respuesta.json();
+}
+
+/** Balance de un periodo: totales, desglose por usuario y serie para la gráfica. */
+export async function resumenDe(periodo, variables = {}, ahora = new Date(), traer = fetch) {
   const acceso = conexion(variables);
   if (!acceso) {
-    return { estado: 503, cuerpo: { error: { message: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en el servidor.', codigo: 'SIN_BASE' } } };
+    return {
+      estado: 503,
+      cuerpo: { error: { message: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en el servidor.', codigo: 'SIN_BASE' } },
+    };
   }
-  const desde = inicioDeMes(ahora);
+  const rango = rangoDe(periodo, ahora);
   try {
-    const respuesta = await traer(`${acceso.base}/rest/v1/rpc/gemini_resumen`, {
-      method: 'POST',
-      headers: acceso.cabeceras,
-      body: JSON.stringify({ desde }),
-    });
-    if (!respuesta.ok) {
-      return { estado: 502, cuerpo: { error: { message: `Supabase respondió ${respuesta.status}.`, codigo: 'BASE' } } };
-    }
-    return { estado: 200, cuerpo: { desde, ...(await respuesta.json()) } };
+    const [resumen, serie] = await Promise.all([
+      rpc(acceso, 'gemini_resumen', { desde: rango.desde }, traer),
+      rpc(acceso, 'gemini_serie', rango, traer),
+    ]);
+    return { estado: 200, cuerpo: { periodo, ...rango, ...resumen, serie: serie ?? [] } };
   } catch (error) {
     return { estado: 502, cuerpo: { error: { message: error.message, codigo: 'BASE' } } };
   }
+}
+
+/**
+ * GET /api/gasto?periodo=dia|semana|mes|trimestre. Solo para administradores:
+ * un vendedor recibe 403 y nada de cifras.
+ */
+export async function atenderGasto(cabeceraCookie, url, variables = {}, ahora = new Date(), traer = fetch) {
+  const usuario = leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables));
+  if (!usuario) return { estado: 401, cuerpo: JSON.parse(RESPUESTA_SIN_SESION) };
+  if (rolDe(usuario) !== 'admin') {
+    return { estado: 403, cuerpo: { error: { message: 'No tienes permiso para ver esto.', codigo: 'SIN_PERMISO' } } };
+  }
+  const periodo = new URL(url ?? '/', 'http://local').searchParams.get('periodo') || 'mes';
+  if (!PERIODOS.includes(periodo)) {
+    return { estado: 400, cuerpo: { error: { message: 'Periodo no válido.', codigo: 'PERIODO' } } };
+  }
+  return resumenDe(periodo, variables, ahora, traer);
 }

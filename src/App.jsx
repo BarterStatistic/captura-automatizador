@@ -10,6 +10,7 @@ import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
 import Gasto from './components/Gasto.jsx';
+import Consumo from './components/Consumo.jsx';
 import CapturaDinamo from './components/CapturaDinamo.jsx';
 import SolicitudImpresa, { VentanaSolicitud } from './components/SolicitudImpresa.jsx';
 
@@ -53,7 +54,11 @@ const sin = (objeto, clave) => {
   return resto;
 };
 
-export default function App({ usuario, onSalir }) {
+export default function App({ usuario, esAdmin = false, onSalir }) {
+  // Solo el admin tiene la pestaña de consumo; la captura sigue montada debajo
+  // para no perder lo leído al cambiar de pestaña.
+  const [vista, setVista] = useState('captura');
+  const enConsumo = esAdmin && vista === 'consumo';
   // Cada casilla: { token, archivo, estado: 'leyendo' | 'listo' | 'error', mensaje }.
   // El ref es la copia síncrona: al acomodar dos archivos que llegan
   // casi juntos, el segundo tiene que ver que el primero ya ocupó su casilla.
@@ -545,7 +550,7 @@ export default function App({ usuario, onSalir }) {
             <button type="button" onClick={nuevoExpediente}>
               Nuevo expediente
             </button>
-            <Gasto />
+            {esAdmin && <Gasto onAbrir={() => setVista('consumo')} />}
             <span className="sesion-usuario" title="Sesión abierta">
               {usuario}
             </span>
@@ -556,7 +561,20 @@ export default function App({ usuario, onSalir }) {
         </div>
       </header>
 
-      <div className="cuerpo">
+      {esAdmin && (
+        <nav className="pestanas" aria-label="Secciones">
+          <button type="button" aria-current={!enConsumo} onClick={() => setVista('captura')}>
+            Captura
+          </button>
+          <button type="button" aria-current={enConsumo} onClick={() => setVista('consumo')}>
+            Consumo de la API
+          </button>
+        </nav>
+      )}
+
+      {enConsumo && <Consumo />}
+
+      <div className="cuerpo" style={enConsumo ? { display: 'none' } : undefined}>
         <aside className="lateral">
           <Progreso pasos={pasos} />
         </aside>
@@ -675,6 +693,7 @@ export default function App({ usuario, onSalir }) {
         </main>
       </div>
 
+      <div hidden={enConsumo}>
       <BarraAccion
         hayLecturas={hayLecturas}
         leyendo={leyendoAlgo}
@@ -688,6 +707,7 @@ export default function App({ usuario, onSalir }) {
         terminado={terminado}
         onImprimir={() => setSolicitudAbierta(true)}
       />
+      </div>
 
       {solicitudAbierta && (
         <VentanaSolicitud

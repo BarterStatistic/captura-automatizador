@@ -5,18 +5,19 @@
 // a media captura (un 401 de /api/gemini).
 export const EVENTO_SESION_VENCIDA = 'captura:sesion-vencida';
 
-/** El nombre del usuario con sesión abierta, o null. */
+/** `{ usuario, rol }` de la sesión abierta, o null. */
 export async function sesionActual() {
   try {
     const respuesta = await fetch('/api/sesion', { credentials: 'same-origin', cache: 'no-store' });
     if (!respuesta.ok) return null;
-    return (await respuesta.json()).usuario ?? null;
+    const cuerpo = await respuesta.json();
+    return cuerpo.usuario ? { usuario: cuerpo.usuario, rol: cuerpo.rol } : null;
   } catch {
     return null;
   }
 }
 
-/** Entra con usuario y contraseña. Devuelve el nombre; si falla, lanza Error con el motivo. */
+/** Entra con usuario y contraseña. Devuelve `{ usuario, rol }`; si falla, lanza Error con el motivo. */
 export async function entrar(usuario, password) {
   let respuesta;
   try {
@@ -31,7 +32,7 @@ export async function entrar(usuario, password) {
   }
   const cuerpo = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) throw new Error(cuerpo?.error?.message ?? `El servidor respondió ${respuesta.status}.`);
-  return cuerpo.usuario;
+  return { usuario: cuerpo.usuario, rol: cuerpo.rol };
 }
 
 export async function salir() {

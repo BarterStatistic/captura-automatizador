@@ -11,14 +11,15 @@ import { EVENTO_SESION_VENCIDA, entrar, salir, sesionActual } from '../lib/sesio
  */
 export default function Acceso() {
   const [cargando, setCargando] = useState(true);
-  const [usuario, setUsuario] = useState(null);
+  const [sesion, setSesion] = useState(null);
+  const usuario = sesion?.usuario ?? null;
   const [vencida, setVencida] = useState(false);
 
   useEffect(() => {
     let vigente = true;
-    sesionActual().then((nombre) => {
+    sesionActual().then((actual) => {
       if (!vigente) return;
-      setUsuario(nombre);
+      setSesion(actual);
       setCargando(false);
     });
     const alVencer = () => setVencida(true);
@@ -39,15 +40,16 @@ export default function Acceso() {
     );
   }
 
-  if (!usuario) return <PantallaAcceso onEntrar={setUsuario} />;
+  if (!usuario) return <PantallaAcceso onEntrar={setSesion} />;
 
   return (
     <>
       <App
         usuario={usuario}
+        esAdmin={sesion.rol === 'admin'}
         onSalir={async () => {
           await salir();
-          setUsuario(null);
+          setSesion(null);
           setVencida(false);
         }}
       />
@@ -55,8 +57,8 @@ export default function Acceso() {
         <PantallaAcceso
           vencida
           usuarioInicial={usuario}
-          onEntrar={(nombre) => {
-            setUsuario(nombre);
+          onEntrar={(nueva) => {
+            setSesion(nueva);
             setVencida(false);
           }}
         />
