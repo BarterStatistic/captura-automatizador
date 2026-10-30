@@ -9,7 +9,7 @@
 // <canvas>, así que se manda tal cual.
 
 import { explicarFalloDeRed, explicarRespuesta } from './diagnostico.js';
-import { anotarCosto, capturaActual } from './gasto.js';
+import { anotarCosto, capturaActual, tipoCreditoActual } from './gasto.js';
 import { avisarSesionVencida } from './sesion.js';
 
 export const URL_API = '/api/gemini';
@@ -154,7 +154,11 @@ async function pedir(cuerpo) {
   try {
     respuesta = await fetch(URL_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Captura': capturaActual() },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Captura': capturaActual(),
+        'X-Tipo-Credito': tipoCreditoActual(),
+      },
       body: JSON.stringify(cuerpo),
     });
   } catch (exc) {

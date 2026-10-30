@@ -1,0 +1,188 @@
+/* Panel de administración (/admin). Usa los tokens de index.css: blanco, naranja
+   del logo para la acción y gris del logo para el texto. */
+
+.admin-titulo {
+  margin: 0;
+  font-family: var(--letra-titulo);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--texto-medio);
+}
+.admin-subtitulo {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-tenue);
+}
+.admin-enlace {
+  color: var(--dorado-fuerte);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.admin-enlace:hover {
+  text-decoration: underline;
+}
+
+.admin-cuerpo {
+  min-height: 60vh;
+}
+.admin-cuerpo .consumo {
+  max-width: 1100px;
+}
+
+.admin-rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .admin-rejilla {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.admin-tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  padding: 14px 16px 16px;
+}
+.admin-tarjeta h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--texto-medio);
+}
+
+.barras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.barras-texto {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto);
+}
+.barras-texto span:last-child {
+  font-weight: 400;
+  color: var(--texto-tenue);
+  font-variant-numeric: tabular-nums;
+}
+.barras-pista {
+  margin-top: 4px;
+  height: 8px;
+  background: var(--superficie-alta);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.barras-relleno {
+  height: 100%;
+  background: var(--dorado);
+  border-radius: 99px;
+  transition: width 300ms var(--facil);
+}
+
+.admin-tabla-caja {
+  overflow-x: auto;
+}
+.admin-tarjeta .admin-tabla {
+  margin-top: 0;
+}
+.admin-tabla td.admin-texto,
+.admin-tabla-texto th,
+.admin-tabla th:last-child {
+  text-align: left;
+}
+.admin-tabla td.admin-texto:last-child {
+  font-variant-numeric: normal;
+}
+.admin-tabla td.admin-acciones {
+  white-space: nowrap;
+}
+.admin-tabla td.admin-acciones button {
+  padding: 5px 11px;
+  font-size: 13px;
+  margin-left: 6px;
+}
+.admin-inactivo td {
+  color: var(--texto-tenue);
+}
+
+.admin-etiqueta {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--cyan-suave);
+  color: var(--cyan);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.admin-estado {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 99px;
+  background: var(--superficie-alta);
+  color: var(--texto-tenue);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.admin-estado.activo {
+  background: var(--verde-suave);
+  color: var(--verde);
+}
+
+button.admin-peligro {
+  color: var(--rojo);
+  border-color: rgb(192 57 43 / 0.35);
+}
+button.admin-peligro:hover:not(:disabled) {
+  background: var(--rojo-suave);
+}
+
+.admin-formulario {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde-suave);
+  border-top: 3px solid var(--dorado);
+  border-radius: var(--radio);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.admin-formulario h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-medio);
+}
+.admin-formulario-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.admin-formulario-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 640px) {
+  .admin-cuerpo .consumo {
+    padding-inline: 16px;
+  }
+}

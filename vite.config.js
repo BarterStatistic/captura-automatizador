@@ -1,19 +1,20 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-import { atenderGasto, registrarGasto } from './api/_gasto.js';
+import { atenderPanel, atenderUsuarios } from './api/_admin.js';
+import { registrarGasto } from './api/_gasto.js';
 import { entornoDesde, reenviarAGemini } from './api/_proxy.js';
 import {
   RESPUESTA_SIN_SESION,
   atenderLogin,
   atenderSesion,
   cookieBorrada,
-  haySesion,
   leerSesion,
   rolDe,
   secretoDe,
   tokenDeCookies,
 } from './api/_sesion.js';
+import { cargarUsuarios } from './api/_usuarios.js';
 
 async function leerJson(req) {
   const trozos = [];
@@ -39,21 +40,35 @@ function apiGeminiLocal(variables) {
   return {
     name: 'api-gemini-local',
     configureServer(server) {
+      // /admin es otra página (admin.html); en producción la sirve el rewrite de vercel.json.
+      server.middlewares.use((req, res, next) => {
+        if (/^\/admin\/?(\?|$)/.test(req.url)) req.url = '/admin.html';
+        next();
+      });
+
       server.middlewares.use('/api/login', async (req, res) => {
-        const { estado, cuerpo, cookie } = atenderLogin(await leerJson(req), variables);
+        const usuarios = await cargarUsuarios(variables);
+        const { estado, cuerpo, cookie } = atenderLogin(await leerJson(req), variables, { usuarios });
         responderJson(res, estado, cuerpo, cookie);
       });
       server.middlewares.use('/api/logout', (req, res) => {
         responderJson(res, 200, { ok: true }, cookieBorrada(false));
       });
-      server.middlewares.use('/api/sesion', (req, res) => {
-        const { estado, cuerpo } = atenderSesion(req.headers.cookie, variables);
+      server.middlewares.use('/api/sesion', async (req, res) => {
+        const usuarios = await cargarUsuarios(variables);
+        const { estado, cuerpo } = atenderSesion(req.headers.cookie, variables, Date.now(), usuarios);
         responderJson(res, estado, cuerpo);
       });
 
-      server.middlewares.use('/api/gasto', async (req, res) => {
-        const { estado, cuerpo } = await atenderGasto(req.headers.cookie, req.url, variables);
+      server.middlewares.use('/api/admin', async (req, res) => {
+        const { estado, cuerpo } = await atenderPanel(req.headers.cookie, req.url, variables);
         responderJson(res, estado, cuerpo);
+      });
+
+      server.middlewares.use('/api/usuarios', async (req, res) => {
+        const cuerpo = req.method === 'POST' || req.method === 'PATCH' ? await leerJson(req) : null;
+        const r = await atenderUsuarios(req.method, req.headers.cookie, req.url, cuerpo, variables);
+        responderJson(res, r.estado, r.cuerpo);
       });
 
       server.middlewares.use('/api/gemini', async (req, res) => {
@@ -62,7 +77,9 @@ function apiGeminiLocal(variables) {
           res.end();
           return;
         }
-        if (!haySesion(req.headers.cookie, variables)) {
+        const usuarios = await cargarUsuarios(variables);
+        const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(variables), Date.now(), usuarios);
+        if (!usuario) {
           responderJson(res, 401, RESPUESTA_SIN_SESION);
           return;
         }
@@ -73,13 +90,17 @@ function apiGeminiLocal(variables) {
         const entorno = entornoDesde(variables);
         const respuesta = await reenviarAGemini(cuerpo, entorno);
         const { estado, texto } = respuesta;
-        const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(variables));
         const costo = await registrarGasto(
           respuesta,
-          { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
+          {
+            usuario,
+            captura: req.headers['x-captura'],
+            modelo: entorno.modelo,
+            tipoCredito: req.headers['x-tipo-credito'],
+          },
           variables,
         );
-        if (rolDe(usuario) === 'admin') res.setHeader('X-Costo-USD', String(costo));
+        if (rolDe(usuario, usuarios) === 'admin') res.setHeader('X-Costo-USD', String(costo));
         res.statusCode = estado;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.end(texto);
@@ -96,5 +117,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), apiGeminiLocal(variables)],
     server: { port: 5175 },
+    build: {
+      rollupOptions: { input: { index: 'index.html', admin: 'admin.html' } },
+    },
   };
 });

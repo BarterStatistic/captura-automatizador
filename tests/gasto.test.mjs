@@ -3,8 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { atenderGasto, rangoDe, registrarGasto, usoDeRespuesta } from '../api/_gasto.js';
-import { COOKIE, crearSesion, secretoDe } from '../api/_sesion.js';
+import { rangoDe, registrarGasto, tipoValido, usoDeRespuesta } from '../api/_gasto.js';
 
 const RESPUESTA = JSON.stringify({
   usageMetadata: { promptTokenCount: 2000, candidatesTokenCount: 300, thoughtsTokenCount: 700 },
@@ -76,46 +75,36 @@ test('cada periodo empieza a las 00:00 de México, no de UTC', () => {
   assert.equal(rangoDe('trimestre', new Date('2026-05-10T12:00:00Z')).desde, '2026-04-01T00:00:00-06:00');
 });
 
-const ENTORNO = { GEMINI_API_KEY: 'clave', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_KEY: 'llave' };
-const cookieDe = (nombre) => `${COOKIE}=${crearSesion(nombre, secretoDe(ENTORNO))}`;
-
-test('el consumo solo lo ve el admin: sin sesión 401, vendedor 403, sin una sola cifra', async () => {
-  let llamadas = 0;
-  const traer = async () => {
-    llamadas += 1;
-    return { ok: true, json: async () => ({}) };
-  };
-  assert.equal((await atenderGasto('', '/api/gasto', ENTORNO, new Date(), traer)).estado, 401);
-
-  const vendedor = await atenderGasto(cookieDe('Bryan Barboza'), '/api/gasto?periodo=mes', ENTORNO, new Date(), traer);
-  assert.equal(vendedor.estado, 403);
-  assert.deepEqual(Object.keys(vendedor.cuerpo), ['error']);
-  assert.equal(llamadas, 0, 'a la base ni se le pregunta');
-});
-
-test('el admin recibe totales y serie del periodo pedido; un periodo raro se rechaza', async () => {
-  const peticiones = [];
+test('el tipo de crédito se guarda en la fila; si la columna aún no existe se reintenta sin ella', async () => {
+  const cuerpos = [];
   const traer = async (url, opciones) => {
-    peticiones.push({ url, cuerpo: JSON.parse(opciones.body) });
-    const esSerie = url.endsWith('/gemini_serie');
-    return { ok: true, status: 200, json: async () => (esSerie ? [{ t: '2026-10-01T00:00:00', usd: 0.5 }] : { usd: 0.5, llamadas: 3 }) };
+    const cuerpo = JSON.parse(opciones.body);
+    cuerpos.push(cuerpo);
+    // Simula una base a la que todavía no se le corrió usuarios.sql.
+    if ('tipo_credito' in cuerpo) return { ok: false, status: 400, text: async () => 'column does not exist' };
+    return { ok: true, status: 201, text: async () => '' };
   };
-  const ahora = new Date('2026-10-23T20:00:00Z');
-  const { estado, cuerpo } = await atenderGasto(cookieDe('Braulio Acosta'), '/api/gasto?periodo=trimestre', ENTORNO, ahora, traer);
-
-  assert.equal(estado, 200);
-  assert.equal(cuerpo.periodo, 'trimestre');
-  assert.equal(cuerpo.paso, 'week');
-  assert.equal(cuerpo.serie.length, 1);
-  assert.equal(peticiones.find((p) => p.url.endsWith('/gemini_serie')).cuerpo.paso, 'week');
-
-  const malo = await atenderGasto(cookieDe('Braulio Acosta'), '/api/gasto?periodo=siglo', ENTORNO, ahora, traer);
-  assert.equal(malo.estado, 400);
+  const silencio = console.error;
+  console.error = () => {};
+  try {
+    await registrarGasto(
+      { estado: 200, texto: RESPUESTA },
+      { usuario: 'Bryan Barboza', captura: 'c-1', tipoCredito: 'motoxpress' },
+      { SUPABASE_SERVICE_KEY: 'llave', SUPABASE_URL: 'https://x.supabase.co' },
+      traer,
+    );
+  } finally {
+    console.error = silencio;
+  }
+  assert.equal(cuerpos.length, 2);
+  assert.equal(cuerpos[0].tipo_credito, 'MOTOXPRESS');
+  assert.equal('tipo_credito' in cuerpos[1], false);
 });
 
-test('sin llave de servicio el admin recibe el aviso de qué falta', async () => {
-  const sinBase = { GEMINI_API_KEY: 'clave' };
-  const { estado, cuerpo } = await atenderGasto(cookieDe('Braulio Acosta'), '/api/gasto', sinBase);
-  assert.equal(estado, 503);
-  assert.equal(cuerpo.error.codigo, 'SIN_BASE');
+test('solo se acepta como tipo de crédito un nombre razonable', () => {
+  assert.equal(tipoValido(' motoxpress flex '), 'MOTOXPRESS FLEX');
+  assert.equal(tipoValido(''), null);
+  assert.equal(tipoValido(undefined), null);
+  assert.equal(tipoValido('x'.repeat(41)), null);
+  assert.equal(tipoValido('credinamo; drop table'), null);
 });

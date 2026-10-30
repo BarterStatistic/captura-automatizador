@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-import { PERIODOS, TIPO_CAMBIO_MXN, balanceDe, formatoMxn, formatoUsd } from '../lib/gasto.js';
+import { formatoUsd } from '../lib/gasto.js';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -35,7 +35,8 @@ const ANCHO = 760;
 const ALTO = 280;
 const MARGEN = { izq: 56, der: 16, arr: 14, aba: 30 };
 
-function Grafica({ serie, paso }) {
+/** Línea del gasto en dólares a lo largo del periodo, con lectura al pasar el cursor. */
+export default function Grafica({ serie, paso }) {
   const [activo, setActivo] = useState(null);
 
   const { puntos, camino, area, marcasY, marcasX } = useMemo(() => {
@@ -128,104 +129,5 @@ function Grafica({ serie, paso }) {
         )}
       </div>
     </div>
-  );
-}
-
-/** Pestaña solo para admin: consumo y costo de la API de Gemini. */
-export default function Consumo() {
-  const [periodo, setPeriodo] = useState('mes');
-  const [datos, setDatos] = useState(null);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let vigente = true;
-    setError('');
-    setDatos(null);
-    balanceDe(periodo)
-      .then((respuesta) => vigente && setDatos(respuesta))
-      .catch((exc) => vigente && setError(exc.message));
-    return () => {
-      vigente = false;
-    };
-  }, [periodo]);
-
-  const medio = datos?.capturas ? datos.usd / datos.capturas : 0;
-  const actual = PERIODOS.find((p) => p.id === periodo);
-
-  return (
-    <section className="consumo" aria-labelledby="consumo-titulo">
-      <div className="consumo-cabecera">
-        <div>
-          <h2 id="consumo-titulo">Consumo de la API de Gemini</h2>
-          <p className="consumo-nota">Solo lo ve el administrador. Periodo en curso: {actual.detalle}.</p>
-        </div>
-        <div className="consumo-periodos" role="group" aria-label="Periodo">
-          {PERIODOS.map((p) => (
-            <button key={p.id} type="button" aria-pressed={p.id === periodo} onClick={() => setPeriodo(p.id)}>
-              {p.nombre}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {error && (
-        <div className="aviso rojo" role="alert">
-          <span>{error}</span>
-        </div>
-      )}
-      {!error && !datos && <p className="consumo-nota">Cargando…</p>}
-
-      {datos && (
-        <>
-          <dl className="consumo-cifras">
-            <div>
-              <dt>Gasto</dt>
-              <dd>{formatoUsd(datos.usd)} USD</dd>
-              <small>≈ {formatoMxn(datos.usd)} MXN</small>
-            </div>
-            <div>
-              <dt>Capturas</dt>
-              <dd>{datos.capturas}</dd>
-            </div>
-            <div>
-              <dt>Llamadas</dt>
-              <dd>{datos.llamadas}</dd>
-            </div>
-            <div>
-              <dt>Costo medio por captura</dt>
-              <dd>{formatoUsd(medio)}</dd>
-              <small>≈ {formatoMxn(medio)} MXN</small>
-            </div>
-          </dl>
-
-          <Grafica serie={datos.serie} paso={datos.paso} />
-
-          {datos.por_usuario?.length > 0 && (
-            <table className="consumo-tabla">
-              <caption>Por usuario</caption>
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Capturas</th>
-                  <th>Llamadas</th>
-                  <th>USD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datos.por_usuario.map((fila) => (
-                  <tr key={fila.usuario}>
-                    <td>{fila.usuario}</td>
-                    <td>{fila.capturas}</td>
-                    <td>{fila.llamadas}</td>
-                    <td>{formatoUsd(fila.usd)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <p className="consumo-nota">Pesos a ${TIPO_CAMBIO_MXN} por dólar (aproximado).</p>
-        </>
-      )}
-    </section>
   );
 }

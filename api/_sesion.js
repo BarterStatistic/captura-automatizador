@@ -13,7 +13,9 @@
 
 import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
 
-// Usuarios con acceso (Braulio, 2026-10-06; Bryan Barboza, 2026-10-23). El repositorio es
+// Usuarios de respaldo (Braulio, 2026-10-06; Bryan Barboza, 2026-10-23). Los usuarios
+// vigentes viven en la tabla `usuarios` de Supabase (api/_usuarios.js); esta lista solo se
+// usa mientras esa tabla no exista o esté vacía. El repositorio es
 // público, así que la contraseña no está escrita: solo su hash scrypt con sal.
 // Para cambiarla, generar otro con:
 //   node -e "const c=require('crypto');const s=c.randomBytes(16);console.log('scrypt:16384:8:1:'+s.toString('base64url')+':'+c.scryptSync('NUEVA',s,32,{N:16384,r:8,p:1}).toString('base64url'))"
@@ -39,7 +41,7 @@ export const rolDe = (nombre, usuarios = USUARIOS) =>
 // Una jornada de la agencia; después hay que volver a entrar.
 export const DURACION_MS = 12 * 60 * 60 * 1000;
 
-const normalizar = (texto) =>
+export const normalizar = (texto) =>
   String(texto ?? '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
@@ -94,7 +96,7 @@ export function crearSesion(nombre, secreto, ahora = Date.now()) {
 }
 
 /** El nombre del usuario de una sesión válida y vigente; null si no. */
-export function leerSesion(token, secreto, ahora = Date.now()) {
+export function leerSesion(token, secreto, ahora = Date.now(), usuarios = USUARIOS) {
   if (!token || !secreto) return null;
   const [datos, sello] = String(token).split('.');
   if (!datos || !sello) return null;
@@ -105,7 +107,7 @@ export function leerSesion(token, secreto, ahora = Date.now()) {
     const { u, exp } = JSON.parse(Buffer.from(datos, 'base64url').toString('utf8'));
     if (typeof u !== 'string' || !(Number(exp) > ahora)) return null;
     // Si el usuario se borra de la lista, su sesión deja de valer.
-    return USUARIOS.some((usuario) => usuario.nombre === u) ? u : null;
+    return usuarios.some((usuario) => usuario.nombre === u) ? u : null;
   } catch {
     return null;
   }
@@ -154,10 +156,10 @@ const SIN_SECRETO = {
  * POST /api/login con `{ usuario, password }`. Devuelve `{ estado, cuerpo,
  * cookie }`; `cookie` es lo que va en Set-Cookie cuando entra.
  */
-export function atenderLogin(cuerpo, variables, { segura = false, ahora = Date.now() } = {}) {
+export function atenderLogin(cuerpo, variables, { segura = false, ahora = Date.now(), usuarios = USUARIOS } = {}) {
   const secreto = secretoDe(variables);
   if (!secreto) return SIN_SECRETO;
-  const nombre = verificarCredenciales(cuerpo?.usuario, cuerpo?.password);
+  const nombre = verificarCredenciales(cuerpo?.usuario, cuerpo?.password, usuarios);
   if (!nombre) {
     return {
       estado: 401,
@@ -166,22 +168,22 @@ export function atenderLogin(cuerpo, variables, { segura = false, ahora = Date.n
   }
   return {
     estado: 200,
-    cuerpo: { usuario: nombre, rol: rolDe(nombre) },
+    cuerpo: { usuario: nombre, rol: rolDe(nombre, usuarios) },
     cookie: cookieDeSesion(crearSesion(nombre, secreto, ahora), segura),
   };
 }
 
 /** GET /api/sesion: quién tiene la sesión abierta, o 401. */
-export function atenderSesion(cabeceraCookie, variables, ahora = Date.now()) {
-  const nombre = leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables), ahora);
+export function atenderSesion(cabeceraCookie, variables, ahora = Date.now(), usuarios = USUARIOS) {
+  const nombre = leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables), ahora, usuarios);
   return nombre
-    ? { estado: 200, cuerpo: { usuario: nombre, rol: rolDe(nombre) } }
+    ? { estado: 200, cuerpo: { usuario: nombre, rol: rolDe(nombre, usuarios) } }
     : { estado: 401, cuerpo: { error: { message: 'No hay sesión.', codigo: 'SIN_SESION' } } };
 }
 
 /** Para /api/gemini: ¿la petición trae una sesión válida? */
-export function haySesion(cabeceraCookie, variables, ahora = Date.now()) {
-  return Boolean(leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables), ahora));
+export function haySesion(cabeceraCookie, variables, ahora = Date.now(), usuarios = USUARIOS) {
+  return Boolean(leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables), ahora, usuarios));
 }
 
 export const RESPUESTA_SIN_SESION = JSON.stringify({

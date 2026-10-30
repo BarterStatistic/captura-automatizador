@@ -67,7 +67,17 @@ export default function Acceso() {
   );
 }
 
-function PantallaAcceso({ onEntrar, vencida = false, usuarioInicial = '' }) {
+export function PantallaAcceso({
+  onEntrar,
+  vencida = false,
+  usuarioInicial = '',
+  titulo = (
+    <>
+      Captura <span>Automatizador</span>
+    </>
+  ),
+  detalle = 'Solicitud de crédito · Agencia Dinamo Saltillo',
+}) {
   const [nombre, setNombre] = useState(usuarioInicial);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -102,13 +112,11 @@ function PantallaAcceso({ onEntrar, vencida = false, usuarioInicial = '' }) {
     <div className={`acceso${vencida ? ' encima' : ''}`} role={vencida ? 'dialog' : undefined} aria-modal={vencida || undefined}>
       <form className="acceso-tarjeta" onSubmit={enviar} noValidate>
         <img className="acceso-logo" src="/logo-dinamo.webp" alt="Dinamo" width="73" height="48" />
-        <h1 className="acceso-titulo">
-          Captura <span>Automatizador</span>
-        </h1>
+        <h1 className="acceso-titulo">{titulo}</h1>
         <p className="acceso-detalle">
           {vencida
             ? 'Tu sesión venció. Vuelve a entrar: lo que llevas capturado se conserva.'
-            : 'Solicitud de crédito · Agencia Dinamo Saltillo'}
+            : detalle}
         </p>
 
         <div className="campo">

@@ -6,7 +6,8 @@
 
 import { entornoDesde, reenviarAGemini } from './_proxy.js';
 import { registrarGasto } from './_gasto.js';
-import { RESPUESTA_SIN_SESION, haySesion, leerSesion, rolDe, secretoDe, tokenDeCookies } from './_sesion.js';
+import { RESPUESTA_SIN_SESION, leerSesion, rolDe, secretoDe, tokenDeCookies } from './_sesion.js';
+import { cargarUsuarios } from './_usuarios.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -15,7 +16,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!haySesion(req.headers.cookie, process.env)) {
+  // Un usuario borrado o desactivado pierde la sesión al instante.
+  const usuarios = await cargarUsuarios(process.env);
+  const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(process.env), Date.now(), usuarios);
+  if (!usuario) {
     res.status(401);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
@@ -28,14 +32,18 @@ export default async function handler(req, res) {
   const { estado, texto } = respuesta;
 
   // Se espera el registro: Vercel congela la función en cuanto responde.
-  const usuario = leerSesion(tokenDeCookies(req.headers.cookie), secretoDe(process.env));
   const costo = await registrarGasto(
     respuesta,
-    { usuario, captura: req.headers['x-captura'], modelo: entorno.modelo },
+    {
+      usuario,
+      captura: req.headers['x-captura'],
+      modelo: entorno.modelo,
+      tipoCredito: req.headers['x-tipo-credito'],
+    },
     process.env,
   );
   // Los vendedores no ven costos: ni en pantalla ni en las cabeceras de red.
-  if (rolDe(usuario) === 'admin') res.setHeader('X-Costo-USD', String(costo));
+  if (rolDe(usuario, usuarios) === 'admin') res.setHeader('X-Costo-USD', String(costo));
 
   res.status(estado);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');

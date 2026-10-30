@@ -10,7 +10,6 @@ import { IconoAlerta, IconoCerrar } from './components/Iconos.jsx';
 import Revision from './components/Revision.jsx';
 import Bitacora from './components/Bitacora.jsx';
 import Gasto from './components/Gasto.jsx';
-import Consumo from './components/Consumo.jsx';
 import CapturaDinamo from './components/CapturaDinamo.jsx';
 import SolicitudImpresa, { VentanaSolicitud } from './components/SolicitudImpresa.jsx';
 
@@ -25,7 +24,7 @@ import {
 } from './lib/documentos.js';
 import { clasificarArchivo, leerDocumento, leerTexto, URL_API } from './lib/gemini.js';
 import { probarConexion } from './lib/diagnostico.js';
-import { reiniciarGasto } from './lib/gasto.js';
+import { reiniciarGasto, fijarTipoCredito } from './lib/gasto.js';
 import { armarExpediente } from './lib/expediente.js';
 import { extrasAlManual, respaldoDelTexto, textoParaGemini } from './lib/formulario.js';
 import { extensionDisponible, versionExtension, llenarConExtension } from './lib/extension.js';
@@ -55,10 +54,6 @@ const sin = (objeto, clave) => {
 };
 
 export default function App({ usuario, esAdmin = false, onSalir }) {
-  // Solo el admin tiene la pestaña de consumo; la captura sigue montada debajo
-  // para no perder lo leído al cambiar de pestaña.
-  const [vista, setVista] = useState('captura');
-  const enConsumo = esAdmin && vista === 'consumo';
   // Cada casilla: { token, archivo, estado: 'leyendo' | 'listo' | 'error', mensaje }.
   // El ref es la copia síncrona: al acomodar dos archivos que llegan
   // casi juntos, el segundo tiene que ver que el primero ya ocupó su casilla.
@@ -74,6 +69,10 @@ export default function App({ usuario, esAdmin = false, onSalir }) {
 
   const [lecturas, setLecturas] = useState({});
   const [manual, setManual] = useState(MANUAL_INICIAL);
+  // El tipo de crédito viaja con cada llamada a Gemini para las estadísticas de /admin.
+  useEffect(() => {
+    fijarTipoCredito(esquemaPorValue(manual.esquemaVenta)?.nombre);
+  }, [manual.esquemaVenta]);
 
   const [formTexto, setFormTexto] = useState('');
   const [formEstado, setFormEstado] = useState(null);
@@ -550,7 +549,7 @@ export default function App({ usuario, esAdmin = false, onSalir }) {
             <button type="button" onClick={nuevoExpediente}>
               Nuevo expediente
             </button>
-            {esAdmin && <Gasto onAbrir={() => setVista('consumo')} />}
+            {esAdmin && <Gasto />}
             <span className="sesion-usuario" title="Sesión abierta">
               {usuario}
             </span>
@@ -561,20 +560,7 @@ export default function App({ usuario, esAdmin = false, onSalir }) {
         </div>
       </header>
 
-      {esAdmin && (
-        <nav className="pestanas" aria-label="Secciones">
-          <button type="button" aria-current={!enConsumo} onClick={() => setVista('captura')}>
-            Captura
-          </button>
-          <button type="button" aria-current={enConsumo} onClick={() => setVista('consumo')}>
-            Consumo de la API
-          </button>
-        </nav>
-      )}
-
-      {enConsumo && <Consumo />}
-
-      <div className="cuerpo" style={enConsumo ? { display: 'none' } : undefined}>
+      <div className="cuerpo">
         <aside className="lateral">
           <Progreso pasos={pasos} />
         </aside>
@@ -693,7 +679,7 @@ export default function App({ usuario, esAdmin = false, onSalir }) {
         </main>
       </div>
 
-      <div hidden={enConsumo}>
+      <div>
       <BarraAccion
         hayLecturas={hayLecturas}
         leyendo={leyendoAlgo}

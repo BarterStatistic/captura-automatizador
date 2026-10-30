@@ -13,10 +13,17 @@ export const EVENTO_GASTO = 'captura:gasto';
 const nuevoId = () => `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
 let capturaId = nuevoId();
+let tipoCredito = '';
 let gastoUsd = 0;
 let llamadas = 0;
 
 export const capturaActual = () => capturaId;
+
+/** El tipo de crédito de la captura en curso: viaja en cada llamada para las estadísticas de /admin. */
+export const fijarTipoCredito = (nombre) => {
+  tipoCredito = String(nombre ?? '');
+};
+export const tipoCreditoActual = () => tipoCredito;
 export const gastoDeCaptura = () => ({ usd: gastoUsd, llamadas });
 
 function avisar() {
@@ -49,14 +56,3 @@ export const PERIODOS = [
   { id: 'mes', nombre: 'Mes', detalle: 'este mes, por día' },
   { id: 'trimestre', nombre: 'Trimestre', detalle: 'este trimestre, por semana' },
 ];
-
-/** Balance de un periodo (solo admin); lanza Error con el motivo si falla. */
-export async function balanceDe(periodo) {
-  const respuesta = await fetch(`/api/gasto?periodo=${encodeURIComponent(periodo)}`, {
-    credentials: 'same-origin',
-    cache: 'no-store',
-  });
-  const cuerpo = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) throw new Error(cuerpo?.error?.message ?? `Error ${respuesta.status}.`);
-  return cuerpo;
-}

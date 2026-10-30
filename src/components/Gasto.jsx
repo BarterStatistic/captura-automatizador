@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import { EVENTO_GASTO, formatoUsd, gastoDeCaptura } from '../lib/gasto.js';
 
 /**
- * Solo para admin: lo que lleva gastado en Gemini la captura en curso. Al
- * hacer clic abre la pestaña de consumo.
+ * Solo para admin: lo que lleva gastado en Gemini la captura en curso. 
  */
-export default function Gasto({ onAbrir }) {
+export default function Gasto() {
   const [captura, setCaptura] = useState(gastoDeCaptura);
 
   useEffect(() => {
@@ -19,8 +18,8 @@ export default function Gasto({ onAbrir }) {
     <button
       type="button"
       className="fantasma gasto-boton"
-      onClick={onAbrir}
-      title="Gasto de Gemini de esta captura. Clic para ver el consumo."
+      onClick={() => window.open('/admin', '_blank', 'noopener')}
+      title="Gasto de Gemini de esta captura. Clic para abrir el panel de administración."
     >
       Gemini {formatoUsd(captura.usd)}
     </button>

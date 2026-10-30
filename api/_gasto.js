@@ -8,7 +8,7 @@
 // El archivo empieza con guion bajo para que Vercel no lo publique como ruta.
 
 import { MODELO_POR_DEFECTO } from './_proxy.js';
-import { RESPUESTA_SIN_SESION, leerSesion, rolDe, secretoDe, tokenDeCookies } from './_sesion.js';
+import { conexion } from './_base.js';
 
 // USD por millón de tokens (precio estándar de pago de Google, 2026-10-23).
 // La salida incluye los tokens de razonamiento. Si cambia el modelo o el
@@ -19,6 +19,12 @@ export const TARIFAS = {
 };
 
 const TARIFA_SUPUESTA = TARIFAS['gemini-2.5-flash'];
+
+/** El tipo de crédito que manda la página (cabecera X-Tipo-Credito); null si no es un nombre razonable. */
+export const tipoValido = (texto) => {
+  const limpio = String(texto ?? '').trim().toUpperCase();
+  return /^[A-ZÁÉÍÓÚÑ0-9 ]{1,40}$/.test(limpio) ? limpio : null;
+};
 
 /** Tokens y costo de la respuesta cruda de Gemini; null si no trae uso. */
 export function usoDeRespuesta(texto, modelo) {
@@ -44,22 +50,12 @@ export function usoDeRespuesta(texto, modelo) {
   };
 }
 
-function conexion(variables = {}) {
-  const llave = String(variables.SUPABASE_SERVICE_KEY ?? '').trim();
-  const base = String(variables.SUPABASE_URL ?? '').trim();
-  if (!llave || !base) return null;
-  return {
-    base: base.replace(/\/$/, ''),
-    cabeceras: { apikey: llave, Authorization: `Bearer ${llave}`, 'Content-Type': 'application/json' },
-  };
-}
-
 /**
  * Calcula el gasto de una respuesta de Gemini y lo guarda. Nunca lanza: un
  * fallo al registrar no debe tumbar la lectura del documento. Devuelve el
  * costo en USD (0 si la respuesta no trae uso).
  */
-export async function registrarGasto({ estado, texto }, { usuario, captura, modelo }, variables = {}, traer = fetch) {
+export async function registrarGasto({ estado, texto }, { usuario, captura, modelo, tipoCredito }, variables = {}, traer = fetch) {
   const nombreModelo = String(modelo ?? '').trim() || MODELO_POR_DEFECTO;
   const uso = usoDeRespuesta(texto, nombreModelo);
   if (!uso) return 0;
@@ -70,18 +66,25 @@ export async function registrarGasto({ estado, texto }, { usuario, captura, mode
     return uso.costo_usd;
   }
 
-  try {
-    const respuesta = await traer(`${acceso.base}/rest/v1/gemini_uso`, {
+  const fila = {
+    usuario: usuario ?? null,
+    captura_id: String(captura ?? '').slice(0, 64) || null,
+    modelo: nombreModelo,
+    estado,
+    ...uso,
+  };
+  const guardar = (datos) =>
+    traer(`${acceso.base}/rest/v1/gemini_uso`, {
       method: 'POST',
       headers: { ...acceso.cabeceras, Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        usuario: usuario ?? null,
-        captura_id: String(captura ?? '').slice(0, 64) || null,
-        modelo: nombreModelo,
-        estado,
-        ...uso,
-      }),
+      body: JSON.stringify(datos),
     });
+
+  try {
+    const tipo = tipoValido(tipoCredito);
+    let respuesta = await guardar(tipo ? { ...fila, tipo_credito: tipo } : fila);
+    // Si aún no se corrió supabase/usuarios.sql, la columna tipo_credito no existe: se guarda sin ella.
+    if (!respuesta.ok && respuesta.status === 400 && tipo) respuesta = await guardar(fila);
     if (!respuesta.ok) console.error('[gasto] Supabase respondió', respuesta.status, await respuesta.text());
   } catch (error) {
     console.error('[gasto] No se pudo guardar:', error.message);
@@ -120,7 +123,7 @@ export function rangoDe(periodo, ahora = new Date()) {
   return { desde: `${new Date(inicio).toISOString().slice(0, 19)}-06:00`, hasta: ahora.toISOString(), paso };
 }
 
-async function rpc(acceso, funcion, argumentos, traer) {
+export async function rpc(acceso, funcion, argumentos, traer = fetch) {
   const respuesta = await traer(`${acceso.base}/rest/v1/rpc/${funcion}`, {
     method: 'POST',
     headers: acceso.cabeceras,
@@ -128,42 +131,4 @@ async function rpc(acceso, funcion, argumentos, traer) {
   });
   if (!respuesta.ok) throw new Error(`Supabase respondió ${respuesta.status} en ${funcion}.`);
   return respuesta.json();
-}
-
-/** Balance de un periodo: totales, desglose por usuario y serie para la gráfica. */
-export async function resumenDe(periodo, variables = {}, ahora = new Date(), traer = fetch) {
-  const acceso = conexion(variables);
-  if (!acceso) {
-    return {
-      estado: 503,
-      cuerpo: { error: { message: 'Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en el servidor.', codigo: 'SIN_BASE' } },
-    };
-  }
-  const rango = rangoDe(periodo, ahora);
-  try {
-    const [resumen, serie] = await Promise.all([
-      rpc(acceso, 'gemini_resumen', { desde: rango.desde }, traer),
-      rpc(acceso, 'gemini_serie', rango, traer),
-    ]);
-    return { estado: 200, cuerpo: { periodo, ...rango, ...resumen, serie: serie ?? [] } };
-  } catch (error) {
-    return { estado: 502, cuerpo: { error: { message: error.message, codigo: 'BASE' } } };
-  }
-}
-
-/**
- * GET /api/gasto?periodo=dia|semana|mes|trimestre. Solo para administradores:
- * un vendedor recibe 403 y nada de cifras.
- */
-export async function atenderGasto(cabeceraCookie, url, variables = {}, ahora = new Date(), traer = fetch) {
-  const usuario = leerSesion(tokenDeCookies(cabeceraCookie), secretoDe(variables));
-  if (!usuario) return { estado: 401, cuerpo: JSON.parse(RESPUESTA_SIN_SESION) };
-  if (rolDe(usuario) !== 'admin') {
-    return { estado: 403, cuerpo: { error: { message: 'No tienes permiso para ver esto.', codigo: 'SIN_PERMISO' } } };
-  }
-  const periodo = new URL(url ?? '/', 'http://local').searchParams.get('periodo') || 'mes';
-  if (!PERIODOS.includes(periodo)) {
-    return { estado: 400, cuerpo: { error: { message: 'Periodo no válido.', codigo: 'PERIODO' } } };
-  }
-  return resumenDe(periodo, variables, ahora, traer);
 }
