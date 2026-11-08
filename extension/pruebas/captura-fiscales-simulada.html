@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Captura + Datos Fiscales (simulada)</title></head>
+<body>
+<!--
+  Arnés del paso de Datos Fiscales visto desde la PESTAÑA DE CAPTURA: el botón
+  ButtonDF / showFiscal() y lo que la pestaña emergente le va avisando al motor
+  real (contenido-captura.js). Datos inventados.
+
+  ?modo=ok         se abre, guarda, se cierra y deja id_fiscal
+  ?modo=bloqueado  Edge bloqueó el pop-up: nunca se abre
+  ?modo=pendiente  se abre y avisa que algo quedó por hacer a mano
+  ?modo=previo     la captura ya traía datos fiscales (id_fiscal > 0)
+  ?modo=cierra     se abre y se cierra sin dejar rastro del guardado
+  ?modo=sinrfc     el RFC no quedó escrito (showFiscal se niega)
+
+  Uso: abrir con el modo, y en la consola  await __correr()  →  __eventos
+-->
+<fieldset id="fs-moto"><legend>Moto</legend>
+  <select id="cbomodelos"><option value="X">ITALIKA FT150</option></select>
+</fieldset>
+<fieldset id="fs-cliente"><legend>Cliente</legend>
+  <input id="txt_buscar_cliente">
+  <input type="button" value="Buscar" onclick="javascript:buscar_cliente()">
+  <input id="txtrfc"><br>
+  <input type="hidden" id="id_fiscal" value="0">
+  <input type="button" id="ButtonDF" value="Datos Fiscales" onclick="showFiscal()">
+  <div id="msgFiscal"></div>
+  <input id="txtnombre"><input id="txtpaterno"><input id="txtmaterno"><input id="txtcurp"><input id="txtife">
+  <input type="button" value="Validar Datos" onclick="javascript:valida_cliente();validacionesSDF();">
+</fieldset>
+
+<script>
+const modo = new URLSearchParams(location.search).get('modo') ?? 'ok';
+window.__eventos = [];
+window.__alertas = [];
+window.__preparado = null;
+window.__grabarPresionado = false;
+window.alert = (t) => window.__alertas.push(String(t));
+
+function buscar_cliente() {}
+function valida_cliente() {}
+function validacionesSDF() {}
+function valida() { window.__grabarPresionado = true; }
+
+if (modo === 'previo') document.getElementById('id_fiscal').value = '5';
+
+const aviso = (mensaje) => window.__alContenido?.(mensaje);
+
+// Lo que hace showFiscal() de verdad: se niega sin RFC, consulta por AJAX y abre
+// la pestaña con window.open (que Edge puede bloquear).
+function showFiscal() {
+  if (!document.getElementById('txtrfc').value) { alert('Porfavor ingrese el RFC del cliente.'); return false; }
+  window.__showFiscalLlamado = (window.__showFiscalLlamado ?? 0) + 1;
+  if (modo === 'bloqueado') return;
+  setTimeout(() => aviso({ tipo: 'emergente-abierta' }), 300);
+  if (modo === 'ok') {
+    setTimeout(() => {
+      document.getElementById('id_fiscal').value = '7';
+      document.getElementById('msgFiscal').textContent = 'Datos fiscales guardados';
+      aviso({ tipo: 'emergente-cerrada' });
+    }, 900);
+  } else if (modo === 'pendiente') {
+    setTimeout(() => aviso({ tipo: 'emergente-terminada', cual: 'fiscales', ok: false,
+      detalle: 'ninguna dirección fiscal coincide con la colonia «X». Elige la dirección fiscal y presiona Guardar en esta pestaña' }), 700);
+  } else if (modo === 'cierra') {
+    setTimeout(() => aviso({ tipo: 'emergente-cerrada' }), 700);
+  }
+}
+
+window.chrome = {
+  runtime: {
+    sendMessage(mensaje) {
+      if (mensaje.tipo === 'evento-llenado') window.__eventos.push(mensaje.evento);
+      if (mensaje.tipo === 'preparar-emergente') window.__preparado = mensaje.expediente;
+      return Promise.resolve({ ok: true });
+    },
+    onMessage: { addListener(fn) { window.__alContenido = fn; } },
+  },
+};
+
+window.__expediente = {
+  datos: {
+    cliente: {
+      nombres: 'JUAN', apellidoPaterno: 'PEREZ', apellidoMaterno: 'GOMEZ', curp: 'PEGJ900115HCLRMN08',
+      idCif: '1234567890123', rfc: modo === 'sinrfc' ? '' : 'PEGJ9001152E5', razonSocial: 'JUAN PEREZ GOMEZ',
+    },
+    domicilio: { calle: 'MORELOS', numeroExterior: '245', colonia: 'ZONA CENTRO', cp: '25000' },
+  },
+};
+
+window.__correr = async function () {
+  window.__eventos = [];
+  window.__alContenido({ tipo: 'iniciar-llenado', expediente: window.__expediente, idPestanaApp: 1 });
+  const limite = Date.now() + 150000;
+  while (!window.__eventos.some((e) => e.tipo === 'fin') && Date.now() < limite) {
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return window.__eventos.length;
+};
+</script>
+<script src="../hook-avisos.js"></script>
+<script src="../dom.js"></script>
+<script src="../campos.js"></script>
+<script src="../contenido-captura.js"></script>
+</body></html>

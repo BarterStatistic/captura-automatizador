@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Datos Fiscales Cliente (simulada)</title></head>
+<body>
+<!--
+  Arnés de Datos Fiscales: la estructura y las reglas de datosFiscalesCliente.php
+  (campos deshabilitados hasta «Manual», régimen y uso que llegan por AJAX y se
+  REEMPLAZAN, validación de guardado) con datos inventados. Sirve el MISMO
+  contenido-fiscales.js que usa la extensión.
+
+  Modos por query:  ?sinColonia=1  la colonia del comprobante no está en el catálogo
+                    ?lento=1       los AJAX tardan 1.2 s en vez de 0.4 s
+-->
+<input type="radio" id="radioC" name="radio" onclick="activaCM(1)">
+<input type="radio" id="radioM" name="radio" onclick="activaCM(2)">
+<select id="cboTipoPersona" onchange="getRegimenFiscal(1)" disabled>
+  <option value="X">-Elegir Tipo Persona-</option><option value="F" selected>PERSONA FISICA</option><option value="M">PERSONA MORAL</option>
+</select>
+<input type="text" id="txtRFC" maxlength="13" onchange="validarRFC(this.value);" disabled>
+<span id="rfcValidado"></span>
+<input type="text" id="txtRazonSocial" disabled>
+<input type="text" id="txtIdCIF" maxlength="15" disabled>
+<select class="cboRegimen" id="cboRegimen_1" onchange="getUsosCFDI(1)" disabled><option value="0">-Elegir Régimen-</option></select>
+<select id="cboUsoCFDI" disabled><option value="0">-Elegir Uso CFDI-</option></select>
+<input type="text" id="txtFechaEmision" readonly disabled>
+<input type="text" id="txtCalle" disabled>
+<input type="text" id="txtNumExterior" maxlength="9" disabled>
+<input type="text" id="txtNumInterior" disabled>
+<input type="text" id="txtCodigoPostal" maxlength="5" disabled>
+<input type="button" id="btnBuscarDir" value="Buscar" onclick="obtenerDireccionFiscal()">
+<select id="cboDireccionFiscal" disabled><option value=";;">-Elegir-</option></select>
+<input type="button" id="btnGuardarDatos" value="Cancelar" onclick="cancelar()">
+<input type="button" id="btnAgregarDatos" value="Guardar" onclick="validarDatosAEnviar('agregar')">
+
+<script>
+const params = new URLSearchParams(location.search);
+const demora = params.get('lento') ? 1200 : 400;
+window.__alertas = [];
+window.__guardado = null;
+window.__fin = null;
+window.alert = (texto) => window.__alertas.push(String(texto));
+
+const $ = (id) => document.getElementById(id);
+
+function activaCM(tipo) {
+  if (tipo !== 2) return;
+  for (const id of ['txtRFC','txtRazonSocial','txtIdCIF','cboTipoPersona','cboRegimen_1','cboUsoCFDI',
+    'txtFechaEmision','txtCalle','txtNumExterior','txtNumInterior','txtCodigoPostal','cboDireccionFiscal']) {
+    $(id).disabled = false;
+    $(id).readOnly = false;
+  }
+}
+function validarRFC(valor) {
+  $('rfcValidado').textContent = /^[A-ZÑ&]{4}\d{6}[A-Z0-9]{3}$/.test(valor) ? 'RFC Válido' : 'RFC Inválido';
+}
+// Igual que Dinamo: el AJAX REEMPLAZA la lista, también la que ya estaba elegida.
+function getRegimenFiscal() {
+  setTimeout(() => {
+    $('cboRegimen_1').innerHTML =
+      '<option value="0">-Elegir Régimen-</option><option value="601">(601) - GENERAL DE LEY</option>' +
+      '<option value="605">(605) - SUELDOS Y SALARIOS E INGRESOS ASIMILADOS A SALARIOS</option>';
+    $('cboUsoCFDI').innerHTML = '<option value="0">-Elegir Uso CFDI-</option>';
+  }, demora);
+}
+function getUsosCFDI() {
+  setTimeout(() => {
+    $('cboUsoCFDI').innerHTML =
+      '<option value="0">-Elegir Uso CFDI-</option><option value="D06">APORTACIONES VOLUNTARIAS</option>' +
+      '<option value="S01">SIN EFECTOS FISCALES</option>';
+  }, demora);
+}
+function obtenerDireccionFiscal() {
+  if (!$('txtCodigoPostal').value) { alert('Por favor ingrese un código postal'); return false; }
+  setTimeout(() => {
+    $('cboDireccionFiscal').innerHTML =
+      '<option value="25000;0001;030;COA" selected>COL. CENTRO, MPIO. SALTILLO, C.P. 25000, EDO. COAHUILA</option>' +
+      '<option value="25000;0002;030;COA">COL. ÁLAMOS, MPIO. SALTILLO, C.P. 25000, EDO. COAHUILA</option>';
+  }, demora);
+}
+function cancelar() { for (const id of ['txtRFC','txtRazonSocial']) $(id).value = ''; }
+
+// Las mismas reglas de validarDatosAEnviar del Dinamo real.
+function validarDatosAEnviar(operacion) {
+  if ($('txtRFC').value === '') { alert('Ingrese el RFC'); return false; }
+  if ($('rfcValidado').textContent === 'RFC Inválido') { alert('Ingrese un RFC válido'); return false; }
+  if ($('txtRazonSocial').value === '') { alert('Ingrese la razón social'); return false; }
+  if ($('cboTipoPersona').value === 'X') { alert('Seleccione el tipo de persona'); return false; }
+  if ($('cboUsoCFDI').value == 0) { alert('Seleccione el uso de CFDI'); return false; }
+  if ($('txtFechaEmision').value === '') { alert('Ingrese fecha de emisión'); return false; }
+  if ($('txtFechaEmision').value.length > 10) { alert('Revise el formato de la fecha'); return false; }
+  if ($('txtCalle').value === '') { alert('Ingrese el nombre de la calle'); return false; }
+  if ($('txtNumExterior').value === '') { alert('Ingrese el número exterior'); return false; }
+  if ($('cboDireccionFiscal').value === ';;') { alert('Seleccione Dirección'); return false; }
+  if ($('cboRegimen_1').value == 0) { alert('Seleccione régimen fiscal'); return false; }
+  window.__guardado = {
+    operacion, rfc: $('txtRFC').value, razon: $('txtRazonSocial').value,
+    tipo: $('cboTipoPersona').value, regimen: $('cboRegimen_1').value, uso: $('cboUsoCFDI').value,
+    fecha: $('txtFechaEmision').value, calle: $('txtCalle').value, ext: $('txtNumExterior').value,
+    cp: $('txtCodigoPostal').value, direccion: $('cboDireccionFiscal').value,
+  };
+}
+
+// --- Lo mínimo de la API de extensiones y del hook de avisos ------------------
+window.__expediente = {
+  datos: {
+    cliente: { rfc: 'XAXX010101AB1', razonSocial: 'JUAN PEREZ LOPEZ', idCif: '' },
+    domicilio: {
+      calle: 'DOCTORES', numeroExterior: '139', cp: '25000',
+      colonia: params.get('sinColonia') ? 'Colonia Inventada' : 'Álamos',
+    },
+  },
+};
+window.chrome = {
+  runtime: {
+    sendMessage(mensaje) {
+      if (mensaje.tipo === 'listo-emergente') return Promise.resolve({ expediente: window.__expediente });
+      if (mensaje.tipo === 'emergente-terminada') window.__fin = mensaje;
+      return Promise.resolve({});
+    },
+  },
+};
+</script>
+<script src="../dom.js"></script>
+<script src="../campos.js"></script>
+<script src="../contenido-fiscales.js"></script>
+</body></html>

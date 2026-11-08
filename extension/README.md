@@ -11,8 +11,12 @@ crédito no se deshace.
 **No espera a nadie (desde 1.8.0).** Una vez que empieza, llena de corrido y al
 final manda un resumen «Pendiente a mano» que la app muestra arriba de la
 bitácora: colonias de SEPOMEX con su pista (CP, colonia), los «Validar Datos»
-que dependen de ellas, las preguntas de Dinamo, los datos que no venían, estado
-y municipio de nacimiento, y Datos Fiscales si el trámite los pide.
+que dependen de ellas, las preguntas de Dinamo, los datos que no venían, y estado
+y municipio de nacimiento.
+
+**Datos Fiscales (desde 1.9.0)** se llenan solos y la corrida los espera, porque al
+guardar Dinamo sustituye los datos del cliente por los fiscales. Requiere
+permitir los pop-ups de `dinamo2.intranet` en Edge (ver abajo).
 
 La extensión no habla con Gemini, no tiene API key y no hace ninguna petición de
 red. Escribe directo en el DOM, así que no hay CORS, ni contenido mixto, ni
@@ -78,7 +82,46 @@ cliente» y llega hasta las referencias.
 habilita la sección), luego se escribe en `txtrfc` (al salir del campo Dinamo
 calcula la fecha de nacimiento y valida la edad), y después el resto. Al final
 se presionan «Validar email» y «Validar Datos» del cliente, que no dependen de
-nadie. **Datos Fiscales ya no lo toca la extensión** (desde 1.8.0).
+nadie. Entre el RFC y el resto va **Datos Fiscales**, ver la sección siguiente.
+
+## Datos Fiscales
+
+`showFiscal()` pregunta por AJAX si el RFC ya tiene datos fiscales y abre **otra
+pestaña** con `window.open`, desde la respuesta del AJAX. Dos páginas distintas:
+
+- **`datosFiscalesCliente.php`** (RFC sin datos fiscales): la extensión elige
+  «Manual», escribe RFC, razón social, idCIF (si hay), calle, número exterior y
+  CP; persona física, régimen `605` y uso `S01` por defecto (los catálogos llegan
+  por AJAX y se reemplazan, así que cada uno espera al anterior); fecha de
+  emisión de hoy; busca la dirección fiscal y la elige **por colonia del
+  comprobante**. Si ninguna coincide no adivina (Dinamo aceptaría la marcada por
+  defecto) y deja la pestaña abierta con el pendiente. Guarda con el botón cuyo
+  onclick es `validarDatosAEnviar('agregar')`; `btnGuardarDatos` es Cancelar.
+- **`consultarClientesFiscales.php`** (RFC con datos fiscales): se **acepta** el
+  registro existente con el ícono «Marcar como válidos»
+  (`relacionar_cte_existente`). Nunca se modifica. Con varios registros del mismo
+  RFC elige el de la misma razón social; si aun así no queda uno solo, no
+  adivina y lo deja pendiente.
+
+**Permitir pop-ups (una vez por equipo):** Edge bloquea la pestaña porque el
+clic de la extensión no cuenta como clic de una persona. En
+`edge://settings/content/popups` → «Permitir» → agregar `http://dinamo2.intranet`.
+Sin eso la corrida avisa «no se abrió la pestaña» y lo deja pendiente.
+
+La pestaña solo se llena si la corrida la pidió (el background guarda el
+expediente 2 minutos y lo entrega una sola vez): una que abra una persona no se
+toca. Al guardar, Dinamo la cierra sola y la captura lo sabe por el cierre.
+
+Probar sin Dinamo (servir la carpeta con `python -m http.server 8899`; cada
+arnés trae sus modos en el comentario de arriba):
+
+- `pruebas/fiscales-simulada.html`: el formulario nuevo (`?lento=1` demora los
+  AJAX, `?sinColonia=1` hace que la colonia no esté en el catálogo).
+- `pruebas/consultarClientesFiscales.php.html`: la lista de un RFC con datos
+  fiscales (`?filas=uno|dos|dosigual|otro|ninguna`, `?sinIcono=1`, `?aviso=1`).
+- `pruebas/captura-fiscales-simulada.html`: la captura vista desde el botón
+  (`?modo=ok|bloqueado|pendiente|previo|cierra|sinrfc`; en la consola
+  `await __correr()` y luego `__eventos`).
 
 **SEPOMEX lo hace el vendedor.** La extensión llena domicilio, empleo y
 referencias sin esperar la colonia. Sus «Validar Datos» no se presionan (sin
@@ -153,8 +196,8 @@ npm test
 Comprueban lo que no se puede ver a ojo en `campos.js`: que los valores fijos son
 los del catálogo real, que ninguna sección invoca `valida()`, que los campos
 `readonly` de SEPOMEX no se intentan escribir, y que cada campo dice de dónde
-sale su valor. También que Datos Fiscales y las esperas de colonia no volvieron
-al motor.
+sale su valor, que Datos Fiscales no inventa CP ni dirección y que su manifest
+cubre las dos páginas. Las esperas de colonia no volvieron al motor.
 
 ## Si la app cambia de dominio
 

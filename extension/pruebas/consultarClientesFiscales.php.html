@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Consulta Datos Fiscales Cliente (simulada)</title></head>
+<body>
+<!--
+  Arnés de consultarClientesFiscales.php (el nombre del archivo termina en .php.html para que el script real
+  la reconozca por la URL; la página que abre showFiscal() cuando
+  el RFC YA tiene datos fiscales). La lista llega por AJAX, como en Dinamo. Sirve
+  el MISMO contenido-fiscales.js que usa la extensión. Datos inventados.
+
+  ?filas=uno     un registro del RFC (caso normal)
+  ?filas=dos     dos registros del RFC, con razones sociales distintas
+  ?filas=dosigual dos registros idénticos
+  ?filas=otro    solo hay registros de otro RFC
+  ?filas=ninguna la lista llega vacía
+  ?sinIcono=1    el registro no trae «Marcar como válidos»
+  ?aviso=1       al aceptar, Dinamo contesta con un aviso
+-->
+<div id="datosConsultaCliente"></div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const filas = params.get('filas') ?? 'uno';
+window.__relacionado = null;
+window.__fin = null;
+window.__alertas = [];
+window.alert = (t) => window.__alertas.push(String(t));
+
+const fila = (id, rfc, razon) => `
+  <tr><td iddatosfiscalestr="${id}">${rfc}</td><td>${razon}</td><td>0951068154444</td>
+    <td>PERSONA FISICA</td><td>SIN EFECTOS FISCALES.</td><td>(605) - SUELDOS Y SALARIOS</td>
+    <td><img title="Modifica datos cliente" onclick="modificarDatosCliente(${id})">
+        <img title="Consultar bitácora" onclick="consultarBitacoraCliente(${id})">
+        ${params.get('sinIcono') ? '' : `<img id="img_validos" title="Marcar como validos" onclick="relacionar_cte_existente(${id})">`}</td></tr>`;
+
+const CONTENIDO = {
+  uno: fila(100, 'PEGJ9001152E5', 'JUAN PEREZ GOMEZ'),
+  dos: fila(100, 'PEGJ9001152E5', 'JUAN PEREZ GOMEZ') + fila(101, 'PEGJ9001152E5', 'JUAN PEREZ GOMES'),
+  dosigual: fila(100, 'PEGJ9001152E5', 'JUAN PEREZ GOMEZ') + fila(101, 'PEGJ9001152E5', 'JUAN PEREZ GOMEZ'),
+  otro: fila(200, 'XAXX010101000', 'OTRA PERSONA'),
+  ninguna: '',
+};
+
+function consultarDatosClientes() {
+  setTimeout(() => {
+    document.getElementById('datosConsultaCliente').innerHTML = `<table>${CONTENIDO[filas] ?? ''}</table>`;
+  }, 500);
+}
+function relacionar_cte_existente(id) {
+  window.__relacionado = id;
+  if (params.get('aviso')) alert('No se pudo relacionar el cliente');
+}
+function modificarDatosCliente(id) { window.__modificado = id; }
+function consultarBitacoraCliente() {}
+consultarDatosClientes();
+
+window.chrome = {
+  runtime: {
+    sendMessage(mensaje) {
+      if (mensaje.tipo === 'listo-emergente') return Promise.resolve({ expediente: window.__expediente });
+      if (mensaje.tipo === 'emergente-terminada') window.__fin = mensaje;
+      return Promise.resolve({});
+    },
+  },
+};
+window.__expediente = {
+  datos: { cliente: { rfc: 'PEGJ9001152E5', razonSocial: 'JUAN PEREZ GOMEZ' } },
+};
+</script>
+<script src="../hook-avisos.js"></script>
+<script src="../dom.js"></script>
+<script src="../campos.js"></script>
+<script src="../contenido-fiscales.js"></script>
+</body></html>

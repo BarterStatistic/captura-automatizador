@@ -13,6 +13,10 @@
 // preguntas de Dinamo, los datos que faltan) lo junta en un resumen final que
 // la app muestra como «Pendiente a mano».
 //
+// La excepción es Datos Fiscales: abre otra pestaña y la corrida la espera
+// (con tope), porque al guardar Dinamo sustituye los datos del cliente por los
+// fiscales y lo que se escriba antes se perdería.
+//
 // Si una sección sigue bloqueada (sus campos `disabled` hasta que se valide la
 // anterior), se escribe igual: un campo deshabilitado guarda su valor, y en
 // cuanto Dinamo lo habilita ya está lleno.
@@ -23,6 +27,11 @@ const ESPERA_SECCION = 2;
 
 let idPestanaApp;
 let llenando = false;
+
+// Datos Fiscales: lo que la pestaña emergente va avisando.
+let fiscalesAbierta = false;
+let fiscalesCerrada = false;
+let fiscalesResultado = null;
 
 // Lo que queda para una persona, en el orden en que se encontró.
 let pendientes = [];
@@ -299,6 +308,96 @@ function pendienteDeSeccion(seccion, expediente) {
   );
 }
 
+// --- Datos Fiscales -----------------------------------------------------------
+
+async function esperarHasta(condicion, segundos) {
+  const limite = Date.now() + segundos * 1000;
+  while (!condicion()) {
+    if (Date.now() >= limite) return false;
+    await pausa(200);
+  }
+  return true;
+}
+
+/** Lo que el sistema dejó en esta pantalla después de guardar los datos fiscales. */
+function huellaFiscal() {
+  const id = String(document.getElementById('id_fiscal')?.value ?? '').trim();
+  const mensaje = String(document.getElementById('msgFiscal')?.textContent ?? '').trim();
+  return { guardado: id !== '' && id !== '0', mensaje };
+}
+
+/**
+ * Abre Datos Fiscales con el botón de la propia página y espera a que se llene.
+ *
+ * `showFiscal()` hace un AJAX y abre la pestaña con `window.open` desde su
+ * respuesta. Con un clic simulado Edge la bloquea como pop-up salvo que los
+ * pop-ups de dinamo2.intranet estén permitidos; por eso, si no aparece, el aviso
+ * dice exactamente eso.
+ */
+async function pasarPorDatosFiscales(seccion, expediente) {
+  const { boton, id } = seccion.datosFiscales;
+  const antes = huellaFiscal();
+  if (antes.guardado) {
+    publicar('aviso', 'Datos Fiscales: la captura ya tiene datos fiscales, no se abrieron de nuevo.', seccion.id);
+    return;
+  }
+
+  // showFiscal() se niega sin RFC (avisa «Porfavor ingrese el RFC»).
+  if (!String(document.getElementById('txtrfc')?.value ?? '').trim()) {
+    publicar('aviso', 'Datos Fiscales: el RFC no quedó escrito, no se abrieron.', seccion.id);
+    pendiente('Datos Fiscales: escribe el RFC del cliente y presiona «Datos Fiscales».');
+    return;
+  }
+
+  fiscalesAbierta = false;
+  fiscalesCerrada = false;
+  fiscalesResultado = null;
+  publicar('seccion', 'Abriendo Datos Fiscales…', seccion.id);
+
+  await chrome.runtime.sendMessage({ tipo: 'preparar-emergente', expediente }).catch(() => {});
+  if (!(await presionar(boton, 'Datos Fiscales', seccion.id))) {
+    // presionar ya dejó el pendiente genérico del botón.
+    return;
+  }
+
+  if (!(await esperarHasta(() => fiscalesAbierta, 12))) {
+    publicar(
+      'error',
+      'Datos Fiscales: no se abrió la pestaña. Si Edge mostró «pop-up bloqueado», permite las ' +
+        'ventanas emergentes de dinamo2.intranet (edge://settings/content/popups).',
+      seccion.id,
+      id,
+    );
+    pendiente('Datos Fiscales: no se abrieron. Permite los pop-ups de dinamo2.intranet o captúralos a mano.');
+    return;
+  }
+
+  // Dos finales posibles: la pestaña avisa (algo quedó pendiente, sigue abierta)
+  // o se cierra sola (guardó).
+  await esperarHasta(() => fiscalesResultado || fiscalesCerrada, 90);
+  if (fiscalesCerrada) await pausa(800);
+
+  const despues = huellaFiscal();
+  if (despues.guardado) {
+    publicar('campo', `Datos Fiscales: guardados${despues.mensaje ? ` (${despues.mensaje})` : ''}.`, seccion.id);
+    return;
+  }
+
+  const detalle = fiscalesResultado?.detalle;
+  if (fiscalesResultado && !fiscalesResultado.ok) {
+    publicar('aviso', `Datos Fiscales: ${detalle}.`, seccion.id);
+    pendiente(`Datos Fiscales: ${detalle}.`);
+  } else if (fiscalesCerrada) {
+    // Se cerró sin que el sistema marcara el guardado en esta pantalla: puede ser
+    // que sí se guardó y esta pantalla no lo refleja, o que se cancelara.
+    publicar('aviso', 'Datos Fiscales: la pestaña se cerró y no se ve el guardado en la captura; revísalo.', seccion.id);
+    pendiente('Datos Fiscales: confirma que quedaron guardados (botón «Datos Fiscales»).');
+  } else {
+    publicar('aviso', 'Datos Fiscales: la pestaña no terminó a tiempo.', seccion.id);
+    pendiente('Datos Fiscales: termina de capturarlos en la otra pestaña.');
+  }
+}
+
 // --- La corrida ----------------------------------------------------------------
 
 /** ¿Hay algo en esa ruta del expediente? (`valorEn` lo vuelve texto). */
@@ -324,7 +423,6 @@ function pendientesFijos() {
   if (vacio('cboedo_nac') || vacio('cboMpio_nac')) {
     pendiente('Datos del cliente: elige el estado y el municipio de nacimiento.');
   }
-  pendiente('Datos Fiscales del cliente (botón «DATOS FISCALES CLIENTE»): captúralos si el trámite los pide.');
 }
 
 async function llenar(expediente) {
@@ -368,8 +466,13 @@ async function llenar(expediente) {
 
       await esperarSeccion(seccion);
 
-      // Lo que Dinamo exige primero (el RFC en su campo), luego el resto.
-      for (const campo of [...(seccion.inicio ?? []), ...seccion.campos]) {
+      // Lo que Dinamo exige primero (el RFC en su campo), luego Datos Fiscales
+      // (que sustituye los datos del cliente por los fiscales) y luego el resto.
+      for (const campo of seccion.inicio ?? []) {
+        await llenarCampo(campo, expediente, seccion);
+      }
+      if (seccion.datosFiscales) await pasarPorDatosFiscales(seccion, expediente);
+      for (const campo of seccion.campos) {
         await llenarCampo(campo, expediente, seccion);
       }
 
@@ -420,6 +523,9 @@ async function llenar(expediente) {
  * (el vendedor capturó ahí la moto), así que no se recarga: se empieza aquí.
  */
 chrome.runtime.onMessage.addListener((mensaje) => {
+  if (mensaje?.tipo === 'emergente-abierta') fiscalesAbierta = true;
+  if (mensaje?.tipo === 'emergente-cerrada') fiscalesCerrada = true;
+  if (mensaje?.tipo === 'emergente-terminada') fiscalesResultado = mensaje;
   if (mensaje?.tipo === 'iniciar-llenado') {
     idPestanaApp = mensaje.idPestanaApp;
     llenar(mensaje.expediente);

@@ -207,7 +207,7 @@ test('el CP que se espera es el campo readonly que llena SEPOMEX', () => {
   }
 });
 
-test('en el cliente: buscar el RFC, escribirlo y luego lo demás, sin Datos Fiscales', () => {
+test('en el cliente: buscar el RFC, escribirlo, Datos Fiscales y luego lo demás', () => {
   const cliente = SECCIONES.find((seccion) => seccion.id === 'cliente');
   const [rfc] = cliente.inicio;
 
@@ -215,7 +215,9 @@ test('en el cliente: buscar el RFC, escribirlo y luego lo demás, sin Datos Fisc
   assert.equal(rfc.id, 'txtrfc');
   assert.equal(rfc.de, 'datos.cliente.rfc');
   assert.equal(rfc.blur, true);
-  assert.ok(!('datosFiscales' in cliente), 'Datos Fiscales lo hace el vendedor si hace falta');
+  assert.equal(cliente.datosFiscales.id, 'ButtonDF');
+  assert.equal(cliente.datosFiscales.boton, 'showFiscal');
+  assert.ok(DINAMO.onclicks.some((onclick) => onclick.includes('showFiscal(')));
   assert.ok(!cliente.campos.some((campo) => campo.id === 'txtrfc'));
   assert.equal(cliente.buscarCliente.id, 'txt_buscar_cliente');
   assert.equal(cliente.buscarCliente.de, 'datos.cliente.rfc');
@@ -255,7 +257,7 @@ test('frecuencia, día de pago y sueldo salen de la nómina; el sueldo va entero
 test('las validaciones con colonia no se presionan: van al resumen', () => {
   const motor = readFileSync(fileURLToPath(new URL('../contenido-captura.js', import.meta.url)), 'utf8');
 
-  assert.doesNotMatch(motor, /esperarColoniaManual|pasarPorDatosFiscales|PreguntaDeDinamo/);
+  assert.doesNotMatch(motor, /esperarColoniaManual|PreguntaDeDinamo/);
   assert.match(motor, /if \(seccion\.colonia\) \{\s*pendienteDeSeccion/);
   assert.match(motor, /'resumen'/);
 });
@@ -264,4 +266,67 @@ test('la casilla de las referencias 2 y 3 solo se marca si no lo está', () => {
   const motor = readFileSync(fileURLToPath(new URL('../contenido-captura.js', import.meta.url)), 'utf8');
 
   assert.match(motor, /if \(casilla && !casilla\.checked\) marcar\(casilla\)/);
+});
+
+// --- Datos Fiscales ------------------------------------------------------------
+
+const { FISCALES } = contexto;
+
+test('Datos Fiscales: régimen y uso por defecto son sueldos y salarios / sin efectos fiscales', () => {
+  assert.equal(FISCALES.regimen.valor, '605');
+  assert.equal(FISCALES.uso.valor, 'S01');
+  assert.equal(FISCALES.tipoPersona.valor, 'F');
+});
+
+test('Datos Fiscales: los campos obligatorios del guardado salen del expediente', () => {
+  const porId = Object.fromEntries(FISCALES.campos.map((campo) => [campo.id, campo]));
+
+  assert.equal(porId.txtRFC.de, 'datos.cliente.rfc');
+  assert.equal(porId.txtRazonSocial.de, 'datos.cliente.razonSocial');
+  assert.equal(porId.txtCalle.de, 'datos.domicilio.calle');
+  assert.equal(porId.txtNumExterior.de, 'datos.domicilio.numeroExterior');
+  assert.equal(porId.txtCodigoPostal.de, 'datos.domicilio.cp');
+  assert.equal(porId.txtIdCIF.opcional, true);
+});
+
+test('Datos Fiscales: no hay CP ni dirección inventados', () => {
+  const texto = readFileSync(fileURLToPath(new URL('../campos.js', import.meta.url)), 'utf8');
+  const motor = readFileSync(
+    fileURLToPath(new URL('../contenido-fiscales.js', import.meta.url)),
+    'utf8',
+  );
+
+  assert.doesNotMatch(texto, /cpPorDefecto|direccionPorDefecto|25000/);
+  assert.doesNotMatch(motor, /cpPorDefecto|direccionPorDefecto|25000/);
+});
+
+test('Datos Fiscales: el botón de guardar se busca por su onclick, nunca por id', () => {
+  const motor = readFileSync(
+    fileURLToPath(new URL('../contenido-fiscales.js', import.meta.url)),
+    'utf8',
+  );
+
+  assert.equal(FISCALES.guardar, "validarDatosAEnviar('agregar')");
+  assert.doesNotMatch(motor, /getElementById\(['"]btn(Guardar|Modificar)Datos['"]\)/);
+});
+
+test('Datos Fiscales: el manifest cubre las dos páginas que abre showFiscal()', () => {
+  const manifest = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../manifest.json', import.meta.url)), 'utf8'),
+  );
+  const bloque = manifest.content_scripts.find((c) => c.js.includes('contenido-fiscales.js'));
+
+  assert.ok(bloque, 'falta el content script de Datos Fiscales');
+  assert.ok(bloque.matches.some((m) => m.includes('datosFiscalesCliente.php')));
+  assert.ok(bloque.matches.some((m) => m.includes('consultarClientesFiscales.php')));
+});
+
+test('Datos Fiscales existentes: se acepta el registro y nunca se modifica', () => {
+  const motor = readFileSync(
+    fileURLToPath(new URL('../contenido-fiscales.js', import.meta.url)),
+    'utf8',
+  );
+
+  assert.match(motor, /relacionar_cte_existente\(/);
+  assert.doesNotMatch(motor, /modificarDatosCliente\(|btnModificarDatos|actualizarDatosCliente/);
 });

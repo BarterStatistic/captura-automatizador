@@ -1,4 +1,5 @@
-// Coordina las dos pestañas: la de la app y la de la captura de Dinamo.
+// Coordina las pestañas: la de la app, la de la captura de Dinamo y la de Datos
+// Fiscales que la captura abre.
 //
 // No hay servidor, ni puerto, ni CORS: todo pasa por mensajes entre pestañas.
 
@@ -7,6 +8,24 @@
 // así que dentro del marco general nunca se enteraban de la captura.
 const URL_CAPTURA_DEFECTO =
   'http://dinamo2.intranet/dscn/dscframe/Nwcreditoscj/dsc_captura_2022.php?tipo_captura=CREDINAMO';
+
+// --- Trabajo pendiente por pestaña -------------------------------------------
+
+// Lo que se entrega a una pestaña de Datos Fiscales vale poco tiempo.
+const VIGENCIA_EMERGENTE = 2 * 60 * 1000;
+
+async function guardar(clave, valor) {
+  await chrome.storage.session.set({ [clave]: valor });
+}
+
+async function tomar(clave) {
+  const guardado = await chrome.storage.session.get(clave);
+  return guardado[clave] ?? null;
+}
+
+async function olvidar(clave) {
+  await chrome.storage.session.remove(clave);
+}
 
 // --- La pestaña de captura ---------------------------------------------------
 
@@ -62,7 +81,61 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
     return false;
   }
 
+  // --- Datos Fiscales --------------------------------------------------------
+  // La captura avisa ANTES de presionar el botón y deja el expediente guardado
+  // para la pestaña que se va a abrir. Se consume una sola vez y caduca: una
+  // pestaña de Datos Fiscales que abra una persona más tarde no debe llenarse.
+  if (mensaje?.tipo === 'preparar-emergente') {
+    guardar(`emergente-${remitente.tab.id}`, { expediente: mensaje.expediente, en: Date.now() })
+      .then(() => responder({ ok: true }))
+      .catch(() => responder({ ok: false }));
+    return true;
+  }
+
+  // La pestaña emergente nace con `openerTabId` apuntando a la captura.
+  if (mensaje?.tipo === 'listo-emergente') {
+    const idMadre = remitente.tab.openerTabId;
+    if (idMadre === undefined) {
+      responder({});
+      return false;
+    }
+    tomar(`emergente-${idMadre}`)
+      .then(async (preparado) => {
+        if (!preparado || Date.now() - preparado.en > VIGENCIA_EMERGENTE) return responder({});
+        await olvidar(`emergente-${idMadre}`);
+        await guardar(`madre-de-${remitente.tab.id}`, idMadre);
+        chrome.tabs.sendMessage(idMadre, { tipo: 'emergente-abierta' }).catch(() => {});
+        responder({ expediente: preparado.expediente });
+      })
+      .catch(() => responder({}));
+    return true;
+  }
+
+  if (mensaje?.tipo === 'emergente-terminada') {
+    const idMadre = remitente.tab.openerTabId;
+    if (idMadre !== undefined) {
+      chrome.tabs
+        .sendMessage(idMadre, {
+          tipo: 'emergente-terminada',
+          cual: mensaje.cual,
+          ok: mensaje.ok,
+          detalle: mensaje.detalle,
+        })
+        .catch(() => {});
+    }
+    return false;
+  }
+
   return false;
+});
+
+// Cuando Datos Fiscales guarda, la pestaña se cierra sola y ya no puede avisar:
+// el cierre es la señal. La captura revisa entonces qué dejó el sistema.
+chrome.tabs.onRemoved.addListener(async (idPestana) => {
+  const idMadre = await tomar(`madre-de-${idPestana}`);
+  if (idMadre === null) return;
+  await olvidar(`madre-de-${idPestana}`);
+  chrome.tabs.sendMessage(idMadre, { tipo: 'emergente-cerrada' }).catch(() => {});
 });
 
 // --- Entrega de eventos a la app ---------------------------------------------

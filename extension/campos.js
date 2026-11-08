@@ -129,7 +129,8 @@ const SECCIONES = [
     //   1. Buscar el RFC en «Buscar cliente»: es lo que habilita la sección.
     //   2. Escribirlo en el campo RFC (`inicio`).
     //   3. Lo demás (`campos`).
-    // Datos Fiscales ya no lo toca la extensión: queda en el resumen.
+    //   Datos Fiscales va entre 2 y 3: showFiscal() exige el RFC ya escrito, y el
+    //   sistema sustituye los datos del cliente por los fiscales al guardar.
     buscarCliente: { id: 'txt_buscar_cliente', de: 'datos.cliente.rfc', boton: 'buscar_cliente' },
     inicio: [
       // Con 13 caracteres no salen las preguntas de homoclave (esas solo
@@ -138,6 +139,10 @@ const SECCIONES = [
       // valida la edad mínima de 20 y copia el RFC a «RFC a facturar».
       { id: 'txtrfc', tipo: 'texto', de: 'datos.cliente.rfc', etiqueta: 'RFC', blur: true },
     ],
+    // El botón «Datos Fiscales» (id ButtonDF, onclick showFiscal()). Abre OTRA
+    // pestaña con window.open, desde un callback de AJAX: Edge solo la deja
+    // pasar si los pop-ups de dinamo2.intranet están permitidos.
+    datosFiscales: { id: 'ButtonDF', boton: 'showFiscal' },
     campos: [
       { id: 'txtnombre', tipo: 'texto', de: 'datos.cliente.nombres', etiqueta: 'Nombre(s)' },
       {
@@ -323,9 +328,43 @@ const SECCIONES = [
   },
 ];
 
+// --- Datos Fiscales -----------------------------------------------------------
+//
+// Dos páginas distintas, según `showFiscal()` (que primero pregunta por AJAX si
+// el RFC ya tiene datos fiscales):
+//
+//   datosFiscalesCliente.php      RFC sin datos fiscales: formulario en blanco.
+//   consultarClientesFiscales.php RFC con datos fiscales: lista de registros.
+//
+// `validarDatosAEnviar('agregar')` exige: RFC válido, razón social, tipo de
+// persona, régimen, uso de CFDI, fecha de emisión, calle, número exterior y una
+// dirección fiscal. Sin domicilio la página no guarda.
+//
+// Cotejado contra el HTML y el JS reales (2026-11-07).
+const FISCALES = {
+  // Régimen y uso se piden por AJAX al cambiar el tipo de persona y el régimen.
+  tipoPersona: { id: 'cboTipoPersona', valor: 'F' },
+  regimen: { id: 'cboRegimen_1', valor: '605' }, // Sueldos y salarios
+  uso: { id: 'cboUsoCFDI', valor: 'S01' }, // Sin efectos fiscales
+  campos: [
+    { id: 'txtRFC', de: 'datos.cliente.rfc', etiqueta: 'RFC' },
+    { id: 'txtRazonSocial', de: 'datos.cliente.razonSocial', etiqueta: 'Razón social' },
+    { id: 'txtIdCIF', de: 'datos.cliente.idCif', etiqueta: 'idCIF', opcional: true },
+    { id: 'txtCalle', de: 'datos.domicilio.calle', etiqueta: 'Calle' },
+    { id: 'txtNumExterior', de: 'datos.domicilio.numeroExterior', etiqueta: 'Número exterior' },
+    { id: 'txtCodigoPostal', de: 'datos.domicilio.cp', etiqueta: 'Código postal' },
+  ],
+  buscarDireccion: 'obtenerDireccionFiscal',
+  direccion: { id: 'cboDireccionFiscal', colonia: 'datos.domicilio.colonia' },
+  // NUNCA por id: btnGuardarDatos es el botón de Cancelar cuando el cliente ya
+  // tenía datos fiscales. El que guarda llama a validarDatosAEnviar('agregar').
+  guardar: "validarDatosAEnviar('agregar')",
+};
+
 Object.assign(globalThis, {
   SECCIONES,
   REFERENCIAS,
+  FISCALES,
   seccionReferencia,
   valorEn,
 });
