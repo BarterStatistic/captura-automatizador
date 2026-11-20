@@ -9,6 +9,43 @@ import { resolverRfc } from './rfc.js';
 import { ESQUEMAS_VENTA, esquemaPorValue, pideIngresos, referenciasRequeridas } from './esquemas.js';
 import { opcionPorNombre } from './formulario.js';
 import { analizarNomina } from './nomina.js';
+import { analizarCurp } from './curp.js';
+import { CLAVE_EXTRANJERO, analizarDireccion, limpiarMunicipio, resolverEstado } from './geografia.js';
+import { interpretarHorario } from './horario.js';
+
+// Si el formulario no trae horario (o no se entiende), se usa el de siempre.
+const HORARIO_DOMICILIO = { de: 10, a: 12 };
+const HORARIO_EMPLEO = { de: 16, a: 18 };
+
+// Dinamo exige un puesto; sin dato, el genérico de siempre.
+const PUESTO_GENERICO = 'trabajador';
+
+/** Solo dígitos; «25 114» → «25114». Si no quedan 5, se deja el texto como vino. */
+function codigoPostal(valor) {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return digitos.length === 5 ? digitos : String(valor ?? '').trim();
+}
+
+/**
+ * El horario de un punto del formulario con su respaldo. Si había texto y no se
+ * entendió, se avisa para que alguien lo capture a mano; si no había texto, se
+ * usa el de siempre sin ruido.
+ */
+function horarioDe(textoHorario, porDefecto, campo, etiqueta, avisos) {
+  const escrito = String(textoHorario ?? '').trim();
+  const leido = interpretarHorario(escrito);
+  if (leido) {
+    for (const mensaje of leido.avisos) avisos.push({ campo, mensaje });
+    return { de: leido.de, a: leido.a, escrito, leido: true };
+  }
+  if (escrito) {
+    avisos.push({
+      campo,
+      mensaje: `No se entendió el horario ${etiqueta} «${escrito}». Se usó el de siempre (de ${porDefecto.de} a ${porDefecto.a} h); cámbialo en Dinamo si hace falta.`,
+    });
+  }
+  return { ...porDefecto, escrito, leido: false };
+}
 
 // Sin estos, la corrida no arranca: son la identidad del cliente, el domicilio
 // y el trabajo. Lo que depende del tipo de crédito (comprobante de ingresos y
@@ -155,27 +192,55 @@ export function armarExpediente(lecturas, manual = {}) {
   );
 
   // --- Identidad -------------------------------------------------------------
-  // La CURP del frente es la principal; la del reverso solo la corrobora.
-  const curp = texto(ineFrente.curp) || texto(ineAtras.curp);
-  const curpReverso = texto(ineAtras.curp);
-  if (curp && curpReverso && curp !== curpReverso) {
-    avisos.push({
-      campo: 'curp',
-      mensaje:
-        `La CURP del frente (${curp}) no coincide con la del reverso (${curpReverso}). ` +
-        'Revisa cuál de las dos fotos se leyó mal.',
-    });
-  }
-
   const nombres = texto(ineFrente.nombres);
   const paterno = texto(ineFrente.apellido_paterno);
   const materno = texto(ineFrente.apellido_materno);
 
+  // La CURP se valida (formato, dígito verificador, fecha, entidad) y se coteja
+  // con el nombre, la fecha y el sexo. Si una foto confundió una O con un 0, se
+  // corrige; si no hay una sola corrección segura, se deja lo leído y se avisa.
+  const analisisCurp = analizarCurp({
+    curp: ineFrente.curp,
+    curpReverso: ineAtras.curp,
+    nombres,
+    paterno,
+    materno,
+    fechaNacimiento: ineFrente.fecha_nacimiento,
+    sexo: ineFrente.sexo,
+  });
+  avisos.push(...analisisCurp.avisos);
+  const curp = analisisCurp.curp;
+  // Con una CURP válida la fecha y el sexo de la CURP mandan sobre los de la foto.
+  const fechaNacimiento = (analisisCurp.valida && analisisCurp.fecha) || texto(ineFrente.fecha_nacimiento);
+  const sexo = (analisisCurp.valida && analisisCurp.sexo) || texto(ineFrente.sexo);
+
+  if (analisisCurp.valida && curp.slice(11, 13) === CLAVE_EXTRANJERO) {
+    avisos.push({
+      campo: 'estadoNacimiento',
+      mensaje: 'La CURP dice que nació en el extranjero (NE): Dinamo no tiene esa opción, elige el estado a mano.',
+    });
+  }
+
+  // El RFC toma las 10 primeras posiciones de la CURP, pero solo si la CURP es
+  // buena: una CURP mal leída arrastraría el error al RFC. Si no pasó la
+  // verificación, el RFC se calcula con el nombre y la fecha.
   let rfc = '';
-  if (curp && nombres && paterno) {
-    const resuelto = resolverRfc(nombres, paterno, materno, ineFrente.fecha_nacimiento, curp);
-    rfc = resuelto.rfc;
-    if (resuelto.advertencia) avisos.push({ campo: 'rfc', mensaje: resuelto.advertencia });
+  if (nombres && paterno) {
+    const intentos = analisisCurp.valida ? [curp] : [null, curp || null];
+    for (const intento of intentos) {
+      try {
+        const resuelto = resolverRfc(nombres, paterno, materno, fechaNacimiento, intento);
+        rfc = resuelto.rfc;
+        const sinCurpBuena = !analisisCurp.valida && curp && intento === null;
+        const advertencia = sinCurpBuena
+          ? 'La CURP no pasó la verificación, así que el RFC se calculó con el nombre y la fecha de nacimiento.'
+          : resuelto.advertencia;
+        if (advertencia) avisos.push({ campo: 'rfc', mensaje: advertencia });
+        break;
+      } catch {
+        // Sin fecha legible ese camino no sirve; se prueba el siguiente.
+      }
+    }
   }
 
   const [usuarioCorreo, dominioCorreo] = texto(formulario.correo).split('@');
@@ -186,8 +251,14 @@ export function armarExpediente(lecturas, manual = {}) {
     apellidoPaterno: paterno,
     apellidoMaterno: materno,
     curp,
-    fechaNacimiento: texto(ineFrente.fecha_nacimiento),
-    sexo: texto(ineFrente.sexo),
+    curpValida: analisisCurp.valida,
+    curpCorregida: analisisCurp.corregida,
+    fechaNacimiento,
+    sexo,
+    // El estado de nacimiento sale de las posiciones 12-13 de la CURP. El
+    // municipio no sale de ninguna parte: lo escribe el capturista en la revisión.
+    estadoNacimiento: analisisCurp.estado?.dinamo ?? '',
+    municipioNacimiento: texto(manual.municipioNacimiento),
     rfc,
     razonSocial: razonSocial(nombres, paterno, materno),
     // El OCR de 13 dígitos del reverso alimenta txtife y txtIdCIF. Es opcional:
@@ -219,7 +290,7 @@ export function armarExpediente(lecturas, manual = {}) {
   const calleDomicilio = corregido('calle_nombre', partida.calle);
   let antiguedadDomicilio = partirAntiguedad(formulario.antiguedad_domicilio);
   if (!antiguedadDomicilio && TODA_LA_VIDA.test(texto(formulario.antiguedad_domicilio))) {
-    const edad = edadEn(nacimiento(ineFrente.fecha_nacimiento, curp), manual.hoy ?? new Date());
+    const edad = edadEn(nacimiento(fechaNacimiento, curp), manual.hoy ?? new Date());
     if (edad !== null) {
       // txtant_anios admite dos dígitos.
       antiguedadDomicilio = { anios: Math.min(edad, 99), meses: 0 };
@@ -236,16 +307,43 @@ export function armarExpediente(lecturas, manual = {}) {
       });
     }
   }
+
+  // Municipio y estado del domicilio: el recibo suele traerlos pegados («SALTILLO,
+  // COAH.»). El estado sale del texto y, si falta, del código postal; si los dos
+  // chocan, se avisa. El municipio nunca se deduce: solo se limpia.
+  const cpDomicilio = codigoPostal(comprobante.cp);
+  const municipioRecibo = limpiarMunicipio(comprobante.municipio);
+  const estadoDomicilio = resolverEstado({
+    texto: comprobante.estado,
+    cp: cpDomicilio,
+    municipio: comprobante.municipio,
+  });
+  if (estadoDomicilio.aviso) avisos.push({ campo: 'estado', mensaje: `Domicilio: ${estadoDomicilio.aviso}` });
+  const horarioCasa = horarioDe(
+    formulario.horario_domicilio,
+    HORARIO_DOMICILIO,
+    'horarioDomicilio',
+    'para visitas en el domicilio',
+    avisos,
+  );
+
   const domicilio = {
     calle: calleDomicilio,
     numeroExterior: corregido('numero_exterior', partida.numeroExterior),
     numeroInterior: corregido('numero_interior', partida.numeroInterior),
     entreCalles: calleDomicilio,
     colonia: texto(comprobante.colonia),
-    cp: texto(comprobante.cp),
-    municipio: texto(comprobante.municipio),
+    cp: cpDomicilio,
+    municipio: municipioRecibo.municipio || texto(comprobante.municipio),
+    estado: estadoDomicilio.estado?.dinamo ?? '',
+    // De dónde salió el estado: 'texto' (lo dice el recibo) o 'cp' (se dedujo).
+    estadoOrigen: estadoDomicilio.origen,
     antiguedadAnios: antiguedadDomicilio?.anios ?? 0,
     antiguedadMeses: antiguedadDomicilio?.meses ?? 0,
+    // Horas de verificación (menú 0-23 de Dinamo) y el texto del cliente.
+    horaDe: horarioCasa.de,
+    horaA: horarioCasa.a,
+    horario: horarioCasa.escrito,
   };
 
   // --- Empleo ----------------------------------------------------------------
@@ -253,17 +351,43 @@ export function armarExpediente(lecturas, manual = {}) {
     anios: 0,
     meses: 0,
   };
-  const calleEmpleo = partirCalle(formulario.direccion_empleo);
+  // La dirección del trabajo llega de corrido («Cerca de Av. Las Industrias, Parque
+  // Industrial las Torres, 25114 Saltillo, Coah.»): se parte en calle, colonia,
+  // CP, municipio y estado. Partirla como una sola calle dejaba el CP de número.
+  const direccionEmpleo = analizarDireccion(formulario.direccion_empleo);
+  const cpEmpleo = codigoPostal(formulario.cp_empleo) || direccionEmpleo.cp;
+  const estadoEmpleo = resolverEstado({
+    texto: formulario.estado_empleo || direccionEmpleo.estado?.dinamo,
+    cp: cpEmpleo,
+    municipio: formulario.municipio_empleo,
+  });
+  if (estadoEmpleo.aviso) avisos.push({ campo: 'estadoEmpleo', mensaje: `Trabajo: ${estadoEmpleo.aviso}` });
+  const horarioTrabajo = horarioDe(
+    formulario.horario_empleo,
+    HORARIO_EMPLEO,
+    'horarioEmpleo',
+    'para visitas en el trabajo',
+    avisos,
+  );
   const telefonoCompanero = partirTelefono(formulario.companero_telefono);
 
   const empleo = {
     nombre: texto(formulario.empleo),
+    // Lo que dijo el cliente, y lo que se captura (Dinamo pide uno).
+    puesto: texto(formulario.puesto),
+    puestoDinamo: texto(formulario.puesto) || PUESTO_GENERICO,
     antiguedadAnios: antiguedadEmpleo.anios,
     antiguedadMeses: antiguedadEmpleo.meses,
-    calle: calleEmpleo.calle,
-    numeroExterior: calleEmpleo.numeroExterior,
-    numeroInterior: calleEmpleo.numeroInterior,
-    colonia: texto(formulario.colonia_empleo),
+    calle: direccionEmpleo.calle,
+    numeroExterior: direccionEmpleo.numeroExterior,
+    numeroInterior: direccionEmpleo.numeroInterior,
+    colonia: texto(formulario.colonia_empleo) || direccionEmpleo.colonia,
+    cp: cpEmpleo,
+    municipio: limpiarMunicipio(formulario.municipio_empleo).municipio || direccionEmpleo.municipio,
+    estado: estadoEmpleo.estado?.dinamo ?? '',
+    horaDe: horarioTrabajo.de,
+    horaA: horarioTrabajo.a,
+    horario: horarioTrabajo.escrito,
     jefe: texto(formulario.companero_nombre),
     lada: telefonoCompanero?.lada ?? '',
     telefono: telefonoCompanero?.telefono ?? '',

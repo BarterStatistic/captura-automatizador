@@ -27,7 +27,13 @@ Extrae los datos del ANVERSO de la credencial. Reglas:
 - El DOMICILIO viene en varios renglones. Devuelve el primero completo y tal
   como está impreso en "calle", incluyendo el número: por ejemplo
   "C JUAREZ 300 2". No lo separes tú.
-- La CURP tiene exactamente 18 caracteres. Si no puedes leer los 18, null.
+- La CURP tiene exactamente 18 caracteres: 4 letras, 6 dígitos (fecha), una
+  letra H o M, 5 letras, una letra o dígito y un dígito final. Transcríbela
+  carácter por carácter y fíjate en las confusiones típicas: en las posiciones
+  de LETRAS nunca hay un 0 (es la letra O), un 1 (es I) ni un 8 (es B); en las
+  posiciones de DÍGITOS (la fecha y el último) nunca hay una O, una I ni una B.
+  Si no puedes leer los 18 con certeza, null: es mejor vacío que equivocada.
+- El sexo es H o M, tal como está impreso.
 - La fecha de nacimiento en formato AAAA-MM-DD.`,
   esquema: {
     type: 'object',
@@ -91,7 +97,12 @@ Extrae el DOMICILIO DEL SERVICIO. Reglas:
   nadie. El campo de RFC no existe en este esquema por esa razón.
 - En "calle" devuelve la línea de calle y número tal como está impresa,
   por ejemplo "MORELOS 245 FRAC3". No la separes tú.
-- El código postal son 5 dígitos.`,
+- El código postal son 5 dígitos.
+- "municipio" es SOLO el nombre del municipio, sin el estado ni abreviaturas:
+  de "SALTILLO, COAH." el municipio es "SALTILLO".
+- "estado" es el estado de la república tal como aparece ("COAHUILA", "NUEVO
+  LEON"). Si el recibo solo trae la sigla ("COAH.", "N.L."), devuélvela
+  completa. Si no aparece, null: no lo deduzcas del código postal.`,
   esquema: {
     type: 'object',
     properties: {
@@ -192,31 +203,47 @@ el TEXTO que reenvía el vendedor: casi siempre es el formulario que el cliente
 contestó por WhatsApp, a veces con preguntas numeradas y a veces solo con las
 respuestas, y a veces con datos de la venta agregados por el vendedor.
 
-El formulario que mandan los vendedores tiene exactamente este esqueleto, y la
-respuesta va después de cada pregunta (en el mismo renglón o en el siguiente):
+El formulario actual se llama «FORMULARIO PARA CRÉDITO» y tiene 10 puntos. La
+respuesta va después de cada pregunta, en el mismo renglón (a veces SIN dos
+puntos: «Nombre de su trabajo Tornillos del Norte») o en el siguiente. Cada pregunta trae un
+emoji delante, que debes ignorar:
 
-  Favor de llenar la siguiente información para llenar su solicitud de crédito
-  1) Correo electrónico:
-  2) Nombre y dirección
-  3) Antigüedad laboral
-  4) Nombre y teléfono de algún compañero de su trabajo
-  5) Tiempo viviendo en su casa actual:
-  6) Nombre y teléfono de algún amigo, conocido o familiar
-  7) Número de seguro social (Opcional)
+  1) Correo electrónico
+  2) Nombre de su trabajo
+  3) Puesto en su trabajo
+  4) Dirección de su trabajo
+  5) Horario para recibir en visitas            (horario en el TRABAJO)
+  6) Antigüedad laboral
+  7) Nombre, apellido y teléfono de algún compañero de su trabajo
+  8) Tiempo viviendo en su casa actual
+  9) Horario para recibir visita en domicilio   (horario en la CASA)
+  10) Nombre, apellido y teléfono de algún amigo, conocido o familiar
 
 Extrae la RESPUESTA de cada punto:
 
 1) → "correo"
-2) Es el nombre y la dirección del TRABAJO del cliente (los puntos 3 y 4 son
-   del mismo trabajo), no el nombre del cliente → "empleo" (solo el nombre del
-   negocio), "direccion_empleo" (la calle con su número si lo dice) y
-   "colonia_empleo"
-3) → "antiguedad_laboral", tal como lo escribió ("6 meses")
-4) → "companero_nombre" y "companero_telefono"
-5) → "antiguedad_domicilio", tal como lo escribió ("6 años aprox", "toda la
+2) → "empleo": solo el nombre de la empresa o negocio donde trabaja
+3) → "puesto": el cargo que dijo, tal como lo escribió ("operador")
+4) → "direccion_empleo": la dirección tal como la escribió. Además sepárala en
+   "colonia_empleo", "cp_empleo" (5 dígitos), "municipio_empleo" (solo el
+   municipio, sin el estado) y "estado_empleo" (completo: de "Coah." es
+   "Coahuila"). En "direccion_empleo" deja la calle con su número si lo trae y
+   quita las muletillas de ubicación ("Cerca de", "A un lado de", "Por")
+5) → "horario_empleo": el horario tal como lo escribió ("6am a 6pm"); no lo
+   conviertas
+6) → "antiguedad_laboral", tal como lo escribió ("7 meses")
+7) → "companero_nombre" y "companero_telefono"
+8) → "antiguedad_domicilio", tal como lo escribió ("6 años aprox", "toda la
    vida"); no lo conviertas
-6) → "referencia_nombre" y "referencia_telefono"
-7) → "nss": el número de seguro social, solo dígitos; si no lo puso, null
+9) → "horario_domicilio": el horario tal como lo escribió ("7pm 10pm")
+10) → "referencia_nombre" y "referencia_telefono"
+
+Antes existió un formulario de 7 puntos. Si el texto es ese, lo que cambia es:
+
+  2) «Nombre y dirección» del TRABAJO → "empleo" (solo el negocio),
+     "direccion_empleo" y "colonia_empleo"
+  3) Antigüedad laboral  4) Compañero  5) Tiempo en su casa  6) Amigo o familiar
+  7) Número de seguro social (opcional) → "nss", solo dígitos; null si no lo puso
 
 Si el texto además trae estos datos, extráelos; si no aparecen, null:
 
@@ -225,7 +252,7 @@ Si el texto además trae estos datos, extráelos; si no aparecen, null:
 - "esquema": el esquema de venta tal como lo escribieron (CREDINAMO, MOTOXPRESS,
   MOTOXPRESS FLEX, MOTONOMINA, MOTONOMINA FLEX, CREDINAMO FLEX…)
 - "referencias_extra": si el texto trae MÁS referencias personales además de la
-  del punto 6, una lista con { nombre, telefono } de cada una
+  del último punto, una lista con { nombre, telefono } de cada una
 
 Cuando el texto viene numerado, al final se agrega una sección «RESPUESTAS
 SEPARADAS POR PUNTO» con la respuesta de cada punto ya aislada de su pregunta.
@@ -244,18 +271,25 @@ Reglas:
   "Luis Perez (Hermano)" el nombre es "Luis Perez".
 - La dirección de trabajo suele venir incompleta y sin número. Extrae lo que
   haya y deja en null lo que falte; no completes la dirección tú.
-- Las antigüedades devuélvelas como texto literal, no las conviertas a números.`,
+- Los horarios y las antigüedades devuélvelos como texto literal, no los
+  conviertas a números.`,
   esquema: {
     type: 'object',
     properties: {
       correo: { type: 'string', nullable: true },
       empleo: { type: 'string', nullable: true },
+      puesto: { type: 'string', nullable: true },
       direccion_empleo: { type: 'string', nullable: true },
       colonia_empleo: { type: 'string', nullable: true },
+      cp_empleo: { type: 'string', nullable: true },
+      municipio_empleo: { type: 'string', nullable: true },
+      estado_empleo: { type: 'string', nullable: true },
+      horario_empleo: { type: 'string', nullable: true },
       antiguedad_laboral: { type: 'string', nullable: true },
       companero_nombre: { type: 'string', nullable: true },
       companero_telefono: { type: 'string', nullable: true },
       antiguedad_domicilio: { type: 'string', nullable: true },
+      horario_domicilio: { type: 'string', nullable: true },
       referencia_nombre: { type: 'string', nullable: true },
       referencia_telefono: { type: 'string', nullable: true },
       nss: { type: 'string', nullable: true },

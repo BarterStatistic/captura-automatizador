@@ -93,11 +93,9 @@ test('los valores fijos son los del catálogo real', () => {
   assert.equal(fijos.cbotipo_tel_emp, '5'); // CELULAR
   assert.equal(fijos.cmbStatusLabRef1, '2'); // OTRO
   assert.equal(fijos.cbotipo_ref, '1'); // Comercial/Personal
-  assert.equal(fijos.cbohora_de, '10');
-  assert.equal(fijos.cbohora_a, '12');
-  assert.equal(fijos.cbohora_de_emp, '16');
-  assert.equal(fijos.cbohora_a_emp, '18');
-  assert.equal(fijos.txtpuesto, 'trabajador');
+  // Los horarios y el puesto ya no son fijos: salen del formulario (ver más abajo).
+  assert.equal(fijos.cbohora_de, undefined);
+  assert.equal(fijos.txtpuesto, undefined);
   assert.equal(fijos.txtCentroLabRef1, 'trabajador');
   assert.equal(fijos.txtcomenta, 'OK');
 });
@@ -329,4 +327,59 @@ test('Datos Fiscales existentes: se acepta el registro y nunca se modifica', () 
 
   assert.match(motor, /relacionar_cte_existente\(/);
   assert.doesNotMatch(motor, /modificarDatosCliente\(|btnModificarDatos|actualizarDatosCliente/);
+});
+
+// --- Formulario de 10 puntos (1.10.0) --------------------------------------------
+
+test('horarios y puesto salen del expediente, con el valor de siempre como respaldo', () => {
+  const porId = Object.fromEntries(todosLosCampos().map((campo) => [campo.id, campo]));
+
+  assert.equal(porId.cbohora_de.de, 'datos.domicilio.horaDe');
+  assert.equal(porId.cbohora_de.porDefecto, '10');
+  assert.equal(porId.cbohora_a.de, 'datos.domicilio.horaA');
+  assert.equal(porId.cbohora_a.porDefecto, '12');
+  assert.equal(porId.cbohora_de_emp.de, 'datos.empleo.horaDe');
+  assert.equal(porId.cbohora_de_emp.porDefecto, '16');
+  assert.equal(porId.cbohora_a_emp.de, 'datos.empleo.horaA');
+  assert.equal(porId.cbohora_a_emp.porDefecto, '18');
+  assert.equal(porId.txtpuesto.de, 'datos.empleo.puestoDinamo');
+  assert.equal(porId.txtpuesto.porDefecto, 'trabajador');
+});
+
+test('el estado de nacimiento sale de la CURP y recarga la lista de municipios', () => {
+  const porId = Object.fromEntries(todosLosCampos().map((campo) => [campo.id, campo]));
+
+  assert.equal(porId.cboedo_nac.de, 'datos.cliente.estadoNacimiento');
+  assert.equal(porId.cboedo_nac.tipo, 'selectTexto', 'por texto: los value de Dinamo repiten «BAJA»');
+  assert.equal(porId.cboedo_nac.recarga, 'cboMpio_nac');
+  assert.equal(porId.cboMpio_nac.de, 'datos.cliente.municipioNacimiento');
+  assert.equal(porId.cboMpio_nac.tipo, 'selectTexto');
+  assert.equal(porId.cboMpio_nac.dinamico, true);
+  assert.equal(porId.cboMpio_nac.opcional, true, 'sin municipio no se avisa en la corrida: va al resumen');
+});
+
+test('el estado va después de la CURP y el municipio después del estado', () => {
+  const ids = SECCIONES.find((seccion) => seccion.id === 'cliente').campos.map((campo) => campo.id);
+
+  assert.ok(ids.indexOf('txtcurp') < ids.indexOf('cboedo_nac'));
+  assert.ok(ids.indexOf('cboedo_nac') < ids.indexOf('cboMpio_nac'));
+});
+
+test('la pista de SEPOMEX lleva CP, colonia, municipio y estado en cliente y trabajo', () => {
+  const porId = Object.fromEntries(SECCIONES.map((seccion) => [seccion.id, seccion]));
+
+  assert.equal(porId.empleo.colonia.pista.cp, 'datos.empleo.cp');
+  assert.deepEqual(local(porId.empleo.colonia.pista.lugar), ['datos.empleo.municipio', 'datos.empleo.estado']);
+  assert.deepEqual(local(porId.domicilio.colonia.pista.lugar), [
+    'datos.domicilio.municipio',
+    'datos.domicilio.estado',
+  ]);
+});
+
+test('la corrida usa el valor de siempre si el expediente no trae el horario', () => {
+  const motor = readFileSync(fileURLToPath(new URL('../contenido-captura.js', import.meta.url)), 'utf8');
+
+  assert.match(motor, /campo\.porDefecto !== undefined/);
+  assert.match(motor, /esperarCambioDeOpciones\(campo\.recarga/);
+  assert.match(motor, /pendientesFijos\(expediente\)/);
 });

@@ -419,3 +419,148 @@ test('en MOTOXPRESS un comprobante de ingresos leído de antes se ignora', () =>
   assert.equal(datos.empleo.sueldo, '');
   assert.equal(datos.empleo.frecuenciaPago, '');
 });
+
+// --- Formulario de 10 puntos, CURP, estado y municipio -----------------------------
+
+const NUEVO = {
+  ...LECTURAS,
+  formulario: {
+    correo: 'cliente.prueba@gmail.com',
+    empleo: 'Tornillos del Norte',
+    puesto: 'operador',
+    direccion_empleo: 'Cerca de Av. Las Industrias, Parque Industrial Norte, 25114 Saltillo, Coah.',
+    horario_empleo: '6am a 6pm',
+    antiguedad_laboral: '7 meses',
+    companero_nombre: 'Carlos Ruiz',
+    companero_telefono: '8441234500',
+    antiguedad_domicilio: '7 meses',
+    horario_domicilio: '7pm 10pm',
+    referencia_nombre: 'Luis Mena',
+    referencia_telefono: '8447654300',
+  },
+};
+
+test('el trabajo del formulario nuevo: puesto, dirección partida y horario', () => {
+  const { datos } = armarExpediente(NUEVO, MANUAL);
+
+  assert.equal(datos.empleo.nombre, 'Tornillos del Norte');
+  assert.equal(datos.empleo.puesto, 'operador');
+  assert.equal(datos.empleo.puestoDinamo, 'operador');
+  assert.equal(datos.empleo.calle, 'Av. Las Industrias');
+  assert.equal(datos.empleo.numeroExterior, '', 'el CP 25114 no es el número exterior');
+  assert.equal(datos.empleo.colonia, 'Parque Industrial Norte');
+  assert.equal(datos.empleo.cp, '25114');
+  assert.equal(datos.empleo.municipio, 'SALTILLO');
+  assert.equal(datos.empleo.estado, 'COAHUILA');
+  assert.equal(datos.empleo.horaDe, 6);
+  assert.equal(datos.empleo.horaA, 18);
+  assert.equal(datos.empleo.antiguedadMeses, 7);
+});
+
+test('sin puesto en el formulario se captura «trabajador»; en la solicitud queda vacío', () => {
+  const { datos } = armarExpediente(
+    { ...NUEVO, formulario: { ...NUEVO.formulario, puesto: null } },
+    MANUAL,
+  );
+
+  assert.equal(datos.empleo.puesto, '');
+  assert.equal(datos.empleo.puestoDinamo, 'trabajador');
+});
+
+test('el horario del domicilio sale de su punto; sin horario, el de siempre', () => {
+  const { datos, avisos } = armarExpediente(NUEVO, MANUAL);
+  assert.equal(datos.domicilio.horaDe, 19);
+  assert.equal(datos.domicilio.horaA, 22);
+
+  const sin = armarExpediente({ ...NUEVO, formulario: { ...NUEVO.formulario, horario_domicilio: null, horario_empleo: null } }, MANUAL);
+  assert.equal(sin.datos.domicilio.horaDe, 10);
+  assert.equal(sin.datos.domicilio.horaA, 12);
+  assert.equal(sin.datos.empleo.horaDe, 16);
+  assert.equal(sin.datos.empleo.horaA, 18);
+  assert.ok(!sin.avisos.some((aviso) => /horario/i.test(aviso.campo)), 'sin texto no hay ruido');
+  assert.ok(!avisos.some((aviso) => /horario/i.test(aviso.campo)));
+});
+
+test('un horario que no se entiende se avisa y se usa el de siempre', () => {
+  const { datos, avisos } = armarExpediente(
+    { ...NUEVO, formulario: { ...NUEVO.formulario, horario_domicilio: 'lunes a viernes' } },
+    MANUAL,
+  );
+
+  assert.equal(datos.domicilio.horaDe, 10);
+  assert.ok(avisos.some((aviso) => aviso.campo === 'horarioDomicilio' && /lunes a viernes/.test(aviso.mensaje)));
+});
+
+test('el estado de nacimiento sale de la CURP; el municipio, solo si el capturista lo escribe', () => {
+  const { datos } = armarExpediente(LECTURAS, MANUAL);
+  assert.equal(datos.cliente.estadoNacimiento, 'COAHUILA');
+  assert.equal(datos.cliente.municipioNacimiento, '');
+  assert.equal(datos.cliente.curpValida, true);
+
+  const con = armarExpediente(LECTURAS, { ...MANUAL, municipioNacimiento: ' SALTILLO ' });
+  assert.equal(con.datos.cliente.municipioNacimiento, 'SALTILLO');
+});
+
+test('una CURP mal leída se corrige, y de ella salen el RFC y el estado', () => {
+  const mala = {
+    ...LECTURAS,
+    ineFrente: { ...LECTURAS.ineFrente, curp: 'PEGJ9OO115HCLRMN08' },
+    ineAtras: { ...LECTURAS.ineAtras, curp: null },
+  };
+  const { datos, avisos, faltantes } = armarExpediente(mala, MANUAL);
+
+  assert.equal(datos.cliente.curp, 'PEGJ900115HCLRMN08');
+  assert.equal(datos.cliente.curpCorregida, true);
+  assert.equal(datos.cliente.rfc, 'PEGJ9001152E5');
+  assert.equal(datos.cliente.estadoNacimiento, 'COAHUILA');
+  assert.ok(!faltantes.includes('curp'));
+  assert.ok(avisos.some((aviso) => aviso.campo === 'curp' && /«O» → «0»/.test(aviso.mensaje)));
+});
+
+test('una CURP que no se puede corregir no arrastra su error al RFC', () => {
+  // El dígito final está mal y hay dos correcciones posibles: se deja la lectura.
+  const dudosa = {
+    ...LECTURAS,
+    ineFrente: { ...LECTURAS.ineFrente, curp: 'PEGJ900115HCLRMN09' },
+    ineAtras: { ...LECTURAS.ineAtras, curp: null },
+  };
+  const { datos, avisos } = armarExpediente(dudosa, MANUAL);
+
+  assert.equal(datos.cliente.curpValida, false);
+  assert.equal(datos.cliente.estadoNacimiento, '', 'sin CURP válida no hay estado');
+  // El RFC sale del nombre y la fecha de la INE, que sí coinciden.
+  assert.equal(datos.cliente.rfc.slice(0, 10), 'PEGJ900115');
+  assert.ok(avisos.some((aviso) => aviso.campo === 'rfc' && /no pasó la verificación/.test(aviso.mensaje)));
+});
+
+test('la fecha de la CURP válida manda sobre la que se leyó mal de la INE', () => {
+  const lecturas = { ...LECTURAS, ineFrente: { ...LECTURAS.ineFrente, fecha_nacimiento: '1990-07-15' } };
+  const { datos, avisos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.cliente.fechaNacimiento, '1990-01-15');
+  assert.ok(avisos.some((aviso) => aviso.campo === 'fechaNacimiento'));
+});
+
+test('el municipio del recibo se limpia y el estado se deduce del CP si no viene', () => {
+  const lecturas = {
+    ...LECTURAS,
+    comprobante: { ...LECTURAS.comprobante, municipio: 'SALTILLO, COAH.', estado: null, cp: '25 000' },
+  };
+  const { datos, avisos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.domicilio.municipio, 'SALTILLO');
+  assert.equal(datos.domicilio.cp, '25000');
+  assert.equal(datos.domicilio.estado, 'COAHUILA');
+  assert.ok(!avisos.some((aviso) => aviso.campo === 'estado'));
+});
+
+test('si el estado del recibo y su CP chocan, se avisa sin cambiar el estado del recibo', () => {
+  const lecturas = {
+    ...LECTURAS,
+    comprobante: { ...LECTURAS.comprobante, estado: 'NUEVO LEON', cp: '25000' },
+  };
+  const { datos, avisos } = armarExpediente(lecturas, MANUAL);
+
+  assert.equal(datos.domicilio.estado, 'NUEVO LEON');
+  assert.ok(avisos.some((aviso) => aviso.campo === 'estado' && /25000/.test(aviso.mensaje)));
+});

@@ -8,6 +8,7 @@ import {
   generarDomicilio,
   generarDomicilios,
 } from '../lib/calles.js';
+import { MUNICIPIOS_COAHUILA } from '../lib/geografia.js';
 import { idDeFaltante } from './BarraAccion.jsx';
 import { IconoAlerta } from './Iconos.jsx';
 
@@ -21,6 +22,14 @@ const FALTANTES_POR_GRUPO = {
     `referencias.${sufijo}.telefono`,
   ]),
 };
+
+/** Si la CURP leída pasa el dígito verificador, para la nota bajo el campo. */
+function notaCurp(cliente) {
+  if (!cliente.curp) return undefined;
+  return cliente.curpValida
+    ? 'Verificada: formato y dígito verificador correctos.'
+    : 'No pasa la verificación (dígito verificador): compárala con la credencial.';
+}
 
 /** De dónde salió el sueldo, para la nota bajo el campo. */
 function notaSueldo(empleo, pideIngresos) {
@@ -126,8 +135,40 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           valor={lecturas.ineFrente?.curp}
           falta={falta('curp')}
           mono
+          nota={notaCurp(datos.cliente)}
           onCambio={(v) => onLectura('ineFrente', 'curp', v)}
         />
+        {datos.cliente.curpCorregida && (
+          <Derivado
+            etiqueta="CURP que se capturará"
+            valor={datos.cliente.curp}
+            mono
+            nota="Corregida de lo que se leyó (ver el aviso de arriba). Compárala con la credencial."
+          />
+        )}
+        <Derivado
+          etiqueta="Estado de nacimiento"
+          valor={datos.cliente.estadoNacimiento}
+          nota={
+            datos.cliente.estadoNacimiento
+              ? 'Sale de las posiciones 12 y 13 de la CURP.'
+              : datos.cliente.curpValida
+                ? 'La CURP no trae un estado de Dinamo (nació en el extranjero): elígelo a mano.'
+                : 'Hace falta una CURP válida para calcularlo.'
+          }
+        />
+        <Campo
+          etiqueta="Municipio de nacimiento"
+          valor={manual.municipioNacimiento}
+          lista={datos.cliente.estadoNacimiento === 'COAHUILA' ? 'municipios-coahuila' : undefined}
+          nota="Opcional. No viene en la CURP ni en la INE: si lo escribes, la extensión lo elige; si no, lo eliges tú."
+          onCambio={(v) => onManual('municipioNacimiento', v)}
+        />
+        <datalist id="municipios-coahuila">
+          {MUNICIPIOS_COAHUILA.map((municipio) => (
+            <option key={municipio} value={municipio} />
+          ))}
+        </datalist>
         <Campo
           etiqueta="OCR del reverso"
           valor={lecturas.ineAtras?.ocr}
@@ -196,6 +237,23 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           nota="Para buscar la colonia en SEPOMEX (lo hace el vendedor)."
         />
         <Campo
+          etiqueta="Municipio"
+          valor={datos.domicilio.municipio}
+          nota="Sin el estado ni abreviaturas. Dinamo lo llena con SEPOMEX."
+          onCambio={(v) => onLectura('comprobante', 'municipio', v)}
+        />
+        <Derivado
+          etiqueta="Estado"
+          valor={datos.domicilio.estado}
+          nota={
+            datos.domicilio.estadoOrigen === 'cp'
+              ? 'No venía en el recibo: se dedujo del código postal.'
+              : datos.domicilio.estado
+                ? 'Del recibo.'
+                : 'No venía en el recibo ni hay código postal para deducirlo.'
+          }
+        />
+        <Campo
           etiqueta="Tiempo viviendo ahí"
           valor={lecturas.formulario?.antiguedad_domicilio}
           onCambio={(v) => onLectura('formulario', 'antiguedad_domicilio', v)}
@@ -203,6 +261,12 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
         <Derivado
           etiqueta="Antigüedad que se capturará"
           valor={`${datos.domicilio.antiguedadAnios} años, ${datos.domicilio.antiguedadMeses} meses`}
+        />
+        <Campo
+          etiqueta="Horario para visita en el domicilio"
+          valor={lecturas.formulario?.horario_domicilio}
+          nota={`Se capturará de ${datos.domicilio.horaDe} a ${datos.domicilio.horaA} h (menú de horas de Dinamo).`}
+          onCambio={(v) => onLectura('formulario', 'horario_domicilio', v)}
         />
       </Grupo>
 
@@ -215,15 +279,47 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           onCambio={(v) => onLectura('formulario', 'empleo', v)}
         />
         <Campo
+          etiqueta="Puesto"
+          valor={lecturas.formulario?.puesto}
+          nota={
+            datos.empleo.puesto
+              ? 'Tal como lo escribió el cliente.'
+              : `No venía en el formulario: se captura «${datos.empleo.puestoDinamo}».`
+          }
+          onCambio={(v) => onLectura('formulario', 'puesto', v)}
+        />
+        <Campo
           etiqueta="Dirección del trabajo"
           valor={lecturas.formulario?.direccion_empleo}
+          nota={
+            datos.empleo.calle
+              ? `Calle: ${datos.empleo.calle}${datos.empleo.numeroExterior ? ` #${datos.empleo.numeroExterior}` : ''}`
+              : undefined
+          }
           onCambio={(v) => onLectura('formulario', 'direccion_empleo', v)}
         />
         <Campo
           etiqueta="Colonia del trabajo"
-          valor={lecturas.formulario?.colonia_empleo}
+          valor={datos.empleo.colonia}
           nota="Se busca en SEPOMEX si no hay CP."
           onCambio={(v) => onLectura('formulario', 'colonia_empleo', v)}
+        />
+        <Campo
+          etiqueta="Código postal del trabajo"
+          valor={datos.empleo.cp}
+          mono
+          nota="Para buscar la colonia en SEPOMEX."
+          onCambio={(v) => onLectura('formulario', 'cp_empleo', v)}
+        />
+        <Derivado
+          etiqueta="Municipio y estado del trabajo"
+          valor={[datos.empleo.municipio, datos.empleo.estado].filter(Boolean).join(' · ')}
+        />
+        <Campo
+          etiqueta="Horario para visita en el trabajo"
+          valor={lecturas.formulario?.horario_empleo}
+          nota={`Se capturará de ${datos.empleo.horaDe} a ${datos.empleo.horaA} h (menú de horas de Dinamo).`}
+          onCambio={(v) => onLectura('formulario', 'horario_empleo', v)}
         />
         <Campo
           etiqueta="Antigüedad laboral"
@@ -245,13 +341,15 @@ export default function Revision({ lecturas, manual, expediente, onLectura, onMa
           mono
           onCambio={(v) => onLectura('formulario', 'companero_telefono', v)}
         />
-        <Campo
-          etiqueta="Número de seguro social"
-          valor={lecturas.formulario?.nss}
-          nota="Opcional. Dinamo no tiene campo para él: solo de consulta."
-          mono
-          onCambio={(v) => onLectura('formulario', 'nss', v)}
-        />
+        {lecturas.formulario?.nss && (
+          <Campo
+            etiqueta="Número de seguro social"
+            valor={lecturas.formulario.nss}
+            nota="Del formulario anterior. Dinamo no tiene campo para él: solo de consulta."
+            mono
+            onCambio={(v) => onLectura('formulario', 'nss', v)}
+          />
+        )}
         <Campo
           clave="empleo.sueldo"
           etiqueta="Sueldo"
@@ -438,7 +536,7 @@ function BloqueReferencia({
   );
 }
 
-function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, onCambio }) {
+function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, lista, onCambio }) {
   const generado = useId();
   const id = clave ? idDeFaltante(clave) : generado;
   const clases = ['campo'];
@@ -452,6 +550,7 @@ function Campo({ clave, etiqueta, valor, falta, nota, ficticio, mono, onCambio }
         id={id}
         className={mono ? 'mono' : undefined}
         value={valor ?? ''}
+        list={lista}
         aria-invalid={falta || undefined}
         onChange={(evento) => onCambio(evento.target.value)}
         placeholder={falta ? 'Obligatorio' : ''}
@@ -488,13 +587,13 @@ function Seleccion({ clave, etiqueta, valor, opciones, nota, aviso, falta, vacio
   );
 }
 
-function Derivado({ etiqueta, valor, mono }) {
+function Derivado({ etiqueta, valor, mono, nota }) {
   const id = useId();
   return (
     <div className="campo derivado">
       <label htmlFor={id}>{etiqueta}</label>
       <input id={id} className={mono ? 'mono' : undefined} value={valor ?? ''} readOnly tabIndex={-1} />
-      <span className="nota">Lo calcula la app.</span>
+      <span className="nota">{nota ?? 'Lo calcula la app.'}</span>
     </div>
   );
 }

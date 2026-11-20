@@ -156,7 +156,9 @@ function salirDe(elemento) {
 
 function valorDelCampo(campo, expediente) {
   if (campo.fijo !== undefined) return campo.fijo;
-  const valor = valorEn(expediente, campo.de);
+  let valor = valorEn(expediente, campo.de);
+  // Un expediente de una versión anterior de la app no trae horarios ni puesto.
+  if (valor.trim() === '' && campo.porDefecto !== undefined) valor = campo.porDefecto;
   // txtsueldo solo acepta dígitos: «12,500.40» se vuelve 12500.
   if (campo.entero && valor.trim() !== '') {
     const numero = Number(valor.replace(/[^\d.]/g, ''));
@@ -216,7 +218,11 @@ async function llenarCampo(campo, expediente, seccion) {
       quedo = seleccionarPorValue(elemento, valor);
     } else if (campo.tipo === 'selectTexto') {
       if (campo.dinamico) await esperarOpciones(campo.id, 4);
+      // Si elegir esto recarga otra lista (estado → municipio), se anota cómo
+      // estaba para esperar a que cambie antes de escribir la que depende de ella.
+      const antes = campo.recarga ? firmaDeOpciones(campo.recarga) : null;
       quedo = seleccionarPorTexto(elemento, valor);
+      if (campo.recarga) await esperarCambioDeOpciones(campo.recarga, antes, 3);
     } else {
       quedo = escribirTexto(elemento, valor);
       // Algunos campos hacen su trabajo al salir (txtrfc calcula la fecha de
@@ -247,6 +253,27 @@ async function llenarCampo(campo, expediente, seccion) {
   }
 
   await pausa(PAUSA_ENTRE_CAMPOS);
+}
+
+// --- Listas que se recargan -----------------------------------------------------
+
+/** Las opciones de un <select> como un solo texto, para saber si cambiaron. */
+function firmaDeOpciones(id) {
+  const select = document.getElementById(id);
+  return select ? [...select.options].map((opcion) => opcion.text.trim()).join('|') : '';
+}
+
+/**
+ * Espera a que la lista de un <select> cambie después de elegir el de arriba
+ * (el AJAX de estado → municipio). Si no cambia en `segundos` (el estado ya era
+ * ese), sigue: no es un error.
+ */
+async function esperarCambioDeOpciones(id, firmaAnterior, segundos) {
+  const limite = Date.now() + segundos * 1000;
+  while (firmaDeOpciones(id) === firmaAnterior && Date.now() < limite) {
+    await pausa(150);
+  }
+  await pausa(150);
 }
 
 // --- Pasos especiales ----------------------------------------------------------
@@ -285,6 +312,7 @@ function pistaDeColonia(seccion, expediente) {
     pista?.colonia && valorEn(expediente, pista.colonia)
       ? `colonia ${valorEn(expediente, pista.colonia)}`
       : '',
+    ...(pista?.lugar ?? []).map((ruta) => valorEn(expediente, ruta)),
   ]
     .filter(Boolean)
     .join(', ');
@@ -414,14 +442,21 @@ function motoCapturada() {
   return Boolean(modelo) && !VALORES_VACIOS.has(String(modelo.value).trim());
 }
 
-/** Lo que Dinamo pide y la extensión nunca llena; se anota solo si sigue vacío. */
-function pendientesFijos() {
+/**
+ * Lo que Dinamo pide y no siempre se puede llenar. El estado de nacimiento sale
+ * de la CURP; el municipio no sale de ningún documento, así que si la revisión
+ * no lo trae lo elige el vendedor.
+ */
+function pendientesFijos(expediente) {
   const vacio = (id) => {
     const elemento = document.getElementById(id);
     return Boolean(elemento) && VALORES_VACIOS.has(String(elemento.value ?? '').trim());
   };
-  if (vacio('cboedo_nac') || vacio('cboMpio_nac')) {
-    pendiente('Datos del cliente: elige el estado y el municipio de nacimiento.');
+  if (!valorEn(expediente, 'datos.cliente.estadoNacimiento') && vacio('cboedo_nac')) {
+    pendiente('Datos del cliente: elige el estado de nacimiento (la CURP no trae uno de la lista).');
+  }
+  if (!valorEn(expediente, 'datos.cliente.municipioNacimiento')) {
+    pendiente('Datos del cliente: elige el municipio de nacimiento (no viene en la CURP ni en la INE).');
   }
 }
 
@@ -486,7 +521,7 @@ async function llenar(expediente) {
       }
     }
 
-    pendientesFijos();
+    pendientesFijos(expediente);
     publicar(
       'resumen',
       pendientes.length === 1

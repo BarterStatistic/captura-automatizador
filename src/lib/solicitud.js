@@ -106,11 +106,11 @@ export function datosSolicitud({ datos, lecturas = {}, manual = {}, impresion = 
     texto(extra.montoFinanciado) ||
     (importe !== null && enganche !== null && importe > enganche ? String(importe - enganche) : '');
 
-  // Del comprobante solo sale el municipio; la ciudad no la dice, así que va
-  // vacía. El estado, solo si el comprobante lo trae (no se toma de la INE:
-  // ese domicilio puede ser otro).
+  // Del comprobante salen el municipio y el estado; la ciudad no la dice, así que
+  // va vacía. El estado es el del recibo o, si no lo trae, el que corresponde a
+  // su código postal (no se toma de la INE: ese domicilio puede ser otro).
   const municipio = mayus(domicilio.municipio);
-  const estado = mayus(lecturas.comprobante?.estado);
+  const estado = mayus(domicilio.estado || lecturas.comprobante?.estado);
 
   const correo = cliente.correo ? `${texto(cliente.correo)}@${texto(cliente.dominioCorreo) || 'gmail.com'}` : '';
 
@@ -174,7 +174,7 @@ export function datosSolicitud({ datos, lecturas = {}, manual = {}, impresion = 
       numeroInterior: mayus(empleo.numeroInterior),
       colonia: mayus(empleo.colonia),
       antiguedad: antiguedadLegible(empleo.antiguedadAnios, empleo.antiguedadMeses),
-      puesto: mayus(extra.puesto),
+      puesto: mayus(extra.puesto || empleo.puesto),
       // El jefe inmediato es SIEMPRE la referencia laboral (el compañero del
       // punto 4 del formulario), igual que en Dinamo. El teléfono de la
       // empresa no se sabe: va vacío.

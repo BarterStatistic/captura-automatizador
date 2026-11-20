@@ -40,6 +40,8 @@ const MANUAL_INICIAL = {
   sueldo: '',
   frecuenciaPago: '',
   ciudadReferencias: 'SALTILLO',
+  // El municipio de nacimiento no viene en la CURP ni en la INE: opcional, a mano.
+  municipioNacimiento: '',
   referencias: {},
 };
 

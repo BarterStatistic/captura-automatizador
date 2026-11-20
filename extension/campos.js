@@ -20,6 +20,9 @@
 //   opcional      sin dato no se avisa
 //   blur          tras escribir se sale del campo: ahí corre su validación
 //   entero        se escribe como número entero, sin comas ni centavos
+//   porDefecto    valor que se usa cuando el expediente no trae dato (horarios, puesto)
+//   recarga       id de otro <select> cuyas opciones llegan por AJAX al elegir este
+//                 (estado → municipio): se espera a que cambien antes de seguir
 //
 // Cotejado contra el HTML real de dsc_captura_2022.php (2026-10-02).
 //
@@ -169,6 +172,25 @@ const SECCIONES = [
         etiqueta: 'Actividad económica',
       },
       { id: 'cbonacionalidad', tipo: 'select', fijo: '1', etiqueta: 'Nacionalidad' },
+      // El estado sale de las posiciones 12-13 de la CURP (ya validada en la app).
+      // Elegirlo recarga por AJAX la lista de municipios. El municipio solo se
+      // elige si la revisión lo trae: no viene en la CURP ni en la INE.
+      {
+        id: 'cboedo_nac',
+        tipo: 'selectTexto',
+        de: 'datos.cliente.estadoNacimiento',
+        etiqueta: 'Estado de nacimiento',
+        opcional: true,
+        recarga: 'cboMpio_nac',
+      },
+      {
+        id: 'cboMpio_nac',
+        tipo: 'selectTexto',
+        de: 'datos.cliente.municipioNacimiento',
+        etiqueta: 'Municipio de nacimiento',
+        opcional: true,
+        dinamico: true,
+      },
       { id: 'txtemail', tipo: 'texto', de: 'datos.cliente.correo', etiqueta: 'Correo', blur: true },
       {
         id: 'cbo_dominio',
@@ -215,8 +237,22 @@ const SECCIONES = [
         etiqueta: 'Antigüedad en el domicilio (meses)',
         opcional: true,
       },
-      { id: 'cbohora_de', tipo: 'select', fijo: '10', etiqueta: 'Verificación desde' },
-      { id: 'cbohora_a', tipo: 'select', fijo: '12', etiqueta: 'Verificación hasta' },
+      // El horario sale del punto «Horario para recibir visita en domicilio» del
+      // formulario (menú de horas 0-23); sin dato, el de siempre.
+      {
+        id: 'cbohora_de',
+        tipo: 'select',
+        de: 'datos.domicilio.horaDe',
+        porDefecto: '10',
+        etiqueta: 'Verificación desde',
+      },
+      {
+        id: 'cbohora_a',
+        tipo: 'select',
+        de: 'datos.domicilio.horaA',
+        porDefecto: '12',
+        etiqueta: 'Verificación hasta',
+      },
       { id: 'txtlada', tipo: 'texto', de: 'datos.cliente.lada', etiqueta: 'Lada' },
       { id: 'txttelefono', tipo: 'texto', de: 'datos.cliente.telefono', etiqueta: 'Teléfono' },
       { id: 'cbotipo_tel', tipo: 'select', fijo: '5', etiqueta: 'Tipo de línea' },
@@ -227,7 +263,11 @@ const SECCIONES = [
     colonia: {
       cp: 'txtcp',
       que: 'del domicilio del cliente',
-      pista: { cp: 'datos.domicilio.cp', colonia: 'datos.domicilio.colonia' },
+      pista: {
+        cp: 'datos.domicilio.cp',
+        colonia: 'datos.domicilio.colonia',
+        lugar: ['datos.domicilio.municipio', 'datos.domicilio.estado'],
+      },
     },
     validar: 'valida_domicilio',
   },
@@ -251,7 +291,14 @@ const SECCIONES = [
       },
       { id: 'cbosector', tipo: 'select', fijo: '2', etiqueta: 'Sector' },
       { id: 'cboactividad', tipo: 'select', fijo: '1', etiqueta: 'Actividad' },
-      { id: 'txtpuesto', tipo: 'texto', fijo: 'trabajador', etiqueta: 'Puesto' },
+      // El puesto sale del formulario («Puesto en su trabajo»); sin dato, «trabajador».
+      {
+        id: 'txtpuesto',
+        tipo: 'texto',
+        de: 'datos.empleo.puestoDinamo',
+        porDefecto: 'trabajador',
+        etiqueta: 'Puesto',
+      },
       // El sueldo sale de los estados de cuenta: le pagan por depósito.
       {
         id: 'radiobutton_elec',
@@ -293,8 +340,21 @@ const SECCIONES = [
         etiqueta: 'Número interior del trabajo',
         opcional: true,
       },
-      { id: 'cbohora_de_emp', tipo: 'select', fijo: '16', etiqueta: 'Verificación desde' },
-      { id: 'cbohora_a_emp', tipo: 'select', fijo: '18', etiqueta: 'Verificación hasta' },
+      // Del punto «Horario para recibir en visitas» (el del trabajo).
+      {
+        id: 'cbohora_de_emp',
+        tipo: 'select',
+        de: 'datos.empleo.horaDe',
+        porDefecto: '16',
+        etiqueta: 'Verificación desde',
+      },
+      {
+        id: 'cbohora_a_emp',
+        tipo: 'select',
+        de: 'datos.empleo.horaA',
+        porDefecto: '18',
+        etiqueta: 'Verificación hasta',
+      },
       { id: 'txtlada_emp', tipo: 'texto', de: 'datos.empleo.lada', etiqueta: 'Lada del trabajo' },
       {
         id: 'txttelefono_emp',
@@ -308,7 +368,11 @@ const SECCIONES = [
     colonia: {
       cp: 'txtcp_emp',
       que: 'del trabajo',
-      pista: { colonia: 'datos.empleo.colonia' },
+      pista: {
+        cp: 'datos.empleo.cp',
+        colonia: 'datos.empleo.colonia',
+        lugar: ['datos.empleo.municipio', 'datos.empleo.estado'],
+      },
     },
     validar: 'valida_empleo',
   },

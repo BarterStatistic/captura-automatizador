@@ -18,6 +18,19 @@ y municipio de nacimiento.
 guardar Dinamo sustituye los datos del cliente por los fiscales. Requiere
 permitir los pop-ups de `dinamo2.intranet` en Edge (ver abajo).
 
+**Formulario de 10 puntos (desde 1.10.0).** Del nuevo «FORMULARIO PARA CRÉDITO» la
+extensión ahora captura también:
+
+- **Puesto** (`txtpuesto`): el que escribió el cliente; sin dato, «trabajador».
+- **Horarios de verificación** del domicilio y del trabajo (`cbohora_de` /
+  `cbohora_a` y sus `_emp`): se leen de «6am a 6pm», «7pm 10pm», «de 9 a 5»…; sin
+  dato, los de siempre (10–12 casa, 16–18 trabajo).
+- **Estado de nacimiento** (`cboedo_nac`): sale de las posiciones 12-13 de la CURP.
+  Elegirlo recarga por AJAX los municipios; la corrida espera a que cambien.
+- **Municipio de nacimiento** (`cboMpio_nac`): solo si la revisión lo trae (no
+  viene en la CURP ni en la INE); si no, queda en «Pendiente a mano».
+- La **pista de SEPOMEX** del trabajo ahora incluye CP, municipio y estado.
+
 La extensión no habla con Gemini, no tiene API key y no hace ninguna petición de
 red. Escribe directo en el DOM, así que no hay CORS, ni contenido mixto, ni
 Private Network Access, aunque la app esté en HTTPS y Dinamo en HTTP.

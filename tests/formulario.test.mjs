@@ -11,6 +11,7 @@ import {
   puntosDelFormulario,
   respaldoDelTexto,
   respuestaDe,
+  respuestasDelFormulario,
   textoParaGemini,
 } from '../src/lib/formulario.js';
 import { ESQUEMAS_VENTA, SUBESQUEMAS } from '../src/lib/esquemas.js';
@@ -206,4 +207,171 @@ test('el respaldo no pisa lo que Gemini sí leyó', () => {
 
   assert.equal(nueva.correo, 'otro@hotmail.com');
   assert.equal(nueva.empleo, 'Walmart');
+});
+
+// --- Formulario de 10 puntos («FORMULARIO PARA CRÉDITO») -----------------------------
+//
+// Este es el ejemplo del formato, con datos ficticios: cada pregunta lleva su emoji y la
+// respuesta va en el mismo renglón, a veces sin dos puntos.
+
+const FORMULARIO_NUEVO = `FORMULARIO PARA CRÉDITO
+
+Favor de llenar en su totalidad el siguiente formulario para comenzar su proceso de crédito 🤝
+
+1) 📧 Correo electrónico: cliente.prueba@gmail.com 
+
+2) 🏢 Nombre de su trabajo Tornillos del Norte
+
+3)  ⚙️ Puesto en su trabajo  operador 
+
+4) 📍 Dirección de su trabajo. Cerca de Av. Las Industrias, Parque Industrial Norte, 25114 Saltillo, Coah.
+
+5) ⏱️ Horario para recibir en visitas 6am a 6pm
+
+6) 💼 Antigüedad laboral 
+7 meses 
+
+7)👨‍💼 | 👩‍💼 Nombre, apellido y teléfono de algún compañero de su trabajo  Carlos Ruiz 8441234500
+
+8) 🏡 Tiempo viviendo en su casa actual:  7 meses 
+
+9) ⏱️ Horario para recibir visita en domicilio 7pm 10pm
+
+10) 👨 | 👩 Nombre, apellido y teléfono de algún amigo, conocido o familiar 
+Luis Mena 8447654300`;
+
+test('el formulario nuevo se reconoce y se parte en sus 10 puntos', () => {
+  const { formato, puntos } = respuestasDelFormulario(FORMULARIO_NUEVO);
+
+  assert.equal(formato, 'nuevo');
+  assert.deepEqual(
+    puntos.map((punto) => punto.numero),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  );
+  assert.deepEqual(
+    puntos.map((punto) => punto.clave),
+    [
+      'correo',
+      'empleo',
+      'puesto',
+      'direccion_empleo',
+      'horario_empleo',
+      'antiguedad_laboral',
+      'companero',
+      'antiguedad_domicilio',
+      'horario_domicilio',
+      'referencia',
+    ],
+  );
+});
+
+test('la respuesta va sin la pregunta ni los emojis, aunque no haya dos puntos', () => {
+  const { respuestas } = respuestasDelFormulario(FORMULARIO_NUEVO);
+
+  assert.equal(respuestas.correo, 'cliente.prueba@gmail.com');
+  assert.equal(respuestas.empleo, 'Tornillos del Norte');
+  assert.equal(respuestas.puesto, 'operador');
+  assert.equal(
+    respuestas.direccion_empleo,
+    'Cerca de Av. Las Industrias, Parque Industrial Norte, 25114 Saltillo, Coah.',
+  );
+  assert.equal(respuestas.horario_empleo, '6am a 6pm');
+  assert.equal(respuestas.antiguedad_laboral, '7 meses', 'la respuesta va en el renglón de abajo');
+  assert.equal(respuestas.companero, 'Carlos Ruiz 8441234500');
+  assert.equal(respuestas.antiguedad_domicilio, '7 meses');
+  assert.equal(respuestas.horario_domicilio, '7pm 10pm');
+  assert.equal(respuestas.referencia, 'Luis Mena 8447654300');
+});
+
+test('«Horario para recibir en visitas» (trabajo) no se confunde con el de la casa', () => {
+  const { respuestas } = respuestasDelFormulario(FORMULARIO_NUEVO);
+
+  assert.equal(respuestas.horario_empleo, '6am a 6pm');
+  assert.equal(respuestas.horario_domicilio, '7pm 10pm');
+});
+
+test('sin Gemini, el respaldo lee todo el formulario nuevo', () => {
+  const nueva = respaldoDelTexto({}, FORMULARIO_NUEVO);
+
+  assert.equal(nueva.correo, 'cliente.prueba@gmail.com');
+  assert.equal(nueva.empleo, 'Tornillos del Norte');
+  assert.equal(nueva.puesto, 'operador');
+  assert.match(nueva.direccion_empleo, /Av\. Las Industrias.*25114 Saltillo/);
+  assert.equal(nueva.horario_empleo, '6am a 6pm');
+  assert.equal(nueva.horario_domicilio, '7pm 10pm');
+  assert.equal(nueva.antiguedad_laboral, '7 meses');
+  assert.equal(nueva.antiguedad_domicilio, '7 meses');
+  assert.equal(nueva.companero_nombre, 'Carlos Ruiz');
+  assert.equal(nueva.companero_telefono, '8441234500');
+  assert.equal(nueva.referencia_nombre, 'Luis Mena');
+  assert.equal(nueva.referencia_telefono, '8447654300');
+});
+
+test('a Gemini le llegan los 10 puntos separados, cada uno con su nombre', () => {
+  const texto = textoParaGemini(FORMULARIO_NUEVO);
+
+  assert.match(texto, /Punto 3 \(puesto en el trabajo\): operador/);
+  assert.match(texto, /Punto 5 \(horario para recibir visitas en el trabajo\): 6am a 6pm/);
+  assert.match(texto, /Punto 7 \(compañero de trabajo\): Carlos Ruiz 8441234500/);
+  assert.match(texto, /Punto 9 \(horario para recibir visita en el domicilio\): 7pm 10pm/);
+});
+
+test('un horario como «9-6» al inicio de renglón no abre un punto nuevo', () => {
+  const texto = FORMULARIO_NUEVO.replace('6am a 6pm', '\n9-6');
+  const { respuestas, puntos } = respuestasDelFormulario(texto);
+
+  assert.equal(puntos.length, 10);
+  assert.equal(respuestas.horario_empleo, '9-6');
+  assert.equal(respuestas.antiguedad_laboral, '7 meses');
+});
+
+test('con WhatsApp (negritas y emojis de número) también se lee el formulario nuevo', () => {
+  const whatsapp = `*1️⃣ 📧 Correo electrónico:* ana@gmail.com
+*2️⃣ 🏢 Nombre de su trabajo:* Walmart
+*3️⃣ ⚙️ Puesto en su trabajo:* cajera
+*4️⃣ 📍 Dirección de su trabajo:* Blvd. Fundadores 500, Col. Centro, 25000 Saltillo
+*5️⃣ ⏱️ Horario para recibir en visitas:* de 9 a 5
+*6️⃣ 💼 Antigüedad laboral:* 2 años
+*7️⃣ Nombre, apellido y teléfono de algún compañero de su trabajo:* Rosa Díaz 844 111 2233
+*8️⃣ 🏡 Tiempo viviendo en su casa actual:* toda la vida
+*9️⃣ ⏱️ Horario para recibir visita en domicilio:* 7pm a 9pm
+*🔟 Nombre, apellido y teléfono de algún amigo, conocido o familiar:* Luis Pérez (primo) 844 333 4455`;
+  const { formato, respuestas } = respuestasDelFormulario(whatsapp);
+
+  assert.equal(formato, 'nuevo');
+  assert.equal(respuestas.empleo, 'Walmart');
+  assert.equal(respuestas.puesto, 'cajera');
+  assert.equal(respuestas.horario_empleo, 'de 9 a 5');
+  assert.equal(respuestas.referencia, 'Luis Pérez (primo) 844 333 4455');
+  assert.equal(respaldoDelTexto({}, whatsapp).referencia_nombre, 'Luis Pérez');
+});
+
+test('si no se reconoce la pregunta, el punto se asigna por su lugar en el esqueleto', () => {
+  const sinPreguntas = `1) ana@gmail.com
+2) Walmart
+3) cajera
+4) Blvd. Fundadores 500, 25000 Saltillo
+5) 9am a 5pm
+6) 2 años
+7) Rosa Díaz 844 111 2233
+8) 5 años
+9) 7pm a 9pm
+10) Luis Pérez 844 333 4455`;
+  const { formato, respuestas } = respuestasDelFormulario(sinPreguntas);
+
+  assert.equal(formato, 'nuevo');
+  assert.equal(respuestas.puesto, 'cajera');
+  assert.equal(respuestas.horario_domicilio, '7pm a 9pm');
+});
+
+test('el formulario anterior de 7 puntos se sigue leyendo como tal', () => {
+  const { formato, respuestas } = respuestasDelFormulario(ESQUELETO);
+
+  assert.equal(formato, 'anterior');
+  assert.equal(respuestas.nss, '12345678901');
+  assert.equal(respuestas.trabajo, 'Walmart Saltillo');
+});
+
+test('un mensaje sin numerar no es ni uno ni otro', () => {
+  assert.equal(respuestasDelFormulario('solo un renglón').formato, 'libre');
 });

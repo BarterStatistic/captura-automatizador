@@ -97,8 +97,14 @@ test('el domicilio sale del comprobante, con el estado del comprobante', () => {
   assert.equal(domicilio.celular, '844 555 6677');
 });
 
-test('sin estado en el comprobante el estado queda vacío (no se toma de la INE)', () => {
+test('sin estado en el comprobante se deduce de SU código postal (no se toma de la INE)', () => {
   const lecturas = { ...LECTURAS, comprobante: { ...LECTURAS.comprobante, estado: null } };
+  // El CP del comprobante es de Coahuila (25xxx).
+  assert.equal(solicitud({}, lecturas).domicilio.estado, 'COAHUILA');
+});
+
+test('sin estado ni código postal en el comprobante el estado queda vacío', () => {
+  const lecturas = { ...LECTURAS, comprobante: { ...LECTURAS.comprobante, estado: null, cp: null } };
   assert.equal(solicitud({}, lecturas).domicilio.estado, '');
 });
 
